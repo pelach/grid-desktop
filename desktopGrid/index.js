@@ -192,8 +192,8 @@ export const DesktopGrid = GObject.registerClass(
         }
 
         _resolveGridLayout() {
-            const { cellSize, cellTotalWidth, cellTotalHeight, gridRows } = calculateGridDimensions(this.width, this.height, COLUMNS_COUNT);
-            return { gridCols: COLUMNS_COUNT, gridRows, cellSize, cellTotalWidth, cellTotalHeight };
+            const { cellSize, cellTotalWidth, cellTotalHeight, gridCols, gridRows } = calculateGridDimensions(this.width, this.height);
+            return { gridCols, gridRows, cellSize, cellTotalWidth, cellTotalHeight };
         }
 
         _layoutWidgetsOnGrid(activeWidgets, gridCols, gridRows, cellSize, cellTotalWidth, cellTotalHeight) {

@@ -1,6 +1,6 @@
 {
-  "uuid": "gridgets@rebatnaath.github.com",
-  "name": "Gridgets",
+  "uuid": "grid-desktop@pelach.github.com",
+  "name": "Grid Desktop",
   "description": "GNOME widgets for your desktop.\n* Place clock, weather, notes, music, system monitor, clipboard and image widgets on a desktop grid.\n* Local clipboard history widget.\n* Drag, resize, and customise each widget independently.",
   "shell-version": [
     "45",
@@ -10,6 +10,6 @@
     "49",
     "50"
   ],
-  "settings-schema": "org.gnome.shell.extensions.gridgets",
-  "url": "https://github.com/rebatnaath/gridgets"
+  "settings-schema": "org.gnome.shell.extensions.grid-desktop",
+  "url": "https://github.com/pelach/grid-desktop"
 }

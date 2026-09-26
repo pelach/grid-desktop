@@ -17,10 +17,11 @@ export const CAIRO_OPERATOR_CLEAR = 0;
 export const CAIRO_OPERATOR_OVER = 2;
 export const CAIRO_LINE_CAP_ROUND = 1;
 
-export const COLUMNS_COUNT = 50;
-export const ROWS_COUNT = 16;
+export const BASE_CELL_SIZE = 34; 
 export const GRID_GAP_PX = 4;
 export const GRID_MARGIN_PX = 4;
+export const COLUMNS_COUNT = 50;
+export const ROWS_COUNT = 28;
 
 
 export const MIN_WIDGET_SIZES = Object.freeze({
@@ -59,13 +60,27 @@ export function resolveUse24h(widgetData) {
  * Calculates grid cell dimensions from canvas size and column count.
  * Returns { cellSize, cellTotalWidth, cellTotalHeight, gridRows }.
  */
-export function calculateGridDimensions(width, height, gridCols) {
-    const availableWidth = width - (GRID_MARGIN_PX * 2) - (GRID_GAP_PX * (gridCols - 1));
-    const cellSize = Math.max(1, Math.floor(availableWidth / gridCols));
-    const cellTotalWidth = cellSize + GRID_GAP_PX;
-    const availableHeight = height - (GRID_MARGIN_PX * 2);
-    const gridRows = Math.max(1, Math.floor((availableHeight + GRID_GAP_PX) / cellTotalWidth));
-    return { cellSize, cellTotalWidth, cellTotalHeight: cellTotalWidth, gridRows };
+export function calculateGridDimensions(width, height, preferredCols = COLUMNS_COUNT) {
+    const w = (Number.isFinite(width) && width > 0) ? width : 1920;
+    const h = (Number.isFinite(height) && height > 0) ? height : 1080;
+
+    const cellTotal = BASE_CELL_SIZE + GRID_GAP_PX; // ~38px egy cellalépés
+    const cellSize = BASE_CELL_SIZE;
+
+    const availableWidth = Math.max(1, w - (GRID_MARGIN_PX * 2));
+    const availableHeight = Math.max(1, h - (GRID_MARGIN_PX * 2));
+
+    // Képernyőfelbontáshoz igazodó oszlop- és sorszám számítás
+    const gridCols = Math.max(1, Math.floor((availableWidth + GRID_GAP_PX) / cellTotal));
+    const gridRows = Math.max(1, Math.floor((availableHeight + GRID_GAP_PX) / cellTotal));
+
+    return {
+        cellSize,
+        cellTotalWidth: cellTotal,
+        cellTotalHeight: cellTotal,
+        gridCols,
+        gridRows,
+    };
 }
 
 /** Corner rounding applied to every widget; not user-configurable. */
@@ -289,9 +304,9 @@ function ensureDirectory(dirPath, errorContext) {
     }
 }
 
-/** Returns the canonical user data storage directory for Gridgets (~/.local/share/gridgets/<subFolder>). */
-export function getGridgetsDataDir(subFolder = '') {
-    const pathParts = [GLib.get_user_data_dir(), 'gridgets'];
+
+export function getGridDesktopDataDir(subFolder = '') {
+    const pathParts = [GLib.get_user_data_dir(), 'grid-desktop'];
     if (subFolder) {
         pathParts.push(subFolder);
     }
@@ -299,7 +314,7 @@ export function getGridgetsDataDir(subFolder = '') {
     ensureDirectory(dataDir, 'data directory');
     return dataDir;
 }
-
+export const getGridgetsDataDir = getGridDesktopDataDir;
 /**
  * Reads a JSON file asynchronously and invokes callback(parsed, parseError).
  * A missing/empty file yields callback(null) — the normal first-run case.
@@ -373,7 +388,7 @@ export function saveJsonToFileSync(filePath, data) {
 export function deleteCacheFile(subFolder, widgetId) {
     if (!widgetId) return;
     const safeSubFolder = subFolder || '';
-    const baseDir = getGridgetsDataDir(safeSubFolder);
+    const baseDir = getGridDesktopDataDir(safeSubFolder);
     const fileName = safeSubFolder ? `${safeSubFolder}-${widgetId}.json` : `${widgetId}.json`;
     const filePath = GLib.build_filenamev([baseDir, fileName]);
     const file = Gio.File.new_for_path(filePath);
@@ -382,7 +397,7 @@ export function deleteCacheFile(subFolder, widgetId) {
             try {
                 f.delete_finish(res);
             } catch (e) {
-                console.debug('Gridgets: cache file delete failed (non-critical):', e.message);
+                console.debug('Grid Desktop: cache file delete failed (non-critical):', e.message);
             }
         });
     }

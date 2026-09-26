@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="org.gnome.shell.extensions.gridgets" path="/org/gnome/shell/extensions/gridgets/">
+    <schema id="org.gnome.shell.extensions.grid-desktop" path="/org/gnome/shell/extensions/grid-desktop/">
     <key name="widgets" type="s">
       <default>"[]"</default>
       <summary>Widgets JSON data</summary>

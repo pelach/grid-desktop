@@ -397,7 +397,7 @@ export function buildInsightsPage(settings) {
     exportStBtn.connect('activated', () => {
         const exportData = buildScreenTimeExportData(stAvailableDates);
         const json = JSON.stringify(exportData, null, 2);
-        const filename = `gridgets-screen-time-${todayDateString()}.json`;
+        const filename = `grid-desktop-screen-time-${todayDateString()}.json`;
         buildExportDialog(page.get_root(), 'Export Screen Time Data', filename, json);
     });
     exportGroup.add(exportStBtn);
@@ -409,7 +409,7 @@ export function buildInsightsPage(settings) {
     exportMoodBtn.connect('activated', () => {
         const exportData = buildMoodExportData(moodAvailableDates);
         const json = JSON.stringify(exportData, null, 2);
-        const filename = `gridgets-mood-${todayDateString()}.json`;
+        const filename = `grid-desktop-mood-${todayDateString()}.json`;
         buildExportDialog(page.get_root(), 'Export Mood Data', filename, json);
     });
     exportGroup.add(exportMoodBtn);
