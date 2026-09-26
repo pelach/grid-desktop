@@ -163,14 +163,11 @@ export const DesktopGrid = GObject.registerClass(
             const target = getTargetMonitor(this.targetMonitorIndex, this.settings);
             const panelHeight = getPanelHeight();
 
-            console.log('>>> [GRID] _updateStageSize target:', JSON.stringify(target));
-
             if (target) {
                 const primaryIdx = global.display.get_primary_monitor();
                 const topOffset = (target.index === primaryIdx) ? panelHeight : 0;
                 this.set_position(target.geom.x, target.geom.y + topOffset);
                 this.set_size(target.geom.width, target.geom.height - topOffset);
-                console.log(`>>> [GRID] Pozíció beállítva: x=${target.geom.x}, y=${target.geom.y + topOffset}, w=${target.geom.width}, h=${target.geom.height - topOffset}`);
             } else {
                 this.set_position(0, panelHeight);
                 this.set_size(

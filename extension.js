@@ -40,7 +40,6 @@ export default class GridgetsExtension extends Extension {
 
         this._monitorsChangedIdleId = 0;
         this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', () => {
-            console.log('>>> [GRID] monitors-changed triggerelve!');
             if (this._monitorsChangedIdleId > 0) {
                 GLib.Source.remove(this._monitorsChangedIdleId);
                 this._monitorsChangedIdleId = 0;
@@ -48,7 +47,6 @@ export default class GridgetsExtension extends Extension {
             // 200 ms türelmi idő, amíg a Mutter beállítja az új elsődleges monitort és geometriát
             this._monitorsChangedIdleId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
                 this._monitorsChangedIdleId = 0;
-                console.log('>>> [GRID] Újraépítés indul! Primary monitor most:', global.display.get_primary_monitor());
                 this._rebuildGrids();
                 return GLib.SOURCE_REMOVE;
             });
@@ -131,7 +129,6 @@ export default class GridgetsExtension extends Extension {
                 this._spawnGrid(i);
         } else if (monitorMode === 'primary') {
             const prim = global.display.get_primary_monitor();
-            console.log('>>> [GRID] Spawning grid primary monitorra:', prim);
             this._spawnGrid(prim);
         } else if (monitorMode === 'all') {
             this._spawnGrid(null);
