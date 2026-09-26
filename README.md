@@ -1,153 +1,57 @@
-# Gridgets — GNOME Shell Widgets
+# Grid Desktop
 
-## Fork Highlights & New Features
-
-This fork extends the upstream Gridgets extension with new widgets and modular desktop customizability:
-
-* **Modular Analog Clock with Drop-in SVG Skins:**
-  * Drop any custom SVG skin into `widgets/time/skins/<skin-name>/` — the preferences UI discovers them dynamically.
-  * Seamless center axis coverage via a separate `cap.svg` layer (keeps pin coverage intact even with second hands toggled off).
-  * Optional floating / transparent mode: toggle off the dark container box for seamless wallpaper integration.
-  * Battery/CPU-friendly: switches to a minute-aligned interval when the second hand is disabled.
-* **Battery Status Widget:** Real-time battery percentage, charge status, and power diagnostics on your desktop grid.
-* **Enhanced Weather Integration:** Open-Meteo backend support with flexible styling.
+A customizable desktop widget extension for GNOME Shell, providing an interactive, density-adaptive grid on your desktop canvas.
 
 ---
-
-### Installing this Fork
-
-Clone directly into your local GNOME Shell extensions directory:
-
-git clone https://github.com/pelach/gridgets.git ~/.local/share/gnome-shell/extensions/gridgets@rebatnaath.github.com
-
-Restart GNOME Shell:
-* **X11:** Press Alt + F2, type r, and hit Enter.
-* **Wayland:** Log out and log back in.
-
-Enable the extension via CLI or the GNOME Extensions app:
-
-gnome-extensions enable gridgets@rebatnaath.github.com
-
----
-
-### Adding Custom Analog Clock Skins
-
-Creating a new skin takes just a couple of SVGs placed in a dedicated folder:
-
-1. Create a folder: `widgets/time/skins/my-custom-skin/`
-2. Add your assets (standard 1000x1000 canvas with cx="500" cy="500" center):
-   * `background.svg` — Clock face dial and hour markers.
-   * `hour_hand.svg` — Hour pointer.
-   * `minute_hand.svg` — Minute pointer.
-   * `second_hand.svg` — Second pointer (optional).
-   * `cap.svg` — Center pin cover (renders on top of all hands).
-3. Open Gridgets settings: your skin appears automatically in the Clock Skin selector formatted as My-custom-skin.
-
----
-
-![Gridgets Showcase](github/showcase.png)
-
-| | | |
-|---|---|---|
-| ![Showcase 1](github/showcase1.png) | ![Showcase 2](github/showcase2.png) | ![Showcase 3](github/showcase3.png) |
-
-Gridgets is a GNOME Shell extension that places widgets directly on your desktop using a responsive grid layout. Add clocks, system monitors, weather forecasts, sticky notes, media controls, animated images, and more, then move, resize, and style each widget independently to match your setup.
-
-<!-- ## User Guide
-
-For a detailed walkthrough of all widgets, customization options, and desktop interactions, see the [User Guide](github/user-guide/README.md). -->
 
 ## Features
 
-- **Grid Alignment:** Snap widgets cleanly to a responsive 50-column desktop grid.
-- **24+ Built-in Widgets:** Weather, Time, Calendar, Music, System Monitor, Notes, Clipboard, Pomodoro, Tasks, GitHub, RSS, Mood, Images, and more.
-- **Individual Styling:** Customize colors, fonts, border radii, and sizes for every widget.
-- **Size Presets:** Quick S/M/L sizing from the right-click context menu.
-- **Drag & Resize:** Move widgets by dragging, resize with the corner handle.
-- **Multi-Monitor:** Show widgets on primary, all, or each monitor independently.
-- **Follow System Theme:** Automatically switch between light and dark mode.
-
-## Installation
-
-
-### Option A: From GitHub Releases
-
-1. Download the latest `.zip` file from the [Releases](https://github.com/rebatnaath/gridgets/releases) page.
-2. Install it:
-   ```bash
-   gnome-extensions install --force gridgets@rebatnaath.github.com.shell-extension.zip
-   ```
-3. Restart GNOME Shell:
-   * **Wayland:** Log out and log back in.
-   * **X11:** Press `Alt` + `F2`, type `r`, and press `Enter`.
-4. Enable the extension:
-   ```bash
-   gnome-extensions enable gridgets@rebatnaath.github.com
-   ```
+- **Dynamic Grid Scaling:** Automatically adapts to any screen resolution and aspect ratio — full support for standard 16:9 displays and Ultrawide (21:9 / 32:9) monitors.
+- **Smart Multi-Monitor Support:** Cleanly handles display topology changes (docking, undocking, laptop lid open/close) across Wayland and X11 sessions.
+- **Interactive Widgets:** Weather, System Monitors, Media Player, Quick Notes, Screen Time, and more.
+- **Precision Alignment:** Snap-to-grid placement with dynamic collision avoidance.
+- **Customizable Appearance:** Full support for Adwaita light/dark modes and system accent colors.
 
 ---
-
-### Option B: Manual Directory Copy (From Source)
-
-1. Remove any previous installation:
-   ```bash
-   rm -rf ~/.local/share/gnome-shell/extensions/gridgets@rebatnaath.github.com
-   ```
-2. Copy the extension files:
-   ```bash
-   mkdir -p ~/.local/share/gnome-shell/extensions/gridgets@rebatnaath.github.com
-   cp -r . ~/.local/share/gnome-shell/extensions/gridgets@rebatnaath.github.com
-   ```
-3. Restart GNOME Shell (log out/in on Wayland, or `Alt+F2` → `r` on X11).
-4. Enable:
-   ```bash
-   gnome-extensions enable gridgets@rebatnaath.github.com
-   ```
-
----
-
-### Option C: Build Zip Package
-
-1. From the project directory:
-   ```bash
-   gnome-extensions pack \
-     --extra-source=assets \
-     --extra-source=desktopGrid \
-     --extra-source=shell \
-     --extra-source=schemas \
-     --extra-source=utils \
-     --extra-source=widgets \
-     --extra-source=prefs \
-     --force
-   ```
-2. Install:
-   ```bash
-   gnome-extensions install --force gridgets@rebatnaath.github.com.shell-extension.zip
-   ```
-3. Restart and enable:
-   ```bash
-   gnome-extensions enable gridgets@rebatnaath.github.com
-   ```
-
-## Configuration
-
-Open the **Extensions** app (or Extension Manager) and click the gear icon next to Gridgets to configure your grid settings and customize your widgets.
 
 ## Compatibility
 
-Supported GNOME Shell versions: `45`, `46`, `47`, `48`, `49`, `50`.
+- **GNOME Shell:** 45, 46, 47
+- **Display Server:** Wayland (recommended) & X11
 
-## Contributing
+---
 
-Contributions are welcome. Please read the [Contributing Guide](CONTRIBUTING.md) before opening an issue or pull request.
+## Manual Installation
+
+1. Clone the repository:
+git clone https://github.com/pelach/grid-desktop.git
+cd grid-desktop
+
+2. Install to GNOME Extensions directory:
+mkdir -p ~/.local/share/gnome-shell/extensions/grid-desktop@pelach.github.com
+cp -r * ~/.local/share/gnome-shell/extensions/grid-desktop@pelach.github.com/
+
+3. Restart GNOME Shell and Enable:
+
+X11: Press Alt + F2, type r, and press Enter.
+
+Wayland: Log out and log back in.
+
+4. Enable the extension:
+gnome-extensions enable grid-desktop@pelach.github.com
+
+## Development and Debugging
+To monitor extension logs in real-time:
+journalctl -f -o cat /usr/bin/gnome-shell | grep -E "grid-desktop|DesktopGrid"
+
+To recompile schemas after updating org.gnome.shell.extensions.grid-desktop.gschema.xml:
+glib-compile-schemas schemas/
+
+
+## Acknowledgments
+Based on the original Gridgets extension by rebatnaath.
+
+Refactored, enhanced, and maintained by András Pelach (with development assistance from Google Gemini).
 
 ## License
-
-Gridgets is free software, released under the [GNU General Public License v3.0](LICENSE).
-
-## Acknowledgements
-
-Thanks to these projects for providing assets used in this extension:
-
-* [SVG Repo](https://www.svgrepo.com/) for vector icons.
-* [Meteocons by basmilius](https://github.com/basmilius/meteocons) for the weather icons.
+This project is licensed under the GPL-3.0 License.
