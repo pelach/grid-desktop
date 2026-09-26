@@ -33,22 +33,29 @@ export function getPanelHeight() {
 }
 
 function resolveMonitorIndex(targetMonitorIndex, settings) {
+    const monitorSetting = settings ? (settings.get_string('global-monitor') || 'primary') : 'primary';
+    const nMonitors = global.display.get_n_monitors();
+    if (nMonitors === 0) return null;
+
+    // 1. Ha a beállítás "primary", akkor MINDIG a dinamikus primary monitort adjuk vissza
+    if (monitorSetting === 'primary') {
+        return global.display.get_primary_monitor();
+    }
+
+    // 2. Ha az "all" van beállítva
+    if (monitorSetting === 'all') {
+        return null;
+    }
+
+    // 3. Ha "each" módban van (ekkor a targetMonitorIndex a konkrét monitor indexe), 
+    //    vagy kifejezetten egy adott indexet adtunk meg:
     if (targetMonitorIndex !== null && typeof targetMonitorIndex === 'number') {
-        const nMonitors = global.display.get_n_monitors();
         if (targetMonitorIndex >= 0 && targetMonitorIndex < nMonitors) {
             return targetMonitorIndex;
         }
     }
 
-    const monitorSetting = settings.get_string('global-monitor') || 'primary';
-    const nMonitors = global.display.get_n_monitors();
-
-    if (monitorSetting === 'all') return null;
-
-    if (monitorSetting === 'primary') {
-        return global.display.get_primary_monitor();
-    }
-
+    // 4. Ha a beállításban egy fix szám van (pl. "0" vagy "1")
     const monitorIndex = parseInt(monitorSetting, 10);
     if (!isNaN(monitorIndex) && monitorIndex >= 0 && monitorIndex < nMonitors) {
         return monitorIndex;
@@ -56,7 +63,6 @@ function resolveMonitorIndex(targetMonitorIndex, settings) {
 
     return global.display.get_primary_monitor();
 }
-
 export function getTargetMonitor(targetMonitorIndex, settings) {
     const nMonitors = global.display.get_n_monitors();
     if (nMonitors === 0) return null;

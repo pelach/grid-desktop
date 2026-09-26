@@ -1,6 +1,6 @@
 // This project uses LLMs as a helper (templates, boilerplate, auto-completion)
 // while the majority of the code is written and verified by a human.
-
+import GLib from 'gi://GLib';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -38,8 +38,20 @@ export default class GridgetsExtension extends Extension {
 
         this._createAndShowGrids();
 
+        this._monitorsChangedIdleId = 0;
         this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', () => {
-            this._rebuildGrids();
+            console.log('>>> [GRID] monitors-changed triggerelve!');
+            if (this._monitorsChangedIdleId > 0) {
+                GLib.Source.remove(this._monitorsChangedIdleId);
+                this._monitorsChangedIdleId = 0;
+            }
+            // 200 ms türelmi idő, amíg a Mutter beállítja az új elsődleges monitort és geometriát
+            this._monitorsChangedIdleId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+                this._monitorsChangedIdleId = 0;
+                console.log('>>> [GRID] Újraépítés indul! Primary monitor most:', global.display.get_primary_monitor());
+                this._rebuildGrids();
+                return GLib.SOURCE_REMOVE;
+            });
         });
 
         this._interfaceSignalId = this._interfaceSettings.connect('changed::color-scheme', () => {
@@ -55,6 +67,10 @@ export default class GridgetsExtension extends Extension {
     }
 
     disable() {
+        if (this._monitorsChangedTimeoutId > 0) {
+            GLib.source_remove(this._monitorsChangedTimeoutId);
+            this._monitorsChangedTimeoutId = 0;
+        }
         if (this._monitorsChangedId > 0) {
             Main.layoutManager.disconnect(this._monitorsChangedId);
             this._monitorsChangedId = 0;
@@ -114,7 +130,9 @@ export default class GridgetsExtension extends Extension {
             for (let i = 0; i < nMonitors; i++)
                 this._spawnGrid(i);
         } else if (monitorMode === 'primary') {
-            this._spawnGrid(global.display.get_primary_monitor());
+            const prim = global.display.get_primary_monitor();
+            console.log('>>> [GRID] Spawning grid primary monitorra:', prim);
+            this._spawnGrid(prim);
         } else if (monitorMode === 'all') {
             this._spawnGrid(null);
         } else {
