@@ -159,7 +159,7 @@ export function buildGlobalSettingsPage(settings) {
 
     // IGAZÍTÁS OLDALA (0: left, 1: right)
     const sideRow = new Adw.ComboRow({
-        title: 'Igazítás oldala',
+        title: 'Alignment',
         model: new Gtk.StringList({ strings: ['Left side', 'Right side'] }),
         selected: settings.get_enum('desktop-icons-side'),
     });
@@ -172,7 +172,7 @@ export function buildGlobalSettingsPage(settings) {
 
     // RENDEZÉS IRÁNYA (0: vertical, 1: horizontal)
     const directionRow = new Adw.ComboRow({
-        title: 'Rendezés iránya',
+        title: 'Sort order',
         model: new Gtk.StringList({ strings: ['Vertical', 'Horizontal'] }),
         selected: settings.get_enum('desktop-icons-direction'),
     });
