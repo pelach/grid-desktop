@@ -6,8 +6,9 @@ let _monitor = null;
 let _monitorTimeoutId = null;
 
 export function syncDesktopIcons(settings, forceOrganize = false) {
-    if (!settings) return;
+    if (!settings) return false;
 
+    let modified = false;
     const showDesktopIcons = settings.get_boolean('show-desktop-icons');
     let widgets = getWidgets(settings);
 
@@ -16,15 +17,27 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
         widgets = widgets.filter(w => !w.isDesktopIcon);
         if (widgets.length !== countBefore) {
             saveWidgets(settings, widgets);
+            return true;
         }
-        return;
+        return false;
     }
+
+    // Korábbi duplikált ID-k automatikus kijavítása a meglévő mentett adatokban
+    const seenIds = new Set();
+    widgets.forEach((w, idx) => {
+        if (!w.id || seenIds.has(w.id)) {
+            w.id = `widget-desktop-fixed-${Date.now()}-${idx}`;
+            modified = true;
+        } else {
+            seenIds.add(w.id);
+        }
+    });
 
     const desktopPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) || `${GLib.get_home_dir()}/Desktop`;
     const directory = Gio.File.new_for_path(desktopPath);
 
     const showLabels = settings.get_boolean('desktop-icons-show-labels');
-    const size = showLabels ? 3 : 2;
+    const size = 3;
     const side = settings.get_string('desktop-icons-side') || 'left';
     const direction = settings.get_string('desktop-icons-direction') || 'vertical';
 
@@ -32,7 +45,11 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
     const showTrash = settings.get_boolean('desktop-icons-show-trash');
     const showMounts = settings.get_boolean('desktop-icons-show-mounts');
 
-    // --- ITT SZÁMOLJUK KI DINAMIKUSAN A MONITOR RÁCSMÉRETÉT ---
+    const globalMonitorSetting = settings.get_string('global-monitor') || 'primary';
+    const targetMonitor = (globalMonitorSetting === 'each' || globalMonitorSetting === 'all')
+        ? 'primary'
+        : globalMonitorSetting;
+
     const stageWidth = global.stage ? global.stage.width : 1920;
     const stageHeight = global.stage ? global.stage.height : 1080;
     const gridDimensions = calculateGridDimensions(stageWidth, stageHeight);
@@ -69,13 +86,11 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
         });
     }
 
-    // 3. Csatolt meghajtók és hálózati kötetek
     if (showMounts) {
         try {
             const volumeMonitor = Gio.VolumeMonitor.get();
             const mounts = volumeMonitor.get_mounts();
             mounts.forEach(mount => {
-                // Gyökérfájlrendszer (/ vagy home partició) kihagyása, csak külső/hálózati kell
                 const root = mount.get_root();
                 if (root && root.get_path() !== '/') {
                     currentFiles.push({
@@ -100,7 +115,6 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
         let info;
         while ((info = enumerator.next_file(null)) !== null) {
             const fileName = info.get_name();
-            // Rejtett fájlok (. és ..) kihagyása
             if (fileName.startsWith('.')) continue;
 
             const childFile = directory.get_child(fileName);
@@ -108,7 +122,6 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
             let iconString = info.get_icon() ? info.get_icon().to_string() : 'text-x-generic';
             let isDesktopEntry = false;
 
-            // Ha .desktop fájl, olvassuk ki a metaadatait (név, ikon)
             if (fileName.endsWith('.desktop')) {
                 try {
                     const appInfo = Gio.DesktopAppInfo.new_from_filename(childFile.get_path());
@@ -118,14 +131,13 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
                         if (gicon) {
                             iconString = gicon.to_string();
 
-                            // Ha a téma nem találja név szerint, megkeressük a fizikai PNG fájlt:
                             if (!iconString.startsWith('/')) {
                                 const userIconDir = `${GLib.get_home_dir()}/.local/share/icons/hicolor`;
                                 const sizes = ['128x128', '256x256', '48x48', '64x64', '32x32'];
                                 for (const sz of sizes) {
                                     const testPath = `${userIconDir}/${sz}/apps/${iconString}.png`;
                                     if (GLib.file_test(testPath, GLib.FileTest.EXISTS)) {
-                                        iconString = testPath; // Megtaláltuk a konkrét képet!
+                                        iconString = testPath;
                                         break;
                                     }
                                 }
@@ -148,27 +160,114 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
         }
     } catch (e) {
         console.error('[grid-desktop] Nem sikerült beolvasni az Asztal mappát:', e);
-        return;
+        return false;
     }
-
-    let modified = false;
 
     // 1. Töröljük a már nem létező fájlok widgetjeit
     const countBefore = widgets.length;
     widgets = widgets.filter(w => {
         if (!w.isDesktopIcon) return true;
-        return currentFiles.some(f => f.uri === w.uri);
+        return currentFiles.some(f => {
+            if (f.uri === w.uri) return true;
+            try {
+                return decodeURIComponent(f.uri) === decodeURIComponent(w.uri) || f.name === w.name;
+            } catch (e) {
+                return f.name === w.name;
+            }
+        });
     });
     if (widgets.length !== countBefore) modified = true;
 
-    // 2. Új elemek hozzáadása vagy módosultak frissítése
+    // Meghatározzuk a legnagyobb meglévő desktop id számot a memóriában
+    let maxIdNum = 0;
+    const prefix = 'widget-desktop-';
+    widgets.forEach(w => {
+        if (typeof w.id === 'string' && w.id.startsWith(prefix)) {
+            const num = parseInt(w.id.slice(prefix.length), 10);
+            if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
+        }
+    });
+
+    // 2. Új elemek hozzáadása vagy meglévők frissítése
     currentFiles.forEach(file => {
-        let w = widgets.find(icon => icon.isDesktopIcon && icon.uri === file.uri);
+        let w = widgets.find(icon => {
+            if (!icon.isDesktopIcon) return false;
+            if (icon.uri === file.uri) return true;
+            try {
+                return decodeURIComponent(icon.uri) === decodeURIComponent(file.uri) || icon.name === file.name;
+            } catch (e) {
+                return icon.name === file.name;
+            }
+        });
+
         if (!w) {
-            // A hibás COLUMNS_COUNT helyett a dinamikus cols és rows fut:
-            const spot = findEmptySpot(widgets, size, size, cols, rows);
+            maxIdNum++;
+            const newId = `${prefix}${maxIdNum}`;
+
+            let isRight = false;
+            try {
+                isRight = (settings.get_string('desktop-icons-side') === 'right');
+            } catch (e) {
+                isRight = (settings.get_enum('desktop-icons-side') === 1);
+            }
+
+            let isVertical = true;
+            try {
+                isVertical = (settings.get_string('desktop-icons-direction') === 'vertical');
+            } catch (e) {
+                isVertical = (settings.get_enum('desktop-icons-direction') === 0);
+            }
+
+            let spot = null;
+
+            if (isVertical) {
+                const startCol = isRight ? (cols - size) : 0;
+                const colStep = isRight ? -1 : 1;
+
+                for (let cStep = 0; cStep <= cols - size; cStep++) {
+                    const c = startCol + (cStep * colStep);
+                    for (let r = 0; r <= rows - size; r++) {
+                        const isOccupied = widgets.some(other => {
+                            const oW = other.width || size;
+                            const oH = other.height || size;
+                            return c < (other.x + oW) &&
+                                   (c + size) > other.x &&
+                                   r < (other.y + oH) &&
+                                   (r + size) > other.y;
+                        });
+                        if (!isOccupied) {
+                            spot = { x: c, y: r };
+                            break;
+                        }
+                    }
+                    if (spot) break;
+                }
+            } else {
+                const startCol = isRight ? (cols - size) : 0;
+                const colStep = isRight ? -1 : 1;
+
+                for (let r = 0; r <= rows - size; r++) {
+                    for (let cStep = 0; cStep <= cols - size; cStep++) {
+                        const c = startCol + (cStep * colStep);
+                        const isOccupied = widgets.some(other => {
+                            const oW = other.width || size;
+                            const oH = other.height || size;
+                            return c < (other.x + oW) &&
+                                   (c + size) > other.x &&
+                                   r < (other.y + oH) &&
+                                   (r + size) > other.y;
+                        });
+                        if (!isOccupied) {
+                            spot = { x: c, y: r };
+                            break;
+                        }
+                    }
+                    if (spot) break;
+                }
+            }
+
             w = {
-                id: nextWidgetId(settings, 'desktop'),
+                id: newId,
                 type: 'desktop-icon',
                 isDesktopIcon: true,
                 uri: file.uri,
@@ -177,18 +276,27 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
                 width: size,
                 height: size,
                 showLabel: showLabels,
+                monitor: targetMonitor,
                 x: spot ? spot.x : 0,
                 y: spot ? spot.y : 0
             };
             widgets.push(w);
             modified = true;
-        } else if (w.name !== file.name || w.showLabel !== showLabels || w.icon !== file.icon) {
-            w.name = file.name;
-            w.icon = file.icon;
-            w.showLabel = showLabels;
-            w.width = size;
-            w.height = size;
-            modified = true;
+        } else {
+            let updated = false;
+            if (w.name !== file.name) { w.name = file.name; updated = true; }
+            if (w.icon !== file.icon) { w.icon = file.icon; updated = true; }
+            if (w.showLabel !== showLabels) { w.showLabel = showLabels; updated = true; }
+            if (w.width !== size || w.height !== size) {
+                w.width = size;
+                w.height = size;
+                updated = true;
+            }
+            if (!w.monitor) {
+                w.monitor = targetMonitor;
+                updated = true;
+            }
+            if (updated) modified = true;
         }
     });
 
@@ -197,7 +305,6 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
         let desktopIcons = widgets.filter(w => w.isDesktopIcon);
         let otherWidgets = widgets.filter(w => !w.isDesktopIcon);
 
-        // Tájolás kiolvasása
         let isRight = false;
         try {
             isRight = (settings.get_string('desktop-icons-side') === 'right');
@@ -212,7 +319,6 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
             isVertical = (settings.get_enum('desktop-icons-direction') === 0);
         }
 
-        // A legszélső érvényes oszlop pontosan a rács legszéle
         let startX = isRight ? (cols - size) : 0;
         let curX = startX;
         let curY = 0;
@@ -227,7 +333,6 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
             while (!placed && safetyCount < 300) {
                 safetyCount++;
 
-                // Átfedés vizsgálata más rácselemekkel
                 const overlap = otherWidgets.some(other => {
                     return curX < (other.x + other.width) &&
                            (curX + size) > other.x &&
@@ -241,17 +346,14 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
                     placed = true;
                 }
 
-                // Következő mező léptetése
                 if (isVertical) {
                     curY += size;
-                    // Ha eléri a képernyő alját, új oszlopot nyitunk befelé haladva
                     if (curY + size > rows) {
                         curY = 0;
                         curX = isRight ? (curX - size) : (curX + size);
                     }
                 } else {
                     curX = isRight ? (curX - size) : (curX + size);
-                    // Ha eléri a monitor szélét, új sort kezdünk lefelé
                     if (curX < 0 || (curX + size) > cols) {
                         curX = startX;
                         curY += size;
@@ -266,6 +368,7 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
     if (modified) {
         saveWidgets(settings, widgets);
     }
+    return modified;
 }
 
 let _volumeMonitor = null;
@@ -274,9 +377,6 @@ let _mountSignals = [];
 export function monitorDesktop(settings, callback) {
     if (_monitor || !settings) return;
 
-    const desktopPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) || `${GLib.get_home_dir()}/Desktop`;
-    const file = Gio.File.new_for_path(desktopPath);
-
     try {
         _volumeMonitor = Gio.VolumeMonitor.get();
         const onMountChange = () => {
@@ -284,10 +384,13 @@ export function monitorDesktop(settings, callback) {
                 GLib.Source.remove(_monitorTimeoutId);
                 _monitorTimeoutId = null;
             }
-            _monitorTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+            _monitorTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
                 _monitorTimeoutId = null;
-                syncDesktopIcons(settings, false);
-                if (callback) callback();
+                if (global.stage && global.stage._isGridgetsDragging) {
+                    return GLib.SOURCE_REMOVE;
+                }
+                const modified = syncDesktopIcons(settings, false);
+                if (modified && callback) callback(); 
                 return GLib.SOURCE_REMOVE;
             });
         };

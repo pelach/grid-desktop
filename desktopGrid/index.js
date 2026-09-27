@@ -175,32 +175,53 @@ export const DesktopGrid = GObject.registerClass(
                 this.signalIds.push(id);
             };
 
-            connectSetting('show-desktop-icons', (s, key) => {
+            // Desktop ikonok főkapcsolója
+            connectSetting('show-desktop-icons', () => {
                 if (this.settings.get_boolean('show-desktop-icons')) {
-                    syncDesktopIcons(this.settings, true); // Bekapcsoláskor rendezzen
+                    syncDesktopIcons(this.settings, true); // Bekapcsoláskor rendezze el
                 }
                 this._rebuildGrid();
             });
+
+            // Címkék ki/be kapcsolása -> KIFEJEZETTEN false, NE rendezze újra a rácsot!
             connectSetting('desktop-icons-show-labels', () => {
                 syncDesktopIcons(this.settings, false);
                 this._rebuildGrid();
             });
+
+            // Tájolás és rendezési irány -> itt kényszerítjük az újrarendezést
             connectSetting('desktop-icons-side', () => {
-                syncDesktopIcons(this.settings, true); // <--- Itt kényszerítjük az újraszámolást
+                syncDesktopIcons(this.settings, true);
                 this._rebuildGrid();
             });
             connectSetting('desktop-icons-direction', () => {
-                syncDesktopIcons(this.settings, true); // <--- Itt is
+                syncDesktopIcons(this.settings, true);
                 this._rebuildGrid();
             });
 
+            // Különleges ikonok kapcsolói
+            connectSetting('desktop-icons-show-home', () => {
+                syncDesktopIcons(this.settings, false);
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-show-trash', () => {
+                syncDesktopIcons(this.settings, false);
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-show-mounts', () => {
+                syncDesktopIcons(this.settings, false);
+                this._rebuildGrid();
+            });
+
+            // Widgetek változása
             connectSetting('widgets', () => {
                 const widgetsJson = this.settings.get_string('widgets');
                 if (widgetsJson === this._lastAppliedWidgetsJson)
                     return;
                 this._applyWidgetChanges();
             });
-            // Global style keys are baked at construction, so rebuild instead of patching.
+
+            // Globális stílusok és egyéb beállítások
             connectSetting('global-background-color', () => this._rebuildGrid());
             connectSetting('global-foreground-color', () => this._rebuildGrid());
             connectSetting('global-font-family', () => this._rebuildGrid());
@@ -212,31 +233,6 @@ export const DesktopGrid = GObject.registerClass(
             connectSetting('weather-dynamic-color', () => this._rebuildGrid());
             connectSetting('weather-dynamic-image', () => this._rebuildGrid());
             connectSetting('show-grid', () => this._toggleGridLines());
-            connectSetting('show-desktop-icons', (s, key) => {
-                if (this.settings.get_boolean('show-desktop-icons')) {
-                    syncDesktopIcons(this.settings, true); // Bekapcsoláskor rendezzen is!
-                }
-                this._rebuildGrid();
-            });
-            connectSetting('desktop-icons-show-labels', () => {
-                syncDesktopIcons(this.settings);
-                this._rebuildGrid();
-            });
-            connectSetting('desktop-icons-side', () => this._rebuildGrid());
-            connectSetting('desktop-icons-direction', () => this._rebuildGrid());
-
-            connectSetting('desktop-icons-show-home', () => {
-                syncDesktopIcons(this.settings, true);
-                this._rebuildGrid();
-            });
-            connectSetting('desktop-icons-show-trash', () => {
-                syncDesktopIcons(this.settings, true);
-                this._rebuildGrid();
-            });
-            connectSetting('desktop-icons-show-mounts', () => {
-                syncDesktopIcons(this.settings, true);
-                this._rebuildGrid();
-            });
         }
 
         _updateStageSize() {
@@ -506,7 +502,7 @@ export const DesktopGrid = GObject.registerClass(
             const { sortedWidgets, modified } = this._layoutWidgetsOnGrid(activeWidgets, layout.gridCols, layout.gridRows, layout.cellSize, layout.cellTotalWidth, layout.cellTotalHeight);
 
             sortedWidgets.forEach(widgetData => {
-                if (this.widgetNodes.has(widgetData.id) && this._nodeConfigs.get(widgetData.id) === JSON.stringify(widgetData))
+                if (!widgetData.isDesktopIcon && this.widgetNodes.has(widgetData.id) && this._nodeConfigs.get(widgetData.id) === JSON.stringify(widgetData))
                     return;
 
                 const existingNode = this.widgetNodes.get(widgetData.id);

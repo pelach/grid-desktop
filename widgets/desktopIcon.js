@@ -25,7 +25,9 @@ export function createDesktopIconNode(data, w, h, x, y) {
         y_align: Clutter.ActorAlign.CENTER,
         x_expand: true,
         y_expand: true,
-        reactive: false, // Nem nyeli el az egéreseményeket a gyökér elől
+        reactive: false, 
+        width: w,  
+        height: h,
     });
 
     const iconSize = data.showLabel ? 48 : 64;
@@ -76,6 +78,7 @@ export function createDesktopIconNode(data, w, h, x, y) {
             rootContainer.disconnect(pressId);
         }
     });
-
+    
+    rootContainer.queue_relayout();
     return watchActorLifecycle(rootContainer);
 }

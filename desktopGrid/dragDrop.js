@@ -72,6 +72,25 @@ function removeDropPlaceholder(grid) {
     }
 }
 
+function resolveWidgetMonitor(grid, currentMonitor) {
+    if (currentMonitor) return currentMonitor;
+
+    const globalMonitor = grid.settings.get_string('global-monitor') || 'primary';
+    
+    // Ha a beállításokban egy konkrét monitor van kiválasztva ('primary' vagy szám)
+    if (globalMonitor !== 'each' && globalMonitor !== 'all') {
+        return globalMonitor;
+    }
+
+    // Ha 'each' módban vagyunk, a grid aktuális monitor indexét rendeljük hozzá:
+    const primaryIdx = global.display ? global.display.get_primary_monitor() : 0;
+    if (grid.targetMonitorIndex === null || grid.targetMonitorIndex === primaryIdx) {
+        return 'primary';
+    }
+
+    return String(grid.targetMonitorIndex);
+}
+
 function endDrag(state, grid, node, widgetData) {
     if (state.dragMotionId) { global.stage.disconnect(state.dragMotionId); state.dragMotionId = 0; }
     if (state.dragReleaseId) { global.stage.disconnect(state.dragReleaseId); state.dragReleaseId = 0; }
@@ -82,7 +101,13 @@ function endDrag(state, grid, node, widgetData) {
     if (state.isDragging) {
         state.isDragging = false;
 
-        const widgets = getWidgets(grid.settings);
+        const widgets = getWidgets(grid.settings).map(w => {
+            if (!w.monitor) {
+                w.monitor = resolveWidgetMonitor(grid, w.monitor);
+            }
+            return w;
+        });
+        
         const targetWidget = widgets.find(w => w.id === widgetData.id);
 
         if (targetWidget) {
@@ -145,7 +170,19 @@ function endDrag(state, grid, node, widgetData) {
                 const activeWidgets = getWidgetsForMonitor(widgets, grid.targetMonitorIndex, true);
                 const gridCols = grid.gridCols || COLUMNS_COUNT;
                 const gridRows = grid.gridRows || ROWS_COUNT;
-                const otherWidgets = activeWidgets.filter(widget => widget.id !== widgetData.id);
+                
+                // Ha az asztali ikonok külön listában (is) élnek a grid-en, azokat is vonjuk be az otherWidgets-be:
+                let allOccupiedWidgets = [...activeWidgets];
+                if (grid._desktopIconWidgets && Array.isArray(grid._desktopIconWidgets)) {
+                    // Hozzáfűzzük az asztali ikonok adatait is, ha nem a most mozgatott elemről van szó
+                    for (const dIcon of grid._desktopIconWidgets) {
+                        if (!allOccupiedWidgets.some(w => w.id === dIcon.id)) {
+                            allOccupiedWidgets.push(dIcon);
+                        }
+                    }
+                }
+
+                const otherWidgets = allOccupiedWidgets.filter(widget => widget.id !== widgetData.id);
 
                 const targetCol = Math.max(0, Math.min(gridCols - targetWidget.width, Math.round((node.x - GRID_MARGIN_PX) / grid.cellTotalWidth)));
                 const targetRow = Math.max(0, Math.min(gridRows - targetWidget.height, Math.round((node.y - GRID_MARGIN_PX) / grid.cellTotalHeight)));
@@ -153,9 +190,16 @@ function endDrag(state, grid, node, widgetData) {
                 if (!checkOverlap(targetCol, targetRow, targetWidget.width, targetWidget.height, otherWidgets)) {
                     targetWidget.x = targetCol;
                     targetWidget.y = targetRow;
+
+                    // Mentsük el a beállításokat, hogy perzisztens maradjon:
                     grid.applyLocalWidgetLayout(widgets);
+
+                    // FONTOS: Vagy töröljük a node-ot az újraépítés előtt, VAGY csak mozgatjuk!
+                    // A legegyszerűbb és leggyorsabb: csak átpozicionáljuk a meglévő actort,
+                    // és NEM hívunk applyLocalWidgetLayout-ot, ami duplikálná:
                     grid._repositionNode(targetWidget.id, targetWidget.width, targetWidget.height, targetCol, targetRow);
                 } else {
+                    // Ha ütközik: visszaugrik az eredeti cellájára
                     grid._repositionNode(targetWidget.id, targetWidget.width, targetWidget.height, state.origGridX, state.origGridY);
                 }
             }
@@ -237,7 +281,13 @@ export function attachDragHandlers(grid, node, widgetData) {
                     const targetCol = Math.max(0, Math.min(gridCols - widgetData.width, Math.round((newPosX - GRID_MARGIN_PX) / grid.cellTotalWidth)));
                     const targetRow = Math.max(0, Math.min(gridRows - widgetData.height, Math.round((newPosY - GRID_MARGIN_PX) / grid.cellTotalHeight)));
 
-                    const widgets = getWidgets(grid.settings);
+                    const widgets = getWidgets(grid.settings).map(w => {
+                        if (!w.monitor) {
+                            w.monitor = resolveWidgetMonitor(grid, w.monitor);
+                        }
+                        return w;
+                    });
+
                     const activeWidgets = getWidgetsForMonitor(widgets, grid.targetMonitorIndex, true);
                     const otherWidgets = activeWidgets.filter(w => w.id !== widgetData.id);
                     const isValid = !checkOverlap(targetCol, targetRow, widgetData.width, widgetData.height, otherWidgets);
