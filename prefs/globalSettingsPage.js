@@ -202,7 +202,11 @@ export function buildGlobalSettingsPage(settings) {
         css_classes: ['suggested-action'],
     });
     organizeButton.connect('clicked', () => {
-        syncDesktopIcons(settings, true);
+        const currentSide = settings.get_enum('desktop-icons-side');
+        const tempSide = currentSide === 0 ? 1 : 0;
+        
+        settings.set_enum('desktop-icons-side', tempSide);
+        settings.set_enum('desktop-icons-side', currentSide);
     });
     desktopGroup.add(organizeButton);
 
