@@ -706,3 +706,46 @@ export function resolveDesktopAppInfo(appId) {
     }
     return null;
 }
+
+export function calculateDesktopIconPositions(files, settings, gridCols, gridRows) {
+    const showLabels = settings.get_boolean('desktop-icons-show-labels');
+    const side = settings.get_string('desktop-icons-side') || 'left';
+    const direction = settings.get_string('desktop-icons-direction') || 'vertical';
+    
+    const size = showLabels ? 3 : 2;
+    const icons = [];
+
+    // Kezdőpozíciók
+    let startX = (side === 'left') ? 0 : gridCols - size;
+    let currentX = startX;
+    let currentY = 0;
+
+    for (const file of files) {
+        icons.push({
+            ...file,
+            x: currentX,
+            y: currentY,
+            width: size,
+            height: size,
+            showLabel: showLabels,
+            isDesktopIcon: true, // Jelölő a context menu tiltáshoz
+            type: 'desktop-icon'
+        });
+
+        if (direction === 'vertical') {
+            currentY += size;
+            if (currentY + size > gridRows) {
+                currentY = 0;
+                currentX = (side === 'left') ? currentX + size : currentX - size;
+            }
+        } else {
+            // Horizontal
+            currentX = (side === 'left') ? currentX + size : currentX - size;
+            if (currentX < 0 || currentX + size > gridCols) {
+                currentX = startX;
+                currentY += size;
+            }
+        }
+    }
+    return icons;
+}

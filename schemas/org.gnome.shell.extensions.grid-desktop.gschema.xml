@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-    <schema id="org.gnome.shell.extensions.grid-desktop" path="/org/gnome/shell/extensions/grid-desktop/">
+
+  <enum id="org.gnome.shell.extensions.grid-desktop.Side">
+    <value value="0" nick="left"/>
+    <value value="1" nick="right"/>
+  </enum>
+
+  <enum id="org.gnome.shell.extensions.grid-desktop.Direction">
+    <value value="0" nick="vertical"/>
+    <value value="1" nick="horizontal"/>
+  </enum>
+
+  <schema id="org.gnome.shell.extensions.grid-desktop" path="/org/gnome/shell/extensions/grid-desktop/">
     <key name="widgets" type="s">
       <default>"[]"</default>
       <summary>Widgets JSON data</summary>
@@ -91,5 +102,38 @@
       <summary>Accent Color Override</summary>
       <description>Custom accent color hex (e.g. '#3584e4'). Empty falls back to the system accent color.</description>
     </key>
+    <key name="show-desktop-icons" type="b">
+      <default>false</default>
+      <summary>Show Desktop Icons</summary>
+      <description>Whether to display desktop icons.</description>
+    </key>
+    <key name="desktop-icons-show-labels" type="b">
+      <default>true</default>
+      <summary>Show Desktop Icon Labels</summary>
+      <description>Show text labels below desktop icons.</description>
+    </key>
+    <key name="desktop-icons-side" enum="org.gnome.shell.extensions.grid-desktop.Side">
+      <default>'left'</default>
+      <summary>Desktop Icons Placement Side</summary>
+      <description>Screen edge to align icons to (left or right).</description>
+    </key>
+    <key name="desktop-icons-direction" enum="org.gnome.shell.extensions.grid-desktop.Direction">
+      <default>'vertical'</default>
+      <summary>Desktop Icons Direction</summary>
+      <description>Arrangement direction for icons (vertical or horizontal).</description>
+    </key>
+    <key name="desktop-icons-show-home" type="b">
+      <default>false</default>
+      <summary>Show home folder on desktop</summary>
+    </key>
+    <key name="desktop-icons-show-trash" type="b">
+      <default>false</default>
+      <summary>Show trash on desktop</summary>
+    </key>
+    <key name="desktop-icons-show-mounts" type="b">
+      <default>false</default>
+      <summary>Show mounted drives and network shares on desktop</summary>
+    </key>
   </schema>
+
 </schemalist>

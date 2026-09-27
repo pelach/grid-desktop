@@ -1,9 +1,11 @@
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
+import Gio from 'gi://Gio';
 import { createSwitchRow } from './aestheticControls.js';
 import { createOpenMeteoCitySearch } from './weatherSearch.js';
 import { getWidgets, saveWidgets } from '../utils/widgetUtils.js';
 import { clearBox, getConnectedMonitorsCount, buildMonitorEntries } from './displayUtils.js';
+import { syncDesktopIcons } from '../utils/desktopIcons.js';
 
 export function buildGlobalSettingsPage(settings) {
     const performCitySearch = createOpenMeteoCitySearch();
@@ -143,5 +145,68 @@ export function buildGlobalSettingsPage(settings) {
     timeConfigGroup.add(createSwitchRow('24-Hour Format', 'Use 24-hour time format instead of 12-hour.', settings, 'time-format-24h').row);
     
     page.add(timeConfigGroup);
+    
+
+    const desktopGroup = new Adw.PreferencesGroup({ title: 'Desktop icons' });
+
+    const showIconsRow = new Adw.SwitchRow({ title: 'Show icons' });
+    settings.bind('show-desktop-icons', showIconsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    desktopGroup.add(showIconsRow);
+
+    const showLabelsRow = new Adw.SwitchRow({ title: 'Icon labels' });
+    settings.bind('desktop-icons-show-labels', showLabelsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    desktopGroup.add(showLabelsRow);
+
+    // IGAZÍTÁS OLDALA (0: left, 1: right)
+    const sideRow = new Adw.ComboRow({
+        title: 'Igazítás oldala',
+        model: new Gtk.StringList({ strings: ['Left side', 'Right side'] }),
+        selected: settings.get_enum('desktop-icons-side'),
+    });
+    sideRow.connect('notify::selected', () => {
+        const val = sideRow.get_selected();
+        settings.set_enum('desktop-icons-side', val);
+        syncDesktopIcons(settings, true); // Azonnal rendezzen is
+    });
+    desktopGroup.add(sideRow);
+
+    // RENDEZÉS IRÁNYA (0: vertical, 1: horizontal)
+    const directionRow = new Adw.ComboRow({
+        title: 'Rendezés iránya',
+        model: new Gtk.StringList({ strings: ['Vertical', 'Horizontal'] }),
+        selected: settings.get_enum('desktop-icons-direction'),
+    });
+    directionRow.connect('notify::selected', () => {
+        const val = directionRow.get_selected();
+        settings.set_enum('desktop-icons-direction', val);
+        syncDesktopIcons(settings, true); // Azonnal rendezzen is
+    });
+    desktopGroup.add(directionRow);
+
+    const showHomeRow = new Adw.SwitchRow({ title: 'Show home folder' });
+    settings.bind('desktop-icons-show-home', showHomeRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    desktopGroup.add(showHomeRow);
+
+    const showTrashRow = new Adw.SwitchRow({ title: 'Show traschan' });
+    settings.bind('desktop-icons-show-trash', showTrashRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    desktopGroup.add(showTrashRow);
+
+    const showMountsRow = new Adw.SwitchRow({ title: 'Show mapped drives and network locations' });
+    settings.bind('desktop-icons-show-mounts', showMountsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    desktopGroup.add(showMountsRow);
+
+    // RENDRAKÁS GOMB
+    const organizeButton = new Gtk.Button({
+        label: 'Refresh (Auto-Layout)',
+        margin_top: 12,
+        css_classes: ['suggested-action'],
+    });
+    organizeButton.connect('clicked', () => {
+        syncDesktopIcons(settings, true);
+    });
+    desktopGroup.add(organizeButton);
+
+    page.add(desktopGroup);
+
     return page;
 }

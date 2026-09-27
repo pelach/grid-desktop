@@ -186,7 +186,8 @@ function clearRenderedGroups(page) {
 export function populateActiveWidgets(window, settings, page) {
     clearRenderedGroups(page);
 
-    const widgets = getWidgets(settings);
+    const widgets = getWidgets(settings).filter(w => !w.isDesktopIcon && w.type !== 'desktop-icon');
+    
     if (widgets.length === 0) {
         const emptyGroup = new Adw.PreferencesGroup({
             title: 'Manage Widgets',

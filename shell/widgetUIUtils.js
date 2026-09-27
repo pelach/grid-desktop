@@ -67,7 +67,14 @@ export const WidgetActor = GObject.registerClass(
 
 /** Registers teardown work that runs when the widget actor is destroyed. */
 export function registerWidgetCleanup(widgetNode, cleanupFn) {
-    widgetNode.registerCleanup(cleanupFn);
+    if (typeof widgetNode.registerCleanup === 'function') {
+        widgetNode.registerCleanup(cleanupFn);
+    } else if (typeof widgetNode.connect === 'function') {
+        const destroyId = widgetNode.connect('destroy', () => {
+            cleanupFn();
+        });
+        return destroyId;
+    }
 }
 
 export function createWidgetContainer(config, width, height, xPosition, yPosition) {

@@ -22,6 +22,7 @@ import {
 import {
     DEFAULT_STAGE_WIDTH,
     DEFAULT_STAGE_HEIGHT,
+    BUTTON_PRIMARY,
     BUTTON_SECONDARY,
 } from './constants.js';
 import {
@@ -39,6 +40,8 @@ import {
 } from './contextMenu.js';
 import { isActorDestroyed, watchActorLifecycle } from '../utils/actorLifecycle.js';
 import { resolveWeatherLayoutVariant } from '../widgets/weather/weatherCommon.js';
+
+import { syncDesktopIcons, monitorDesktop, stopMonitor } from '../utils/desktopIcons.js';
 
 
 const GRID_LINE_ALPHA = 0.25;
@@ -59,6 +62,9 @@ export const DesktopGrid = GObject.registerClass(
             this.extensionPath = extensionPath;
             this.settings = settings;
             this.metadata = metadata;
+
+            monitorDesktop(this.settings, () => this._rebuildGrid());
+
             // Shared shell-side schema owned by the extension; created only as a fallback.
             this._ownInterfaceSettings = !interfaceSettings;
             this.interfaceSettings = interfaceSettings || Gio.Settings.new('org.gnome.desktop.interface');
@@ -80,11 +86,40 @@ export const DesktopGrid = GObject.registerClass(
             this._setupSettingsListeners();
             this._rebuildGrid();
 
+            let lastClickTime = 0;
+            
             this._backgroundPressId = this.connect('button-press-event', (_actor, event) => {
-                if (event.get_button() === BUTTON_SECONDARY) {
+                const btn = event.get_button();
+
+                // Jobb klikk: Helyi menü
+                if (btn === BUTTON_SECONDARY) {
                     openContextMenu(this, event);
                     return Clutter.EVENT_STOP;
                 }
+
+                // Bal klikk
+                if (btn === BUTTON_PRIMARY) {
+                    removeContextMenu(this);
+
+                    const now = event.get_time();
+                    // Ha a két bal klikk között kevesebb mint 400ms telt el -> DUPLA KLIKK!
+                    if (now - lastClickTime < 400) {
+                        lastClickTime = 0; // nullázzuk, hogy ne triplázzon
+                        
+                        try {
+                            const desktopPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) || `${GLib.get_home_dir()}/Desktop`;
+                            // Közvetlen subprocess hívás, ami azonnal feldobja a Nautilust:
+                            const proc = Gio.Subprocess.new(['nautilus', desktopPath], Gio.SubprocessFlags.NONE);
+                            proc.wait_async(null, null);
+                        } catch (e) {
+                            console.error('Gridgets: Hiba a Nautilus indításakor:', e);
+                        }
+                        return Clutter.EVENT_STOP;
+                    }
+
+                    lastClickTime = now;
+                }
+
                 return Clutter.EVENT_PROPAGATE;
             });
         }
@@ -96,6 +131,7 @@ export const DesktopGrid = GObject.registerClass(
         }
 
         destroy() {
+            stopMonitor();
             if (this._contextMenuCloseIdleId) {
                 GLib.Source.remove(this._contextMenuCloseIdleId);
                 this._contextMenuCloseIdleId = null;
@@ -139,6 +175,25 @@ export const DesktopGrid = GObject.registerClass(
                 this.signalIds.push(id);
             };
 
+            connectSetting('show-desktop-icons', (s, key) => {
+                if (this.settings.get_boolean('show-desktop-icons')) {
+                    syncDesktopIcons(this.settings, true); // Bekapcsoláskor rendezzen
+                }
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-show-labels', () => {
+                syncDesktopIcons(this.settings, false);
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-side', () => {
+                syncDesktopIcons(this.settings, true); // <--- Itt kényszerítjük az újraszámolást
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-direction', () => {
+                syncDesktopIcons(this.settings, true); // <--- Itt is
+                this._rebuildGrid();
+            });
+
             connectSetting('widgets', () => {
                 const widgetsJson = this.settings.get_string('widgets');
                 if (widgetsJson === this._lastAppliedWidgetsJson)
@@ -157,6 +212,31 @@ export const DesktopGrid = GObject.registerClass(
             connectSetting('weather-dynamic-color', () => this._rebuildGrid());
             connectSetting('weather-dynamic-image', () => this._rebuildGrid());
             connectSetting('show-grid', () => this._toggleGridLines());
+            connectSetting('show-desktop-icons', (s, key) => {
+                if (this.settings.get_boolean('show-desktop-icons')) {
+                    syncDesktopIcons(this.settings, true); // Bekapcsoláskor rendezzen is!
+                }
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-show-labels', () => {
+                syncDesktopIcons(this.settings);
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-side', () => this._rebuildGrid());
+            connectSetting('desktop-icons-direction', () => this._rebuildGrid());
+
+            connectSetting('desktop-icons-show-home', () => {
+                syncDesktopIcons(this.settings, true);
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-show-trash', () => {
+                syncDesktopIcons(this.settings, true);
+                this._rebuildGrid();
+            });
+            connectSetting('desktop-icons-show-mounts', () => {
+                syncDesktopIcons(this.settings, true);
+                this._rebuildGrid();
+            });
         }
 
         _updateStageSize() {
@@ -314,12 +394,23 @@ export const DesktopGrid = GObject.registerClass(
         }
 
         /** Reads widget configs and resolves those active on this grid's monitor. */
+
         _resolveActiveWidgets() {
             const monitorMode = this.settings.get_string('global-monitor') || 'primary';
             const isEachMode = (monitorMode === 'each');
+            const showDesktop = this.settings.get_boolean('show-desktop-icons');
 
-            const widgets = getWidgets(this.settings);
-            const activeWidgets = getWidgetsForMonitor(widgets, getEffectiveMonitorIndex(this.targetMonitorIndex, this.settings), isEachMode);
+            let widgets = getWidgets(this.settings);
+            
+            // Csak akkor rakjuk bele az aktív listába, ha a kapcsoló be van kapcsolva
+            let activeWidgets = widgets.filter(w => {
+                // Ha asztali ikon és ki van kapcsolva a funkció -> kuka
+                if (w.isDesktopIcon && !showDesktop) return false;
+                
+                // Egyébként a szokásos monitor szűrés
+                return getWidgetsForMonitor([w], getEffectiveMonitorIndex(this.targetMonitorIndex, this.settings), isEachMode).length > 0;
+            });
+
             return { widgets, activeWidgets };
         }
 
@@ -440,6 +531,8 @@ export const DesktopGrid = GObject.registerClass(
             }
         }
         _rebuildGrid() {
+            //syncDesktopIcons(this.settings); 
+
             this._lastAppliedWidgetsJson = this.settings.get_string('widgets');
 
             this.widgetNodes.forEach(node => node.destroy());

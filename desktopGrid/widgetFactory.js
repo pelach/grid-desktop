@@ -30,6 +30,8 @@ import {
     createSlideshowNode
 } from '../widgets/media/index.js';
 import { isAnimatedImageFile } from '../utils/widgetUtils.js';
+import { createDesktopIconNode } from '../widgets/desktopIcon.js';
+
 
 const weatherCreator = (data, w, h, x, y) => {
     const dynamicColor = data.dynamicColor !== undefined ? data.dynamicColor : (data.globalWeatherDynamicColor !== false);
@@ -72,6 +74,7 @@ const WIDGET_CREATORS = {
         }
         return createStaticImageNode(data, w, h, x, y);
     },
+    'desktop-icon': (data, w, h, x, y) => createDesktopIconNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

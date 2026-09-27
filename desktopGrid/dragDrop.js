@@ -1,15 +1,18 @@
 import Clutter from 'gi://Clutter';
+import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {
     COLUMNS_COUNT,
     ROWS_COUNT,
     GRID_MARGIN_PX,
+    GRID_GAP_PX,
     checkOverlap,
     calculateResizedDimensions,
     calculateGridDimensions,
     getWidgets,
     saveWidgets,
-    deleteCacheFile
+    deleteCacheFile,
+    readGlobalSettings
 } from '../utils/widgetUtils.js';
 import { getWidgetsForMonitor, getPanelHeight, getEffectiveMonitorIndex } from './helpers.js';
 import { registerWidgetCleanup } from '../shell/widgetUIUtils.js';
@@ -20,9 +23,62 @@ import {
     DRAG_MOTION_THRESHOLD_PX,
 } from './constants.js';
 
+/** Segédfüggvény a célterület előnézeti keretének (Drop Placeholder) kezelésére */
+function updateDropPlaceholder(grid, targetCol, targetRow, colSpan, rowSpan, isValid) {
+    if (!grid._dropPlaceholder) {
+        grid._dropPlaceholder = new St.Widget({
+            name: 'dropPlaceholder',
+            reactive: false
+        });
+        // A rácsvonalak fölé, de a widgetek alá/mögé tesszük
+        grid.insert_child_at_index(grid._dropPlaceholder, 1);
+    }
+
+    const cellSize = grid.cellSize || (grid.cellTotalWidth - (GRID_GAP_PX || 8));
+    const gap = (typeof GRID_GAP_PX !== 'undefined') ? GRID_GAP_PX : 8;
+    const margin = (typeof GRID_MARGIN_PX !== 'undefined') ? GRID_MARGIN_PX : 8;
+
+    const width = Math.max(1, Math.round((colSpan * cellSize) + ((colSpan - 1) * gap)));
+    const height = Math.max(1, Math.round((rowSpan * cellSize) + ((rowSpan - 1) * gap)));
+    const x = Math.max(0, Math.round(margin + (targetCol * grid.cellTotalWidth)));
+    const y = Math.max(0, Math.round(margin + (targetRow * grid.cellTotalHeight)));
+
+    grid._dropPlaceholder.set_size(width, height);
+    grid._dropPlaceholder.set_position(x, y);
+
+    const accentColor = readGlobalSettings(grid.settings, grid.interfaceSettings).globalAccentColor || '#3584e4';
+    
+    // Zöld/Kék ha szabad, Piros ha ütközik
+    if (isValid) {
+        grid._dropPlaceholder.set_style(`
+            background-color: rgba(53, 132, 228, 0.25);
+            border: 2px dashed ${accentColor};
+            border-radius: 12px;
+        `);
+    } else {
+        grid._dropPlaceholder.set_style(`
+            background-color: rgba(224, 27, 36, 0.25);
+            border: 2px dashed #e01b24;
+            border-radius: 12px;
+        `);
+    }
+    grid._dropPlaceholder.show();
+}
+
+function removeDropPlaceholder(grid) {
+    if (grid._dropPlaceholder) {
+        grid._dropPlaceholder.destroy();
+        grid._dropPlaceholder = null;
+    }
+}
+
 function endDrag(state, grid, node, widgetData) {
     if (state.dragMotionId) { global.stage.disconnect(state.dragMotionId); state.dragMotionId = 0; }
     if (state.dragReleaseId) { global.stage.disconnect(state.dragReleaseId); state.dragReleaseId = 0; }
+    
+    // Eltávolítjuk a célzóna előnézetét
+    removeDropPlaceholder(grid);
+
     if (state.isDragging) {
         state.isDragging = false;
 
@@ -64,8 +120,7 @@ function endDrag(state, grid, node, widgetData) {
                 const targetMonWidgets = getWidgetsForMonitor(widgets, targetMonitorIndex, true);
                 const otherWidgetsOnTargetMon = targetMonWidgets.filter(widget => widget.id !== widgetData.id);
 
-                const gridCols = COLUMNS_COUNT;
-
+                const gridCols = grid.gridCols || COLUMNS_COUNT;
                 const { cellTotalWidth, cellTotalHeight, gridRows } = calculateGridDimensions(targetMonitor.width, targetMonitor.height - topOffset, gridCols);
 
                 const targetCol = Math.max(0, Math.min(gridCols - targetWidget.width, Math.round((localX - GRID_MARGIN_PX) / cellTotalWidth)));
@@ -75,8 +130,7 @@ function endDrag(state, grid, node, widgetData) {
                     targetWidget.x = targetCol;
                     targetWidget.y = targetRow;
                     targetWidget.monitor = isPrimary ? 'primary' : String(targetMonitorIndex);
-                    // applyLocalWidgetLayout seeds diff guard, so drop node
-                    // explicitly and let destination grid recreate it.
+
                     const movedNode = grid.widgetNodes.get(targetWidget.id);
                     if (movedNode) {
                         movedNode.destroy();
@@ -110,7 +164,6 @@ function endDrag(state, grid, node, widgetData) {
     }
 }
 
-/** Per-grid in-flight drag, if any; lets a new press cancel a drag whose release event was consumed by a grab. */
 function getActiveDrag(grid) {
     if (!grid._activeDrag) grid._activeDrag = null;
     return grid._activeDrag;
@@ -174,7 +227,23 @@ export function attachDragHandlers(grid, node, widgetData) {
                 }
 
                 if (state.isDragging) {
-                    node.set_position(state.startX + dx, state.startY + dy);
+                    const newPosX = state.startX + dx;
+                    const newPosY = state.startY + dy;
+                    node.set_position(newPosX, newPosY);
+
+                    // Drop Target Placeholder frissítése a rácson
+                    const gridCols = grid.gridCols || COLUMNS_COUNT;
+                    const gridRows = grid.gridRows || ROWS_COUNT;
+                    const targetCol = Math.max(0, Math.min(gridCols - widgetData.width, Math.round((newPosX - GRID_MARGIN_PX) / grid.cellTotalWidth)));
+                    const targetRow = Math.max(0, Math.min(gridRows - widgetData.height, Math.round((newPosY - GRID_MARGIN_PX) / grid.cellTotalHeight)));
+
+                    const widgets = getWidgets(grid.settings);
+                    const activeWidgets = getWidgetsForMonitor(widgets, grid.targetMonitorIndex, true);
+                    const otherWidgets = activeWidgets.filter(w => w.id !== widgetData.id);
+                    const isValid = !checkOverlap(targetCol, targetRow, widgetData.width, widgetData.height, otherWidgets);
+
+                    updateDropPlaceholder(grid, targetCol, targetRow, widgetData.width, widgetData.height, isValid);
+
                     return Clutter.EVENT_STOP;
                 }
                 return Clutter.EVENT_PROPAGATE;
@@ -196,6 +265,7 @@ export function attachDragHandlers(grid, node, widgetData) {
         const currentDrag = getActiveDrag(grid);
         if (currentDrag && currentDrag.state === state) setActiveDrag(grid, null);
         cancelInterruptedDragForState(state);
+        removeDropPlaceholder(grid);
     });
 }
 
