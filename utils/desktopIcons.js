@@ -4,6 +4,8 @@ import { getWidgets, saveWidgets, findEmptySpot, nextWidgetId, calculateGridDime
 
 let _monitor = null;
 let _monitorTimeoutId = null;
+let _trashMonitor = null;
+let _trashSignalId = 0;
 
 export function syncDesktopIcons(settings, forceOrganize = false) {
     if (!settings) return false;
@@ -284,6 +286,7 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
             modified = true;
         } else {
             let updated = false;
+            if (file.isSpecial && !w.isSpecial) { w.isSpecial = true; updated = true; }
             if (w.name !== file.name) { w.name = file.name; updated = true; }
             if (w.icon !== file.icon) { w.icon = file.icon; updated = true; }
             if (w.showLabel !== showLabels) { w.showLabel = showLabels; updated = true; }
@@ -377,6 +380,51 @@ let _mountSignals = [];
 export function monitorDesktop(settings, callback) {
     if (_monitor || !settings) return;
 
+    // 1. Asztal mappa figyelése
+    const desktopPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) || `${GLib.get_home_dir()}/Desktop`;
+    const desktopFile = Gio.File.new_for_path(desktopPath);
+    try {
+        _monitor = desktopFile.monitor_directory(Gio.FileMonitorFlags.WATCH_MOUNTES, null);
+        _monitor.connect('changed', () => {
+            if (_monitorTimeoutId) {
+                GLib.Source.remove(_monitorTimeoutId);
+                _monitorTimeoutId = null;
+            }
+            _monitorTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+                _monitorTimeoutId = null;
+                if (global.stage && global.stage._isGridgetsDragging) {
+                    return GLib.SOURCE_REMOVE;
+                }
+                const modified = syncDesktopIcons(settings, false);
+                if (modified && callback) callback();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+    } catch (e) {
+        console.warn('Gridgets: Nem sikerült az asztal mappa monitorozása:', e);
+    }
+
+    // 2. Kuka állapotváltozás figyelése (ürítés vagy új szemét)
+    try {
+        const trashFile = Gio.File.new_for_uri('trash:///');
+        _trashMonitor = trashFile.monitor_directory(Gio.FileMonitorFlags.WATCH_MOUNTES, null);
+        _trashSignalId = _trashMonitor.connect('changed', () => {
+            if (_monitorTimeoutId) {
+                GLib.Source.remove(_monitorTimeoutId);
+                _monitorTimeoutId = null;
+            }
+            _monitorTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+                _monitorTimeoutId = null;
+                const modified = syncDesktopIcons(settings, false);
+                if (modified && callback) callback();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+    } catch (e) {
+        console.warn('Gridgets: Nem sikerült a kuka monitorozása:', e);
+    }
+
+    // 3. Kötetek és felcsatolt meghajtók figyelése
     try {
         _volumeMonitor = Gio.VolumeMonitor.get();
         const onMountChange = () => {
@@ -409,6 +457,14 @@ export function stopMonitor() {
     if (_monitor) {
         _monitor.cancel();
         _monitor = null;
+    }
+    if (_trashMonitor) {
+        if (_trashSignalId) {
+            _trashMonitor.disconnect(_trashSignalId);
+            _trashSignalId = 0;
+        }
+        _trashMonitor.cancel();
+        _trashMonitor = null;
     }
     if (_volumeMonitor && _mountSignals.length > 0) {
         _mountSignals.forEach(id => _volumeMonitor.disconnect(id));

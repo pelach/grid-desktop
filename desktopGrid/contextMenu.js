@@ -88,7 +88,7 @@ export function openPreferences(grid, targetWidgetId = null) {
             });
         }
     } catch (e) {
-        console.warn('Gridgets: Synchronous error opening preferences:', e?.message || e);
+        console.warn('Grid-desktop: Synchronous error opening preferences:', e?.message || e);
     }
 }
 
@@ -108,7 +108,7 @@ export function launchSettingsPanel(panelName = null) {
             return;
         }
     } catch (e) {
-        console.warn('Gridgets: DesktopAppInfo launch failed, falling back to subprocess:', e);
+        console.warn('Grid-desktop: DesktopAppInfo launch failed, falling back to subprocess:', e);
     }
 
     // 2. Tartalék megoldás (Subprocess - string argumentumlista)
@@ -117,7 +117,7 @@ export function launchSettingsPanel(panelName = null) {
         const proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE);
         proc.wait_async(null, null);
     } catch (err) {
-        console.error('Gridgets: Failed to launch GNOME Settings:', err);
+        console.error('Grid-desktop: Failed to launch GNOME Settings:', err);
     }
 }
 export function launchFileUri(uri) {
@@ -143,14 +143,14 @@ export function launchFileUri(uri) {
             return;
         }
     } catch (e) {
-        console.warn('Gridgets: Hiba az alkalmazás indításakor:', e);
+        console.warn('Grid-desktop: Hiba az alkalmazás indításakor:', e);
     }
 
     try {
         const proc = Gio.Subprocess.new(['gio', 'open', uri], Gio.SubprocessFlags.NONE);
         proc.wait_async(null, null);
     } catch (err) {
-        console.error('Gridgets: Végzetes hiba az URI megnyitásakor:', err);
+        console.error('Grid-desktop: Végzetes hiba az URI megnyitásakor:', err);
     }
 }
 
@@ -163,11 +163,11 @@ function trashFile(uri, callback) {
                 file.trash_finish(res);
                 if (callback) callback();
             } catch (err) {
-                console.error('Hiba a kukába helyezéskor:', err);
+                console.error('Grid-desktop: Hiba a kukába helyezéskor:', err);
             }
         });
     } catch (e) {
-        console.error('Kukába dobás sikertelen:', e);
+        console.error('Grid-desktop: Kukába dobás sikertelen:', e);
     }
 }
 
@@ -177,7 +177,54 @@ function emptyTrash() {
         const proc = Gio.Subprocess.new(['gio', 'trash', '--empty'], Gio.SubprocessFlags.NONE);
         proc.wait_async(null, null);
     } catch (e) {
-        console.error('Nem sikerült kiüríteni a kukát:', e);
+        console.error('Grid-desktop: Nem sikerült kiüríteni a kukát:', e);
+    }
+}
+
+function unmountTargetUri(uri) {
+    try {
+        const file = Gio.File.new_for_uri(uri);
+        const volumeMonitor = Gio.VolumeMonitor.get();
+        const mounts = volumeMonitor.get_mounts();
+
+        // 1. Megkeressük a megfelelő Mount objektumot a VolumeMonitorban
+        let targetMount = mounts.find(m => {
+            const root = m.get_root();
+            return root && (root.get_uri() === uri || uri.startsWith(root.get_uri()));
+        });
+
+        // Ha így nem találtuk meg, próbáljuk meg a find_enclosing_mount-tal
+        if (!targetMount) {
+            try {
+                targetMount = file.find_enclosing_mount(null);
+            } catch (e) {}
+        }
+
+        if (targetMount) {
+            targetMount.unmount_with_operation(
+                Gio.MountUnmountFlags.NONE,
+                new Gio.MountOperation(),
+                null,
+                (src, res) => {
+                    try {
+                        src.unmount_with_operation_finish(res);
+                    } catch (e) {
+                        console.error('Grid-desktop: Hiba a kötet leválasztásakor:', e);
+                    }
+                }
+            );
+            return;
+        }
+    } catch (e) {
+        console.warn('Grid-desktop: GIO unmount hiba, próbálkozás CLI-vel:', e);
+    }
+
+    // 2. Tartalék megoldás (gio mount -u URI): ez a Google Drive-val és hálózati megosztásokkal is azonnal működik
+    try {
+        const proc = Gio.Subprocess.new(['gio', 'mount', '-u', uri], Gio.SubprocessFlags.NONE);
+        proc.wait_async(null, null);
+    } catch (err) {
+        console.error('Grid-desktop: Végzetes hiba a kötet leválasztásakor:', err);
     }
 }
 
@@ -199,50 +246,66 @@ function showProperties(uri) {
                 try {
                     connection.call_finish(res);
                 } catch (e) {
-                    // Ha a DBus nem érhető el, tartalékként nyissuk meg a mappát
                     launchFileUri(uri);
                 }
             }
         );
     } catch (e) {
-        console.error('Nem sikerült megnyitni a tulajdonságokat:', e);
+        console.error('Grid-desktop: Nem sikerült megnyitni a tulajdonságokat:', e);
         launchFileUri(uri);
     }
 }
+
+
 
 /** Asztali ikon saját jobb klikkes menüje */
 function openDesktopIconContextMenu(grid, event, widgetData) {
     const menu = createPopupMenuAt(grid, event);
     const uri = widgetData.uri || '';
     const isTrash = uri.startsWith('trash:') || widgetData.name === 'Kuka';
-    const isSpecial = !!widgetData.isSpecial || isTrash;
+    const isHome = uri === Gio.File.new_for_path(GLib.get_home_dir()).get_uri();
+
+    // Akkor is Mount-nak tekintjük, ha nem normál fájlrendszer-elérési út (pl. google-drive://, smb://, sftp://)
+    const isNetworkOrMountUri = uri.startsWith('google-drive:') || 
+                                uri.startsWith('smb:') || 
+                                uri.startsWith('sftp:') || 
+                                uri.startsWith('nfs:') ||
+                                uri.startsWith('dav:') ||
+                                uri.startsWith('davs:');
+
+    const isMount = (!isTrash && !isHome) && (!!widgetData.isSpecial || isNetworkOrMountUri);
 
     // 1. Megnyitás
-    const openItem = new PopupMenu.PopupMenuItem('Open..');
+    const openItem = new PopupMenu.PopupMenuItem('Open');
     openItem.connect('activate', () => launchFileUri(uri));
     menu.addMenuItem(openItem);
 
     // 2. Kuka esetén: Kuka ürítése
     if (isTrash) {
-        const emptyItem = new PopupMenu.PopupMenuItem('Emptying the trashcan');
+        const emptyItem = new PopupMenu.PopupMenuItem('Empty Trash');
         emptyItem.connect('activate', () => emptyTrash());
         menu.addMenuItem(emptyItem);
     }
 
-    // 3. CSAK akkor Kukába helyezés, ha NEM a Kuka és NEM speciális elem
-    if (!isSpecial && !isTrash) {
+    // 3. Csatolt meghajtó / Google Drive esetén: Leválasztás (Unmount)
+    if (isMount) {
+        const unmountItem = new PopupMenu.PopupMenuItem('Unmount');
+        unmountItem.connect('activate', () => unmountTargetUri(uri));
+        menu.addMenuItem(unmountItem);
+    }
+
+    // 4. CSAK akkor Move to Trash, ha normál felhasználói asztali fájl/mappa
+    if (!widgetData.isSpecial && !isTrash && !isHome && !isMount) {
         const deleteItem = new PopupMenu.PopupMenuItem('Move to Trash');
         deleteItem.connect('activate', () => {
-            trashFile(uri, () => {
-                // A könyvtárfigyelő automatikusan frissíti a rácsot
-            });
+            trashFile(uri, () => {});
         });
         menu.addMenuItem(deleteItem);
     }
 
     menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-    // 4. Tulajdonságok
+    // 5. Tulajdonságok
     const propItem = new PopupMenu.PopupMenuItem('Properties');
     propItem.connect('activate', () => showProperties(uri));
     menu.addMenuItem(propItem);
@@ -250,6 +313,7 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
     Main.uiGroup.add_child(menu.actor);
     menu.open(BoxPointer.PopupAnimation.FULL);
 }
+
 export function openWidgetContextMenu(grid, event, node, widgetData) {
     // Ha asztali ikonra kattintottak, a saját helyi menüjét nyitjuk meg
     if (widgetData.isDesktopIcon) {
