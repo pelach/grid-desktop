@@ -13,6 +13,7 @@ import { clearEnsuredDirectories } from './utils/widgetUtils.js';
 import { clearMusicPlaybackState } from './widgets/music/playbackState.js';
 import { clearMusicPolls } from './widgets/music/index.js';
 import { screenTimeEngine } from './utils/screenTimeEngine.js';
+import { enableDashContextMenu, disableDashContextMenu } from './utils/dashIntegration.js';
 
 export default class GridgetsExtension extends Extension {
     enable() {
@@ -62,9 +63,13 @@ export default class GridgetsExtension extends Extension {
                 this._rebuildGrids();
             });
         }
+
+        enableDashContextMenu();
     }
 
     disable() {
+        disableDashContextMenu();
+        
         if (this._monitorsChangedTimeoutId > 0) {
             GLib.source_remove(this._monitorsChangedTimeoutId);
             this._monitorsChangedTimeoutId = 0;
