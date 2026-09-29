@@ -4,7 +4,7 @@ import { populateActiveWidgets } from './activeWidgetsList.js';
 
 export function buildIndividualSettingsPage(window, settings) {
     const page = new Adw.PreferencesPage({
-        title: 'Individual Settings',
+        title: 'Widget Settings',
         icon_name: 'org.gnome.tweaks-symbolic',
         name: 'individual-settings',
     });

@@ -382,7 +382,7 @@ export function openContextMenu(grid, event) {
 
     menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-    const prefsItem = new PopupMenu.PopupMenuItem('Gridgets Preferences...');
+    const prefsItem = new PopupMenu.PopupMenuItem('Grid-desktop Settings');
     prefsItem.connect('activate', () => openPreferences(grid));
     menu.addMenuItem(prefsItem);
 

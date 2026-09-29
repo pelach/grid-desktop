@@ -134,6 +134,12 @@
       <default>false</default>
       <summary>Show mounted drives and network shares on desktop</summary>
     </key>
+    <key name="global-background-opacity" type="i">
+      <default>100</default>
+      <summary>Global Background Opacity</summary>
+      <description>Opacity of the widget background from 0 to 100 percent.</description>
+      <range min="0" max="100"/>
+    </key>
   </schema>
 
 </schemalist>

@@ -59,18 +59,6 @@ export function buildGlobalSettingsPage(settings) {
     }
     page.add(monitorGroup);
 
-    const themeGroup = new Adw.PreferencesGroup({
-        title: 'Theme',
-        description: 'Widget color behavior.',
-    });
-    themeGroup.add(createSwitchRow(
-        'Follow System Theme',
-        'Use Adwaita light/dark colors based on the GNOME color scheme instead of the custom colors below.',
-        settings,
-        'follow-system-theme'
-    ).row);
-    page.add(themeGroup);
-
     const imageConfigGroup = new Adw.PreferencesGroup({
         title: 'Image Settings',
         description: 'Configuration for image and GIF widgets.',

@@ -11,6 +11,22 @@ export function buildAppearancePage(settings) {
         icon_name: 'preferences-desktop-appearance-symbolic',
     });
 
+    // 1. SYSTEM THEME CSOPORT (Legfelül, Dash-to-dock mintára)
+    const systemGroup = new Adw.PreferencesGroup({
+        title: 'System Theme',
+        description: 'Choose whether widgets follow GNOME system colors or custom aesthetics.',
+    });
+
+    const followSystemSwitch = createSwitchRow(
+        'Follow System Theme',
+        'Use Adwaita light/dark colors based on the GNOME color scheme instead of custom colors below.',
+        settings,
+        'follow-system-theme'
+    );
+    systemGroup.add(followSystemSwitch.row);
+    page.add(systemGroup);
+
+    // 2. THEME PRESETS CSOPORT
     const themeGroup = new Adw.PreferencesGroup({
         title: 'Theme Presets',
         description: 'Choose a built-in colour scheme. Themes set global defaults; per-widget overrides are preserved.',
@@ -46,7 +62,6 @@ export function buildAppearancePage(settings) {
             settings.set_string('theme', theme.id);
         }
     });
-
     themeGroup.add(themeRow);
 
     const accentRow = new Adw.ActionRow({
@@ -66,15 +81,27 @@ export function buildAppearancePage(settings) {
 
     page.add(themeGroup);
 
-    page.add(buildGlobalAestheticsGroup(settings));
+    // 3. AESTHETICS CSOPORT
+    const aestheticsGroup = buildGlobalAestheticsGroup(settings);
+    page.add(aestheticsGroup);
 
+    // DYNAMIC SENSITIVITY: Ha a system theme be van kapcsolva, letiltjuk mindkettőt!
+    const updateSensitiveness = () => {
+        const followSystem = settings.get_boolean('follow-system-theme');
+        themeGroup.set_sensitive(!followSystem);
+        aestheticsGroup.set_sensitive(!followSystem);
+    };
+
+    updateSensitiveness();
+    followSystemSwitch.row.connect('notify::active', updateSensitiveness);
+
+    // 4. DESKTOP GRID LAYOUT CSOPORT (Ez mindig elérhető)
     const gridGroup = new Adw.PreferencesGroup({
         title: 'Desktop Grid Layout',
         description: 'Configure desktop grid layout visibility.',
     });
-
     gridGroup.add(createSwitchRow('Visualize Grid Overlay', 'Show grid lines on the desktop for easier widget alignment.', settings, 'show-grid').row);
-
     page.add(gridGroup);
+
     return page;
 }

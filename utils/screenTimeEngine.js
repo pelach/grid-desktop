@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
+import Meta from 'gi://Meta';
 import { getGridgetsDataDir, loadJsonFromFileAsync, saveJsonToFile, todayDateString } from './widgetUtils.js';
 
 
@@ -200,9 +201,29 @@ export const screenTimeEngine = {
     _resolveFocusedKey() {
         const focusedWindow = global.display.focus_window;
         if (!focusedWindow) return null;
+        const windowType = focusedWindow.get_window_type();
+        if (
+            windowType === Meta.WindowType.DESKTOP ||
+            windowType === Meta.WindowType.DOCK ||
+            windowType === Meta.WindowType.DIALOG ||
+            windowType === Meta.WindowType.MODAL_DIALOG ||
+            windowType === Meta.WindowType.MENU ||
+            windowType === Meta.WindowType.POPUP_MENU
+        ) {
+            return null;
+        }
+
         const app = Shell.WindowTracker.get_default().get_window_app(focusedWindow);
         if (!app) return null;
-        return app.get_id() || app.get_name() || null;
+
+        const appId = app.get_id() || app.get_name() || null;
+
+        // 2. Kiszűrjük, ha véletlenül mégis belső 'window:' azonosítót próbálna visszaadni
+        if (appId && appId.startsWith('window:')) {
+            return null;
+        }
+
+        return appId;
     },
 
     _scheduleSave() {

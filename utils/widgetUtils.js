@@ -100,6 +100,7 @@ export function resolveWidgetOverrides(widgetData, globalSettings) {
     const {
         globalBgColor,
         globalFgColor,
+        globalBgOpacity,
         globalFontFamily,
     } = globalSettings;
 
@@ -107,6 +108,7 @@ export function resolveWidgetOverrides(widgetData, globalSettings) {
         appliedBorderRadius: DEFAULT_CORNER_RADIUS_PX,
         globalBackgroundColor: globalBgColor,
         globalForegroundColor: globalFgColor,
+        globalBackgroundOpacity: globalBgOpacity !== undefined ? globalBgOpacity : 100, // ÚJ
         globalFontFamily: globalFontFamily,
     });
 }
@@ -156,6 +158,7 @@ export function readGlobalSettings(settings, interfaceSettings = null) {
         globalBgColor,
         globalFgColor,
         globalAccentColor,
+        globalBgOpacity: settings.get_int('global-background-opacity'), // ÚJ
         globalFontFamily: settings.get_string('global-font-family'),
         globalAnimateGif: settings.get_boolean('image-animate-gif'),
         globalImageShowCaption: settings.get_boolean('image-show-caption'),
@@ -415,13 +418,28 @@ function resolveWidgetConfigValue(config, globalKey, overrideKey, fallbackKeys, 
 }
 
 export function resolveWidgetBackgroundColor(config) {
-    return resolveWidgetConfigValue(
+    const rawColor = resolveWidgetConfigValue(
         config,
         'globalBackgroundColor',
         'overrideBgColor',
         ['bgColor', 'textBackgroundColor'],
         DEFAULT_BG_COLOR
     );
+
+    // Meghatározzuk a százalékos értéket (0–100)
+    let opacityPercent = 100;
+    const colorOverrideValue = config?.overrideColors ?? config?.overrideBgColor;
+
+    if (colorOverrideValue && config?.bgOpacity !== undefined) {
+        opacityPercent = config.bgOpacity;
+    } else if (config?.globalBackgroundOpacity !== undefined) {
+        opacityPercent = config.globalBackgroundOpacity;
+    }
+
+    const alpha = Math.max(0, Math.min(1, opacityPercent / 100));
+
+    // A meglévő cssColorToRgba konvertálja át rgba(r, g, b, alpha) formára
+    return cssColorToRgba(rawColor, alpha);
 }
 
 export function buildBaseWidgetStyle(config) {

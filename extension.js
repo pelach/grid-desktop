@@ -35,6 +35,16 @@ export default class GridgetsExtension extends Extension {
             this._settings.connect('changed::accent-color-override', () => this._rebuildGrids())
         );
 
+        this._settingSignalIds.push(
+            this._settings.connect('changed::global-background-opacity', () => this._rebuildGrids())
+        );
+        this._settingSignalIds.push(
+            this._settings.connect('changed::global-background-color', () => this._rebuildGrids())
+        );
+        this._settingSignalIds.push(
+            this._settings.connect('changed::global-foreground-color', () => this._rebuildGrids())
+        );
+        
         this._screenTimeRelease = screenTimeEngine.acquire();
 
         this._createAndShowGrids();

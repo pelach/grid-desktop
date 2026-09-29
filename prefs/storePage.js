@@ -188,7 +188,7 @@ function createCategoryGroup(title, cards) {
 
 export function buildStorePage(window, settings, extensionPath) {
     const page = new Adw.PreferencesPage({
-        title: 'Gridgets Store',
+        title: 'Store',
         icon_name: 'software-update-available-symbolic',
     });
 

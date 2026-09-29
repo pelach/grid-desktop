@@ -34,6 +34,40 @@ function createColorRow(title, subtitle, settings, key, defaultVal = DEFAULT_FG_
     return row;
 }
 
+export function createOpacityRow(title, subtitle, settings, key) {
+    const row = new Adw.ActionRow({ title, subtitle });
+
+    const adjustment = new Gtk.Adjustment({
+        lower: 0,
+        upper: 100,
+        step_increment: 5,
+        page_increment: 10,
+        value: settings.get_int(key) || 100,
+    });
+
+    const scale = new Gtk.Scale({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        adjustment: adjustment,
+        draw_value: true,
+        value_pos: Gtk.PositionType.RIGHT,
+        hexpand: true,
+        width_request: 160,
+        valign: Gtk.Align.CENTER,
+    });
+    scale.set_digits(0);
+
+    // KÖZVETLEN MENTÉS A CSÚSZTATÁSKOR:
+    adjustment.connect('value-changed', () => {
+        const val = Math.round(adjustment.get_value());
+        if (settings.get_int(key) !== val) {
+            settings.set_int(key, val);
+        }
+    });
+
+    row.add_suffix(scale);
+    return row;
+}
+
 export function createSwitchRow(title, subtitle, settings, key) {
     const row = new Adw.SwitchRow({ title, subtitle });
     settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
@@ -47,6 +81,7 @@ export function buildGlobalAestheticsGroup(settings) {
     });
 
     group.add(createColorRow('Global Background Color', 'Global default background color.', settings, 'global-background-color', DEFAULT_BG_COLOR));
+    group.add(createOpacityRow('Global Background Opacity', 'Opacity level of the widget background (0–100%).', settings, 'global-background-opacity'));
     group.add(createColorRow('Global Foreground/Text Color', 'Global default text color.', settings, 'global-foreground-color', DEFAULT_FG_COLOR));
 
     const fontRow = new Adw.ActionRow({

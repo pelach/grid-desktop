@@ -105,7 +105,10 @@ function loadDaySummary(dateString) {
         let totalSeconds = 0;
         const appTotals = [];
         for (const [key, hours] of Object.entries(data.apps)) {
+            // SZŰRÉS: Belső mutter/desktop/ikon rétegek kihagyása
+            if (!key || key.startsWith('window:')) continue;
             if (!Array.isArray(hours)) continue;
+
             let appTotal = 0;
             for (let h = 0; h < Math.min(hours.length, HOURS_PER_DAY); h++)
                 appTotal += hours[h];
@@ -423,8 +426,10 @@ export function buildInsightsPage(settings) {
             const summary = loadDaySummary(dateStr);
             if (summary) {
                 grandTotal += summary.totalSeconds;
-                for (const app of summary.apps)
-                    appAgg[app.key] = (appAgg[app.key] || 0) + app.seconds;
+                for (const app of summary.apps) {
+                    if (app.key && !app.key.startsWith('window:'))
+                        appAgg[app.key] = (appAgg[app.key] || 0) + app.seconds;
+                }
                 days.push({
                     date: summary.date,
                     totalSeconds: summary.totalSeconds,

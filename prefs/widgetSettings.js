@@ -29,17 +29,28 @@ const RSS_REFRESH_STEP_MINUTES = 5;
 export function buildStandardSettings(grid, rowIdx, widget, settings, saveHandlers) {
     const isImageOrSlideshow = widget.type === 'slideshow' || widget.type === 'image' || widget.imagePath;
 
-    let bgColorBtn, fgColorBtn, fontBtn, colorSwitch;
+    let bgColorBtn, bgOpacityScale, fgColorBtn, fontBtn, colorSwitch;
     let initialFontDescription = '';
 
     if (!isImageOrSlideshow) {
-        const colorSwitchLabel = new Gtk.Label({ label: 'Custom Colors & Font:', xalign: 0, hexpand: true });
+        const isFollowSystem = settings.get_boolean('follow-system-theme');
+
+        // Kapcsoló és felirat
+        const switchLabelText = isFollowSystem 
+            ? 'Custom Colors & Font: (Disabled by System Theme)' 
+            : 'Custom Colors & Font:';
+        const colorSwitchLabel = new Gtk.Label({ label: switchLabelText, xalign: 0, hexpand: true });
         colorSwitch = new Gtk.Switch({ valign: Gtk.Align.CENTER, halign: Gtk.Align.END });
         colorSwitch.set_active(widget.overrideColors === true);
+        
+        // Ha a System Theme be van kapcsolva, a főkapcsoló sem engedélyezett
+        colorSwitch.set_sensitive(!isFollowSystem);
+
         grid.attach(colorSwitchLabel, 0, rowIdx, 1, 1);
         grid.attach(colorSwitch, 1, rowIdx, 1, 1);
         rowIdx++;
 
+        // Háttérszín gomb
         const bgColorLabel = new Gtk.Label({ label: 'Background Color:', xalign: 0, hexpand: true });
         bgColorBtn = new Gtk.ColorButton({ valign: Gtk.Align.CENTER, halign: Gtk.Align.END });
         const bgRgba = new Gdk.RGBA();
@@ -49,6 +60,36 @@ export function buildStandardSettings(grid, rowIdx, widget, settings, saveHandle
         grid.attach(bgColorBtn, 1, rowIdx, 1, 1);
         rowIdx++;
 
+        // ÚJ: Háttér átlátszóság csúszka
+        const bgOpacityLabel = new Gtk.Label({ label: 'Background Opacity:', xalign: 0, hexpand: true });
+        const defaultGlobalOpacity = settings.get_int('global-background-opacity');
+        const initialOpacity = widget.bgOpacity !== undefined ? widget.bgOpacity : (defaultGlobalOpacity || 100);
+        
+        const opacityAdjustment = new Gtk.Adjustment({
+            lower: 0,
+            upper: 100,
+            step_increment: 5,
+            page_increment: 10,
+            value: initialOpacity,
+        });
+
+        bgOpacityScale = new Gtk.Scale({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            adjustment: opacityAdjustment,
+            draw_value: true,
+            value_pos: Gtk.PositionType.RIGHT,
+            hexpand: true,
+            width_request: 140,
+            valign: Gtk.Align.CENTER,
+            halign: Gtk.Align.END,
+        });
+        bgOpacityScale.set_digits(0);
+
+        grid.attach(bgOpacityLabel, 0, rowIdx, 1, 1);
+        grid.attach(bgOpacityScale, 1, rowIdx, 1, 1);
+        rowIdx++;
+
+        // Szöveg / ikon szín
         const fgColorLabel = new Gtk.Label({ label: 'Text/Icon Color:', xalign: 0, hexpand: true });
         fgColorBtn = new Gtk.ColorButton({ valign: Gtk.Align.CENTER, halign: Gtk.Align.END });
         const fgRgba = new Gdk.RGBA();
@@ -58,6 +99,7 @@ export function buildStandardSettings(grid, rowIdx, widget, settings, saveHandle
         grid.attach(fgColorBtn, 1, rowIdx, 1, 1);
         rowIdx++;
 
+        // Betűtípus
         const fontLabel = new Gtk.Label({ label: 'Font Family:', xalign: 0, hexpand: true });
         fontBtn = new Gtk.FontButton({ valign: Gtk.Align.CENTER, halign: Gtk.Align.END });
         const currentFont = widget.fontFamily || settings.get_string('global-font-family');
@@ -67,13 +109,17 @@ export function buildStandardSettings(grid, rowIdx, widget, settings, saveHandle
         grid.attach(fontBtn, 1, rowIdx, 1, 1);
         rowIdx++;
 
-        bgColorBtn.set_sensitive(colorSwitch.get_active());
-        fgColorBtn.set_sensitive(colorSwitch.get_active());
-        fontBtn.set_sensitive(colorSwitch.get_active());
+        // Aktív állapotok beállítása (figyelembe véve a system theme-et is)
+        const canCustomize = !isFollowSystem && colorSwitch.get_active();
+        bgColorBtn.set_sensitive(canCustomize);
+        bgOpacityScale.set_sensitive(canCustomize);
+        fgColorBtn.set_sensitive(canCustomize);
+        fontBtn.set_sensitive(canCustomize);
 
         colorSwitch.connect('notify::active', () => {
-            const active = colorSwitch.get_active();
+            const active = colorSwitch.get_active() && !settings.get_boolean('follow-system-theme');
             bgColorBtn.set_sensitive(active);
+            bgOpacityScale.set_sensitive(active);
             fgColorBtn.set_sensitive(active);
             fontBtn.set_sensitive(active);
         });
@@ -118,6 +164,7 @@ export function buildStandardSettings(grid, rowIdx, widget, settings, saveHandle
         if (!isImageOrSlideshow && colorSwitch) {
             target.overrideColors = colorSwitch.get_active();
             target.bgColor = bgColorBtn.get_rgba().to_string();
+            target.bgOpacity = Math.round(bgOpacityScale.get_value());
             target.fgColor = fgColorBtn.get_rgba().to_string();
 
             if (fontBtn.get_font() !== initialFontDescription) {
