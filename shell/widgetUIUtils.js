@@ -84,9 +84,11 @@ export function createWidgetContainer(config, width, height, xPosition, yPositio
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
 
+    const glassHighlight = 'box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), inset 1px 0 1px 0 rgba(255, 255, 255, 0.12), inset -1px 0 1px 0 rgba(255, 255, 255, 0.12);';
+
     const container = new WidgetActor({
         style_class: 'gridgets-widget',
-        style: `${fontCss}background-color: ${backgroundColor}; color: ${textColor}; ${baseStyle}`,
+        style: `${fontCss}background-color: ${backgroundColor}; color: ${textColor}; ${glassHighlight} ${baseStyle}`,
         x: xPosition,
         y: yPosition,
         width: width,
