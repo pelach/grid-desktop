@@ -88,6 +88,31 @@ export function resolveConditionCode(code, text = '') {
     return WEATHER_CODE_CLEAR;
 }
 
+/**
+ * Megpróbálja kiolvasni a GNOME Shell beépített időjárás-helyszínét.
+ * Visszaadja a város nevét (string), vagy null-t, ha nincs beállítva.
+ */
+export function getGnomeDefaultWeatherCity() {
+    try {
+        const weatherSettings = new Gio.Settings({ schema_id: 'org.gnome.shell.weather' });
+        const locations = weatherSettings.get_value('locations').deep_unpack();
+
+        if (locations && locations.length > 0) {
+            // A locations GVariant egy szerializált GWeather.Location objektumokat tartalmazó lista
+            // Az első bejegyzésből kibontható a helyszín neve:
+            const firstLoc = locations[0];
+            // GNOME alatt a szerializált struktúra 1. indexén található a városnév (vagy címke)
+            if (Array.isArray(firstLoc) && firstLoc[0]) {
+                return firstLoc[0];
+            }
+        }
+    } catch (e) {
+        // Ha nem érhető el a séma vagy még nincs város beállítva a tálcán
+    }
+    return null;
+}
+
+
 export function getWeatherAssets(extensionPath, code, isDay, folderName = '3x3', text = '') {
     const effectiveCode = resolveConditionCode(code, text);
     const timeOfDay = isDay ? 'day' : 'night';
@@ -637,7 +662,9 @@ async function fetchOpenMeteoWeather({ latitude, longitude, name }, context) {
 export function fetchWeatherViaOpenMeteo(context) {
     const { widgetData, widgetNode } = context;
     if (isActorDestroyed(widgetNode)) return;
-    const location = widgetData.location || widgetData.globalWeatherCity || FALLBACK_LOCATION;
+
+    const gnomeCity = getGnomeDefaultWeatherCity();
+    const location = widgetData.location || widgetData.globalWeatherCity || gnomeCity || FALLBACK_LOCATION; //[cite: 4]
 
     if (!widgetNode.weatherSession) {
         widgetNode.weatherSession = new Soup.Session();
