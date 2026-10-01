@@ -235,7 +235,7 @@ export const STORE_WIDGETS = Object.freeze({
     habitTracker: {
         title: 'Habit Tracker',
         description: 'Simple tool to record and measure your daily routines.',
-        gridSize: '6x4',
+        gridSize: '4x7',
         thumbnail: 'habit-tracker/habit-tracker.svg',
         fallbackIconName: 'checkbox-checked-symbolic',
     },

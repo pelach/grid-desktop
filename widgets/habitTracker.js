@@ -26,10 +26,34 @@ const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DEFAULT_PALETTE = ['#C2E7FF', '#A2C9C2', '#FFE082', '#D7AEFB', '#FFB4AB'];
 
 const DEFAULT_HABITS = [
-    { name: 'Code Daily', streak: 18, days: [true, true, true, true, true, false, false], color: '#C2E7FF' },
-    { name: 'Hydrate (2L)', streak: 12, days: [true, true, true, true, false, false, false], color: '#A2C9C2' },
-    { name: 'Read / Study', streak: 7, days: [true, true, false, true, false, false, false], color: '#FFE082' }
+    { name: 'Code Daily', days: [true, true, true, true, true, false, false], color: '#C2E7FF' },
+    { name: 'Hydrate (2L)', days: [true, true, true, true, false, false, false], color: '#A2C9C2' },
+    { name: 'Read / Study', days: [true, true, false, true, false, false, false], color: '#FFE082' }
 ];
+
+// Kiszámolja az aktuális szériát az adott heti napok alapján
+function calculateStreak(days) {
+    // Mai nap indexe: Hétfő = 0, ..., Vasárnap = 6
+    const now = new Date();
+    const jsDay = now.getDay(); // 0: Vasárnap, 1: Hétfő ...
+    const todayIdx = (jsDay + 6) % 7;
+
+    let streak = 0;
+    let idx = todayIdx;
+
+    // Ha a mai nap még nincs bepipálva, megnézzük, hogy a tegnapi megvolt-e, 
+    // hogy ne nullázódjon le a széria napközben
+    if (!days[todayIdx]) {
+        idx = todayIdx - 1;
+    }
+
+    while (idx >= 0 && days[idx]) {
+        streak++;
+        idx--;
+    }
+
+    return streak;
+}
 
 export function createHabitTrackerNode(config, width, height, xPosition, yPosition) {
 
@@ -52,7 +76,6 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
     container.style += ` border: 1px solid rgba(${textRgb()}, ${BORDER_ALPHA});`;
 
     let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
-
 
     const state = {
         isAdding: false
@@ -131,7 +154,7 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
     const listScroll = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
-        overlay_scrollbars: true,
+        overlay_scrollbars: false,
         x_expand: true,
         y_expand: true,
     });
@@ -148,7 +171,6 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
             const col = DEFAULT_PALETTE[habits.length % DEFAULT_PALETTE.length];
             habits.push({
                 name: text,
-                streak: 1,
                 days: [false, false, false, false, false, false, false],
                 color: col
             });
@@ -187,7 +209,8 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
                 style: `background-color: rgba(${textRgb()}, 0.06); `
                      + `padding: ${px(ROW_PADDING_PX)}px; `
                      + `border-radius: ${px(ROW_RADIUS_PX)}px; `
-                     + `margin-bottom: ${px(ROW_GAP_PX)}px;`
+                     + `margin-bottom: ${px(ROW_GAP_PX)}px; `
+                     + `margin-right: ${px(4)}px;`
             });
 
             // Név
@@ -199,15 +222,16 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
             });
             row.add_child(nameLabel);
 
-            // Streak számláló
+            // Dinamikusan számolt Streak számláló
+            const currentStreak = calculateStreak(habit.days);
             const streakPill = new St.Label({
-                text: `${habit.streak || 0}d`,
+                text: `${currentStreak}d`,
                 y_align: Clutter.ActorAlign.CENTER,
                 style: `${fontCss}font-size: ${px(11)}px; font-weight: bold; color: ${textColor}; `
                      + `background-color: rgba(${textRgb()}, 0.08); `
                      + `padding: ${px(2)}px ${px(8)}px; `
                      + `border-radius: 9999px; `
-                     + `margin-right: ${px(10)}px;`
+                     + `margin-right: ${px(8)}px;`
             });
             row.add_child(streakPill);
 
@@ -215,7 +239,7 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
             const daysBox = new St.BoxLayout({
                 orientation: Clutter.Orientation.HORIZONTAL,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `spacing: ${px(5)}px;`
+                style: `spacing: ${px(4)}px; margin-right: ${px(6)}px;`
             });
 
             habit.days.forEach((done, dIdx) => {
@@ -253,6 +277,9 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
                 dayBtn.connect('clicked', () => {
                     habit.days[dIdx] = !habit.days[dIdx];
                     updateDayStyle();
+                    
+                    // Kattintáskor azonnal újraszámoljuk és frissítjük a szöveget
+                    streakPill.text = `${calculateStreak(habit.days)}d`;
                     saveHabits();
                 });
 
@@ -261,6 +288,27 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
             });
 
             row.add_child(daysBox);
+
+            // Törlés gomb (Remove)
+            const removeBtn = new St.Button({
+                reactive: true,
+                can_focus: true,
+                y_align: Clutter.ActorAlign.CENTER,
+                style: `padding: ${px(3)}px; border-radius: 9999px; opacity: 0.6;`,
+                child: new St.Icon({
+                    icon_name: 'window-close-symbolic',
+                    icon_size: px(12)
+                })
+            });
+            attachButtonFeedback(removeBtn);
+
+            removeBtn.connect('clicked', () => {
+                habits.splice(hIdx, 1);
+                saveHabits();
+                renderRows();
+            });
+
+            row.add_child(removeBtn);
             listContainer.add_child(row);
         });
     }
@@ -294,7 +342,6 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
 
     applyScale(scale);
 
-    // Adatok betöltése a fájlból
     loadJsonFromFileAsync(filePath, (data, error) => {
         if (isActorDestroyed(container)) return;
         if (Array.isArray(data) && data.length > 0) {
@@ -302,6 +349,7 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
             renderRows();
         }
     });
+
     attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
         applyScale(Math.min(w / REF_WIDTH_PX, h / REF_HEIGHT_PX));
