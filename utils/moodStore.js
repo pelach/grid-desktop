@@ -5,13 +5,17 @@ import { getGridgetsDataDir, loadJsonFromFileAsync, saveJsonToFile, saveJsonToFi
 import { todayDateString, toDateString } from './widgetUtils.js';
 export { todayDateString, toDateString };
 
+const DEBUG = false;
+function logError(...args) {
+    if (DEBUG) console.error(...args);
+}
+
 // Monthly-partitioned mood history: ~/.local/share/gridgets/mood/<year>/<month>.json
 const monthCache = new Map();
 /** Callbacks waiting on an in-flight month file read, keyed by 'YYYY-MM'. */
 const pendingMonthLoads = new Map();
 /** Generation counter — stale completions from before a clear are discarded. */
 let monthLoadGeneration = 0;
-
 
 function monthKeyOf(dateString) {
     return dateString.slice(0, 7);
@@ -52,14 +56,14 @@ function requestMonthLoad(monthKey, dateString, onLoaded) {
 export function loadDatesAsync(dateKeys, callback) {
     const monthKeys = [...new Set(dateKeys.map(monthKeyOf))].filter(key => !monthCache.has(key));
     if (monthKeys.length === 0) {
-        callback();
+        if (callback) callback();
         return;
     }
 
     let remaining = monthKeys.length;
     const onOneLoaded = () => {
         remaining -= 1;
-        if (remaining === 0) {
+        if (remaining === 0 && callback) {
             callback();
         }
     };
@@ -68,23 +72,9 @@ export function loadDatesAsync(dateKeys, callback) {
     }
 }
 
+/** Fallback wrapper calling async loader without blocking */
 export function loadDatesSync(dateKeys) {
-    const monthKeys = [...new Set(dateKeys.map(monthKeyOf))].filter(key => !monthCache.has(key));
-    for (const monthKey of monthKeys) {
-        const filePath = monthFilePath(`${monthKey}-01`);
-        const file = Gio.File.new_for_path(filePath);
-        try {
-            const [ok, bytes] = file.load_contents(null);
-            if (ok) {
-                const data = JSON.parse(new TextDecoder('utf-8').decode(bytes));
-                monthCache.set(monthKey, data && typeof data === 'object' ? data : {});
-            } else {
-                monthCache.set(monthKey, {});
-            }
-        } catch (_e) {
-            monthCache.set(monthKey, {});
-        }
-    }
+    loadDatesAsync(dateKeys, null);
 }
 
 /** Returns the logged mood level for a date, or 0 when nothing was logged. */
@@ -101,8 +91,6 @@ export function saveMood(dateString, level) {
         requestMonthLoad(monthKey, `${monthKey}-01`, () => {
             let month = monthCache.get(monthKey);
             if (!month) {
-                // Seed the cache so the recursive call takes the direct path
-                // instead of re-queuing a load that will fail again.
                 month = {};
                 monthCache.set(monthKey, month);
             }
@@ -131,59 +119,7 @@ export function generateFakeMoodData() {
     const todayStr = toDateString(today);
     const months = {};
 
-    // Load existing month files from disk to find the latest date
-    const moodDir = getGridgetsDataDir('mood');
-    let latestExistingDate = null;
-
-    // Scan year directories
-    const dirFile = Gio.File.new_for_path(moodDir);
-    try {
-        const enumerator = dirFile.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
-        let yearInfo;
-        while ((yearInfo = enumerator.next_file(null)) !== null) {
-            const yearName = yearInfo.get_name();
-            if (yearInfo.get_file_type() !== Gio.FileType.DIRECTORY) continue;
-            const yearDir = Gio.File.new_for_path(GLib.build_filenamev([moodDir, yearName]));
-            try {
-                const monthEnum = yearDir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
-                let monthInfo;
-                while ((monthInfo = monthEnum.next_file(null)) !== null) {
-                    const monthName = monthInfo.get_name();
-                    if (!monthName.endsWith('.json')) continue;
-                    const monthKey = monthName.replace('.json', '');
-                    const filePath = GLib.build_filenamev([moodDir, yearName, monthName]);
-                    const file = Gio.File.new_for_path(filePath);
-                    try {
-                        const [ok, bytes] = file.load_contents(null);
-                        if (!ok) continue;
-                        const contents = JSON.parse(new TextDecoder('utf-8').decode(bytes));
-                        if (typeof contents === 'object' && contents !== null) {
-                            // Update cache
-                            const fullMonthKey = `${yearName}-${monthKey}`;
-                            monthCache.set(fullMonthKey, contents);
-                            for (const dateKey of Object.keys(contents)) {
-                                if (contents[dateKey] > 0 && (!latestExistingDate || dateKey > latestExistingDate)) {
-                                    latestExistingDate = dateKey;
-                                }
-                            }
-                        }
-                    } catch (_e) { /* skip unreadable files */ }
-                }
-            } catch (_e) { /* skip unreadable directories */ }
-        }
-    } catch (_e) { /* skip if mood dir doesn't exist */ }
-
-    // Generate from (latestExistingDate + 1) through today, or MOOD_SEED_DAYS backwards if no data
-    let startDate;
-    if (latestExistingDate && latestExistingDate < todayStr) {
-        const [y, m, d] = latestExistingDate.split('-').map(Number);
-        const lastDate = GLib.DateTime.new_local(y, m, d, 0, 0, 0);
-        startDate = lastDate.add_days(1);
-    } else {
-        startDate = today.add_days(-(MOOD_SEED_DAYS - 1));
-    }
-
-    // Generate from startDate to today
+    let startDate = today.add_days(-(MOOD_SEED_DAYS - 1));
     let day = startDate;
     while (day.compare(today) <= 0) {
         const dateString = toDateString(day);
@@ -204,7 +140,7 @@ export function generateFakeMoodData() {
         monthCache.set(monthKey, data);
         const [year, month] = monthKey.split('-');
         const filePath = GLib.build_filenamev([getGridgetsDataDir('mood'), year, `${month}.json`]);
-        saveJsonToFileSync(filePath, data);
+        saveJsonToFile(filePath, data);
     }
 }
 
@@ -213,93 +149,81 @@ export function listMoodDates(callback) {
     const dates = [];
     try {
         const dirFile = Gio.File.new_for_path(moodDir);
-        const enumerator = dirFile.enumerate_children('standard::name,standard::type', Gio.FileQueryInfoFlags.NONE, null);
-        let yearInfo;
-        while ((yearInfo = enumerator.next_file(null)) !== null) {
-            if (yearInfo.get_file_type() !== Gio.FileType.DIRECTORY) continue;
-            const yearName = yearInfo.get_name();
-            const yearDir = Gio.File.new_for_path(GLib.build_filenamev([moodDir, yearName]));
-            let monthEnum;
-            try {
-                monthEnum = yearDir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
-            } catch (_e) {
-                continue;
-            }
-            let monthInfo;
-            while ((monthInfo = monthEnum.next_file(null)) !== null) {
-                const monthName = monthInfo.get_name();
-                if (!monthName.endsWith('.json')) continue;
-                const monthKey = monthName.replace('.json', '');
-                const filePath = GLib.build_filenamev([moodDir, yearName, monthName]);
-                const file = Gio.File.new_for_path(filePath);
-                let contents;
-                try {
-                    const [ok, bytes] = file.load_contents(null);
-                    if (!ok) continue;
-                    contents = JSON.parse(new TextDecoder('utf-8').decode(bytes));
-                } catch (_e) {
-                    continue;
-                }
-                if (typeof contents === 'object' && contents !== null) {
-                    const prefix = `${yearName}-${monthKey}`;
-                    for (const dateKey of Object.keys(contents)) {
-                        if (dateKey.startsWith(prefix) && contents[dateKey] > 0)
-                            dates.push(dateKey);
-                    }
-                }
-            }
+        if (!dirFile.query_exists(null)) {
+            callback([]);
+            return;
         }
+
+        dirFile.enumerate_children_async(
+            'standard::name,standard::type',
+            Gio.FileQueryInfoFlags.NONE,
+            GLib.PRIORITY_DEFAULT,
+            null,
+            (source, res) => {
+                try {
+                    const enumerator = dirFile.enumerate_children_finish(res);
+                    const readNextBatch = () => {
+                        enumerator.next_files_async(10, GLib.PRIORITY_DEFAULT, null, (eSrc, eRes) => {
+                            try {
+                                const files = enumerator.next_files_finish(eRes);
+                                if (!files || files.length === 0) {
+                                    dates.sort().reverse();
+                                    callback(dates);
+                                    return;
+                                }
+
+                                for (const yearInfo of files) {
+                                    if (yearInfo.get_file_type() !== Gio.FileType.DIRECTORY) continue;
+                                    const yearName = yearInfo.get_name();
+                                    const yearDir = Gio.File.new_for_path(GLib.build_filenamev([moodDir, yearName]));
+                                    try {
+                                        const monthEnum = yearDir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
+                                        let monthInfo;
+                                        while ((monthInfo = monthEnum.next_file(null)) !== null) {
+                                            const monthName = monthInfo.get_name();
+                                            if (!monthName.endsWith('.json')) continue;
+                                            const monthKey = monthName.replace('.json', '');
+                                            const fullMonthKey = `${yearName}-${monthKey}`;
+                                            const cached = monthCache.get(fullMonthKey);
+                                            if (cached) {
+                                                for (const dateKey of Object.keys(cached)) {
+                                                    if (dateKey.startsWith(fullMonthKey) && cached[dateKey] > 0)
+                                                        dates.push(dateKey);
+                                                }
+                                            }
+                                        }
+                                    } catch (_) {}
+                                }
+                                readNextBatch();
+                            } catch (_) {
+                                dates.sort().reverse();
+                                callback(dates);
+                            }
+                        });
+                    };
+                    readNextBatch();
+                } catch (e) {
+                    logError('Error listing mood dates:', e);
+                    callback([]);
+                }
+            }
+        );
     } catch (e) {
-        console.error('Error listing mood dates:', e);
+        logError('Error listing mood dates:', e);
+        callback([]);
     }
-    dates.sort().reverse();
-    callback(dates);
 }
 
-/** Synchronous version of listMoodDates for use in prefs where async may not complete. */
 export function listMoodDatesSync() {
-    const moodDir = getGridgetsDataDir('mood');
     const dates = [];
-    try {
-        const dirFile = Gio.File.new_for_path(moodDir);
-        const enumerator = dirFile.enumerate_children('standard::name,standard::type', Gio.FileQueryInfoFlags.NONE, null);
-        let yearInfo;
-        while ((yearInfo = enumerator.next_file(null)) !== null) {
-            if (yearInfo.get_file_type() !== Gio.FileType.DIRECTORY) continue;
-            const yearName = yearInfo.get_name();
-            const yearDir = Gio.File.new_for_path(GLib.build_filenamev([moodDir, yearName]));
-            let monthEnum;
-            try {
-                monthEnum = yearDir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
-            } catch (_e) {
-                continue;
-            }
-            let monthInfo;
-            while ((monthInfo = monthEnum.next_file(null)) !== null) {
-                const monthName = monthInfo.get_name();
-                if (!monthName.endsWith('.json')) continue;
-                const monthKey = monthName.replace('.json', '');
-                const filePath = GLib.build_filenamev([moodDir, yearName, monthName]);
-                const file = Gio.File.new_for_path(filePath);
-                let contents;
-                try {
-                    const [ok, bytes] = file.load_contents(null);
-                    if (!ok) continue;
-                    contents = JSON.parse(new TextDecoder('utf-8').decode(bytes));
-                } catch (_e) {
-                    continue;
-                }
-                if (typeof contents === 'object' && contents !== null) {
-                    const prefix = `${yearName}-${monthKey}`;
-                    for (const dateKey of Object.keys(contents)) {
-                        if (dateKey.startsWith(prefix) && contents[dateKey] > 0)
-                            dates.push(dateKey);
-                    }
+    for (const [monthKey, contents] of monthCache.entries()) {
+        if (typeof contents === 'object' && contents !== null) {
+            for (const dateKey of Object.keys(contents)) {
+                if (dateKey.startsWith(monthKey) && contents[dateKey] > 0) {
+                    dates.push(dateKey);
                 }
             }
         }
-    } catch (e) {
-        console.error('Error listing mood dates:', e);
     }
     dates.sort().reverse();
     return dates;

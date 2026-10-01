@@ -37,21 +37,29 @@ function skinFilesExist(skinName, fileNames) {
     return true;
 }
 
-function loadSkinConfig(skinName) {
-    try {
-        const currentDir = GLib.path_get_dirname(import.meta.url.replace('file://', ''));
-        const configPath = `${currentDir}/skins/${skinName}/skin.json`;
-        const configFile = Gio.File.new_for_path(configPath);
-        if (configFile.query_exists(null)) {
-            const [ok, contents] = configFile.load_contents(null);
-            if (ok) {
-                return JSON.parse(new TextDecoder().decode(contents));
-            }
+function loadSkinConfigAsync(skinName) {
+    return new Promise((resolve) => {
+        try {
+            const currentDir = GLib.path_get_dirname(import.meta.url.replace('file://', ''));
+            const configPath = `${currentDir}/skins/${skinName}/skin.json`;
+            const configFile = Gio.File.new_for_path(configPath);
+
+            configFile.load_contents_async(null, (file, res) => {
+                try {
+                    const [ok, contents] = file.load_contents_finish(res);
+                    if (ok) {
+                        resolve(JSON.parse(new TextDecoder().decode(contents)));
+                        return;
+                    }
+                } catch (e) {
+                    // Ha nincs fájl vagy hibás a JSON
+                }
+                resolve(null);
+            });
+        } catch (e) {
+            resolve(null);
         }
-    } catch (e) {
-        log(`[Gridgets Clock] Error loading skin config for ${skinName}: ${e}`);
-    }
-    return null;
+    });
 }
 
 function createHandIcon(skinName, fileName, size) {
@@ -94,7 +102,6 @@ function updateHands(hands, showSecondHand, dateLabel = null) {
 export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosition) {
     const skinName = widgetData?.skin || DEFAULT_SKIN;
 
-    // Kötelező fájlok listája
     const requiredFiles = [
         'background.svg',
         'hour_hand.svg',
@@ -102,9 +109,8 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         'second_hand.svg'
     ];
 
-    // Ha bármelyik hiányzik, azonnal kilépünk (nem indul el timer, nem szemetelünk a DOM-ban)
     if (!skinFilesExist(skinName, requiredFiles)) {
-        return null; // vagy egy üres St.Widget / hibaüzenet, attól függően, a Gridgets mit vár vissza
+        return null;
     }
 
     const textColor = resolveWidgetForegroundColor(widgetData);
@@ -112,7 +118,7 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
     const showBackground = widgetData.showBackground !== false;
     const showDate = widgetData.showDate !== false;
 
-    const skinConfig = loadSkinConfig(skinName);
+    let skinConfig = null;
 
     const widgetNode = createWidgetContainer(widgetData, width, height, xPosition, yPosition);
 
@@ -143,7 +149,6 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         clockContainer.destroy_all_children();
         clockContainer.set_size(size, size);
 
-        // 1. Dátum réteg (ha a skin támogatja és be van kapcsolva)
         dateLabel = null;
         if (showDate && skinConfig?.dateWindow) {
             const dw = skinConfig.dateWindow;
@@ -176,11 +181,9 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
             clockContainer.add_child(dateBox);
         }
 
-        // 2. Óralap (Background) – A kivágáson átlátszik a mögötte lévő dátum
         const background = createHandIcon(skinName, 'background.svg', size);
         clockContainer.add_child(background);
 
-        // 3. Mutatók (a dátum és a számlap felett mozognak)
         const hourHand = createHandIcon(skinName, 'hour_hand.svg', size);
         const minuteHand = createHandIcon(skinName, 'minute_hand.svg', size);
 
@@ -209,7 +212,7 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         updateHands(hands, showSecondHand, dateLabel);
     };
 
-    const applyScale = (scale) => {
+    const applyScale = () => {
         const availableSpace = Math.min(width, height) * 0.88;
         const scaledSize = Math.max(32, Math.round(availableSpace));
         buildClockElements(scaledSize);
@@ -225,7 +228,12 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         return GLib.SOURCE_CONTINUE;
     };
 
-    applyScale(Math.min(width / BASE_CLOCK_SIZE, height / BASE_CLOCK_SIZE));
+    // Aszinkron betöltés indítása:
+    loadSkinConfigAsync(skinName).then((cfg) => {
+        if (isActorDestroyed(widgetNode)) return;
+        skinConfig = cfg;
+        applyScale();
+    });
 
     if (showSecondHand) {
         state.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, updateDisplay);
@@ -234,9 +242,9 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
     }
 
     connectTimerCleanup(widgetNode, state);
-    attachResponsiveScaler(widgetNode, BASE_CLOCK_SIZE, BASE_CLOCK_SIZE, (scale) => {
+    attachResponsiveScaler(widgetNode, BASE_CLOCK_SIZE, BASE_CLOCK_SIZE, () => {
         if (isActorDestroyed(widgetNode)) return;
-        applyScale(scale);
+        applyScale();
     });
 
     return widgetNode;
