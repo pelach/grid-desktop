@@ -50,6 +50,8 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'battery-status': { minCols: 4, minRows: 4 },
     'currency-tracker': { minCols: 3, minRows: 2 },
     'habitTracker': {minCols: 7, minRows: 4 },
+    'quickToggles': {minCols: 4, minRows: 4},
+    'audioOutput': { minCols: 4, minRows: 4 },
 });
 
 /**
@@ -505,7 +507,9 @@ const SIZE_PRESETS = {
     'mood': [[6, 3], [8, 4], [10, 5]],
     'rss-headlines': [[4, 4], [5, 5], [6, 6]],
     'currency-tracker': [[3, 2], [5, 3], [7, 4]],
-    'habitTracker': [[7, 4], [9, 5], [11, 6]]
+    'habitTracker': [[7, 4], [9, 5], [11, 6]],
+    'quickToggles': [[4, 4], [5, 5], [6, 6]],
+    'audioOutput': [[4, 4], [5, 5], [6, 6]]
 };
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];

@@ -7,8 +7,6 @@ import { BUTTON_PRIMARY } from '../desktopGrid/constants.js';
 import { isActorDestroyed } from '../utils/actorLifecycle.js';
 
 const DEFAULT_NOTE_TEXT = 'Quick Note\n- [ ] Task 1\n- [x] Task 2\n\n**Click the pen icon to edit**';
-const BASE_CONTAINER_WIDTH = 240;
-const BASE_CONTAINER_HEIGHT = 160;
 const BASE_TITLE_FONT_SIZE = 14;
 const BASE_CONTENT_FONT_SIZE = 14;
 const BASE_ICON_SIZE = 16;
@@ -89,65 +87,99 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
     contentBox.add_child(headerBox);
 
     const scrollView = new St.ScrollView({
-        style_class: 'vfade',
         x_expand: true,
         y_expand: true,
+        reactive: true,
+        clip_to_allocation: true,
     });
-    scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+    scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.EXTERNAL);
 
     const scrollContent = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
-        y_expand: true,
+        y_expand: false,
+        reactive: true,
     });
     scrollView.set_child(scrollContent);
     contentBox.add_child(scrollView);
 
-    const displayLabel = new St.Label({
-        style: `${fontCss}color: ${textColor};`,
+    const handleScroll = (_actor, event) => {
+        const vadj = scrollView.vadjustment;
+        if (!vadj) return Clutter.EVENT_PROPAGATE;
+
+        const step = vadj.step_increment || 28;
+        const direction = event.get_scroll_direction();
+
+        if (direction === Clutter.ScrollDirection.UP) {
+            vadj.value = Math.max(vadj.lower, vadj.value - step);
+            return Clutter.EVENT_STOP;
+        } else if (direction === Clutter.ScrollDirection.DOWN) {
+            vadj.value = Math.min(vadj.upper - vadj.page_size, vadj.value + step);
+            return Clutter.EVENT_STOP;
+        } else if (direction === Clutter.ScrollDirection.SMOOTH) {
+            const [, dy] = event.get_scroll_delta();
+            vadj.value = Math.max(vadj.lower, Math.min(vadj.upper - vadj.page_size, vadj.value + dy * step));
+            return Clutter.EVENT_STOP;
+        }
+        return Clutter.EVENT_PROPAGATE;
+    };
+
+    scrollView.connect('scroll-event', handleScroll);
+    scrollContent.connect('scroll-event', handleScroll);
+
+    
+    const displayLabel = new Clutter.Text({
+        font_name: fontFamily ? `${fontFamily} 14px` : '14px',
+        editable: false,
+        selectable: false,
+        reactive: true,
+        line_wrap: true,
+        use_markup: true,
         x_expand: true,
-        y_expand: true,
     });
-    displayLabel.clutter_text.line_wrap = true;
-    displayLabel.clutter_text.use_markup = true;
+    scrollContent.connect('style-changed', () => {
+        if (isActorDestroyed(container) || !scrollContent.get_stage()) return;
+        displayLabel.set_color(scrollContent.get_theme_node().get_foreground_color());
+    });
+    displayLabel.connect('scroll-event', handleScroll);
+    scrollContent.add_child(displayLabel);
+
 
     const editorContainer = new St.BoxLayout({
         style: `color: ${textColor};`,
         x_expand: true,
-        y_expand: true,
+        clip_to_allocation: true,
     });
 
     let textEditor = new Clutter.Text({
-        font_name: fontFamily ? `${fontFamily} ` : '',
+        font_name: fontFamily ? `${fontFamily} 14px` : '14px',
         editable: true,
         selectable: true,
         reactive: true,
         line_wrap: true,
         x_expand: true,
-        y_expand: true,
     });
-    editorContainer.add_child(textEditor);
-
     editorContainer.connect('style-changed', () => {
         if (isActorDestroyed(container) || !editorContainer.get_stage()) return;
         textEditor.set_color(editorContainer.get_theme_node().get_foreground_color());
     });
+    editorContainer.add_child(textEditor);
+    scrollContent.add_child(editorContainer);
 
     let isEditingActive = false;
     const state = { deferredUpdateId: null };
-    scrollContent.add_child(displayLabel);
-    scrollContent.add_child(editorContainer);
 
     const showNoteViewer = () => {
         if (global.stage.get_key_focus() === textEditor) {
             global.stage.set_key_focus(null);
         }
-        displayLabel.clutter_text.set_markup(convertMarkdownToPango(noteContent));
+        displayLabel.set_markup(convertMarkdownToPango(noteContent));
+        if (scrollView.vadjustment) scrollView.vadjustment.value = 0;
         editorContainer.hide();
         displayLabel.show();
         editIcon.set_icon_name('document-edit-symbolic');
         isEditingActive = false;
-    };
+    }
 
     const showNoteEditor = () => {
         textEditor.text = noteContent;
@@ -203,7 +235,8 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
 
         titleLabel.set_style(`${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; opacity: ${SECONDARY_OPACITY};`);
         editIcon.set_icon_size(iconSize);
-        displayLabel.set_style(`${fontCss}color: ${textColor}; font-size: ${contentFontSize}px;`);
+
+        displayLabel.font_name = `${fontFamily ? `${fontFamily} ` : ''}${contentFontSize}px`;
 
         const currentText = textEditor.text;
         const wasEditing = isEditingActive;
@@ -216,11 +249,12 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
             reactive: true,
             line_wrap: true,
             x_expand: true,
-            y_expand: true,
         });
         editorContainer.add_child(newEditor);
         newEditor.text = currentText;
-        newEditor.set_color(editorContainer.get_theme_node().get_foreground_color());
+        if (editorContainer.get_stage()) {
+            newEditor.set_color(editorContainer.get_theme_node().get_foreground_color());
+        }
         newEditor.connect('text-changed', () => {
             if (isEditingActive) {
                 noteContent = newEditor.text;

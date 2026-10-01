@@ -4,3 +4,5 @@ export { createSystemDashboardNode } from './systemDashboard.js';
 export { createBatteryStatusNode } from './batteryStatus.js';
 export { createSystemInfoNode } from './systemInfo.js';
 export { createResourceWheelNode } from './resourceWheel.js';
+export { createQuickTogglesNode } from './quickToggles.js';
+export { createAudioOutputNode } from './audioOutput.js';

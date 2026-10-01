@@ -26,7 +26,9 @@ import {
     addSystemInfoWidget,
     addResourceWheelWidget,
     addCurrencyTrackerWidget,
-    addHabitTrackerWidget
+    addHabitTrackerWidget,
+    addQuickTogglesWidget,
+    addAudioOutputWidget
 } from './widgetAdders.js';
 
 import {
@@ -224,6 +226,8 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.screenTimeWidget, () => addScreenTimeWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.systemInfo, () => addSystemInfoWidget(settings, 'cpu', 2, 2)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.resourceWheel, () => addResourceWheelWidget(settings, 'cpu', 4, 3)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.quickToggles, () => addQuickTogglesWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.audioOutput, () => addAudioOutputWidget(settings)),
     ]));
 
     // ── Focus & Productivity ─────────────────────────────────

@@ -198,6 +198,14 @@ export function addCurrencyTrackerWidget(settings, width = 3, height = 2) {
     }, width, height);
 }
 
-export function addHabitTrackerWidget(settings, width = 6, height = 3) {
+export function addHabitTrackerWidget(settings, width = 7, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'habit'), type: 'habitTracker' }, width, height);
+}
+
+export function addQuickTogglesWidget(settings, width = 4, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'quickToggles'), type: 'quickToggles' }, width, height);
+}
+
+export function addAudioOutputWidget(settings, width = 4, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'audioOutput'), type: 'audioOutput' }, width, height);
 }

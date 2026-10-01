@@ -239,6 +239,20 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'habit-tracker/habit-tracker.svg',
         fallbackIconName: 'checkbox-checked-symbolic',
     },
+    quickToggles: {
+        title: 'Quick Toggles',
+        description: 'Switch from Dark mode, Night Light, DND and Lockscreen',
+        gridSize: '4x4',
+        thumbnail: 'system-utils/quick-toggles.png',
+        fallbackIconName: 'preferences-system-symbolic',
+    },
+    audioOutput: {
+        title: 'Audio output',
+        description: 'Switch sound output',
+        gridSize: '4x4',
+        thumbnail: 'system-utils/audio-output.png',
+        fallbackIconName: 'preferences-system-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -266,6 +280,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'resourceWheel',
         'currencyTracker',
         'habitTracker',
+        'quickToggles',
+        'audioOutput'
     ],
 });
 
@@ -355,6 +371,10 @@ function getStoreWidgetKey(widget) {
             return 'currencyTracker';
         case 'habitTracker':
             return 'habitTracker';
+        case 'quickToggles':
+            return 'quickToggles';
+        case 'audioOutput':
+            return 'audioOutput';    
         default:
             return null;
     }

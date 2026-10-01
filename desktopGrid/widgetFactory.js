@@ -11,7 +11,9 @@ import {
     createSystemDashboardNode,
     createBatteryStatusNode,
     createSystemInfoNode,
-    createResourceWheelNode
+    createResourceWheelNode,
+    createQuickTogglesNode,
+    createAudioOutputNode
 } from '../widgets/system/index.js';
 import { createPomodoroNode } from '../widgets/pomodoro.js';
 import { createPomodoroFocusNode } from '../widgets/pomodoroFocus.js';
@@ -77,6 +79,8 @@ const WIDGET_CREATORS = {
     },
     'desktop-icon': (data, w, h, x, y) => createDesktopIconNode(data, w, h, x, y),
     'habitTracker': (data, w, h, x, y) => createHabitTrackerNode(data, w, h, x, y),
+    'quickToggles': (data, w, h, x, y) => createQuickTogglesNode(data, w, h, x, y),
+    'audioOutput': (data, w, h, x, y) => createAudioOutputNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {
