@@ -654,8 +654,18 @@ export function buildSystemInfoSettings(grid, rowIdx, widget, saveHandlers) {
     grid.attach(typeCombo, 1, rowIdx, 1, 1);
     rowIdx++;
 
+    // --- Új: Chart megjelenítése kapcsoló ---
+    const chartLabel = new Gtk.Label({ label: 'Show Trend Chart:', xalign: 0, hexpand: true });
+    const chartSwitch = new Gtk.Switch({ valign: Gtk.Align.CENTER, halign: Gtk.Align.END });
+    chartSwitch.set_active(widget.showChart === true);
+
+    grid.attach(chartLabel, 0, rowIdx, 1, 1);
+    grid.attach(chartSwitch, 1, rowIdx, 1, 1);
+    rowIdx++;
+
     saveHandlers.push((target) => {
         target.systemInfoType = types[typeCombo.get_selected()] || 'cpu';
+        target.showChart = chartSwitch.get_active();
     });
 
     return rowIdx;

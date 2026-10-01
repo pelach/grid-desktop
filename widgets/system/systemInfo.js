@@ -8,31 +8,81 @@ import {
     cssColorToRgba,
     isDarkBackgroundColor,
     resolveWidgetBackgroundColor,
+    parseCssColor,
+    CAIRO_OPERATOR_CLEAR,
+    CAIRO_OPERATOR_OVER,
 } from '../../utils/widgetUtils.js';
 import { createWidgetContainer, registerWidgetCleanup } from '../../shell/widgetUIUtils.js';
 
 const BORDER_ALPHA = 0.14;
 const BADGE_BG_ALPHA = 0.12;
 const SUB_LABEL_OPACITY = 0.65;
+const CARD_BG_DARK_ALPHA = 0.05;
+const CARD_BG_LIGHT_ALPHA = 0.04;
+const CARD_BORDER_DARK_ALPHA = 0.06;
+const CARD_BORDER_LIGHT_ALPHA = 0.10;
+
+const CHART_MAX_SAMPLES = 45;
+const CHART_LINE_WIDTH = 2;
+const CHART_FILL_ALPHA = 0.18;
+const CHART_PAD = 4;
+
+function drawTrendChart(ctx, w, h, samples, accentHex) {
+    if (w === 0 || h === 0) return;
+
+    ctx.setOperator(CAIRO_OPERATOR_CLEAR);
+    ctx.paint();
+    ctx.setOperator(CAIRO_OPERATOR_OVER);
+
+    if (samples.length < 2) return;
+
+    const innerW = w - (CHART_PAD * 2);
+    const innerH = h - (CHART_PAD * 2);
+
+    const pointAt = (index) => {
+        const ratio = index / (samples.length - 1);
+        const value = Math.max(0, Math.min(1, samples[index]));
+        return [
+            CHART_PAD + ratio * innerW,
+            CHART_PAD + (1 - value) * innerH,
+        ];
+    };
+
+    const { r, g, b } = parseCssColor(accentHex);
+
+    ctx.setLineWidth(CHART_LINE_WIDTH);
+    ctx.setSourceRGBA(r, g, b, 1);
+    ctx.newPath();
+    const [startX, startY] = pointAt(0);
+    ctx.moveTo(startX, startY);
+    for (let i = 1; i < samples.length; i++) {
+        const [x, y] = pointAt(i);
+        ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.lineTo(w - CHART_PAD, CHART_PAD + innerH);
+    ctx.lineTo(CHART_PAD, CHART_PAD + innerH);
+    ctx.closePath();
+    ctx.setSourceRGBA(r, g, b, CHART_FILL_ALPHA);
+    ctx.fill();
+}
 
 export function createSystemInfoNode(config, width, height, xPosition, yPosition) {
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
     const textColor = resolveWidgetForegroundColor(config);
+    const accentHex = config.globalAccentColor || '#3584e4';
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
     container.style += ` border: 1px solid ${cssColorToRgba(textColor, BORDER_ALPHA)};`;
 
-    // 1x1-es méretarány számítás (pl. 80-120px környéke)
     const scale = Math.max(0.65, Math.min(width / 110, height / 110));
     const padding = Math.max(8, Math.round(12 * scale));
-    const percentFontSize = Math.max(16, Math.round(22 * scale));
-    const labelFontSize = Math.max(10, Math.round(12 * scale));
-    const badgeIconSize = Math.max(14, Math.round(16 * scale));
-    const badgePadding = Math.max(4, Math.round(6 * scale));
-    const badgeRadius = Math.max(6, Math.round(8 * scale));
+    const badgeIconSize = Math.max(13, Math.round(15 * scale));
+    const badgePadding = Math.max(3, Math.round(5 * scale));
+    const badgeRadius = Math.max(6, Math.round(7 * scale));
 
-    // Monitor típus: 'cpu' | 'ram' | 'disk' (alapértelmezett: 'cpu')
     const monitorType = (config.systemInfoType || 'cpu').toLowerCase();
+    const showChart = config.showChart === true;
 
     let iconName = 'utilities-system-monitor-symbolic';
     let defaultLabel = 'CPU';
@@ -52,14 +102,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${padding}px;`,
-    });
-
-    // Felső sor: Jobbra zárt badge ikon
-    const topBox = new St.BoxLayout({
-        orientation: Clutter.Orientation.HORIZONTAL,
-        x_align: Clutter.ActorAlign.END,
-        x_expand: true,
+        style: `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`,
     });
 
     const isDarkSurface = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
@@ -68,44 +111,130 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         style: `background-color: ${badgeBg}; border-radius: ${badgeRadius}px; padding: ${badgePadding}px;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
-
     const topIcon = new St.Icon({
         icon_name: iconName,
         icon_size: badgeIconSize,
         style: `color: ${textColor}; opacity: 0.9;`,
     });
     iconBadge.set_child(topIcon);
-    topBox.add_child(iconBadge);
-    mainLayout.add_child(topBox);
 
-    // Alsó sor / Alsó blokk: Százalék és felirat
-    const bottomBox = new St.BoxLayout({
-        orientation: Clutter.Orientation.VERTICAL,
-        y_align: Clutter.ActorAlign.END,
-        y_expand: true,
-    });
+    let percentLabel;
+    let typeLabel;
+    let chartArea = null;
+    let samples = [];
 
-    const percentLabel = new St.Label({
-        text: '--%',
-        style: `${fontCss}color: ${textColor}; font-size: ${percentFontSize}px; font-weight: bold; line-height: 1.1;`,
-    });
+    if (!showChart) {
+        // --- NORMÁL NÉZET: Fent a badge ikon, legalul a nagy szám és felirat ---
+        const topBox = new St.BoxLayout({
+            orientation: Clutter.Orientation.HORIZONTAL,
+            x_align: Clutter.ActorAlign.END,
+            x_expand: true,
+        });
+        topBox.add_child(iconBadge);
+        mainLayout.add_child(topBox);
 
-    const typeLabel = new St.Label({
-        text: defaultLabel,
-        style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SUB_LABEL_OPACITY}; font-weight: 500;`,
-    });
+        const bottomBox = new St.BoxLayout({
+            orientation: Clutter.Orientation.VERTICAL,
+            y_align: Clutter.ActorAlign.END,
+            y_expand: true,
+        });
 
-    bottomBox.add_child(percentLabel);
-    bottomBox.add_child(typeLabel);
-    mainLayout.add_child(bottomBox);
+        const percentFontSize = Math.max(16, Math.round(22 * scale));
+        const labelFontSize = Math.max(10, Math.round(12 * scale));
+
+        percentLabel = new St.Label({
+            text: '--%',
+            style: `${fontCss}color: ${textColor}; font-size: ${percentFontSize}px; font-weight: bold; line-height: 1.1;`,
+        });
+
+        typeLabel = new St.Label({
+            text: defaultLabel,
+            style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SUB_LABEL_OPACITY}; font-weight: 500;`,
+        });
+
+        bottomBox.add_child(percentLabel);
+        bottomBox.add_child(typeLabel);
+        mainLayout.add_child(bottomBox);
+    } else {
+        // --- CHART NÉZET: Kompakt fejléc felül (érték + címke balra, badge jobbra), alatta kártya ---
+        const headerBox = new St.BoxLayout({
+            orientation: Clutter.Orientation.HORIZONTAL,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+
+        const textInfoBox = new St.BoxLayout({
+            orientation: Clutter.Orientation.VERTICAL,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+
+        const percentFontSize = Math.max(15, Math.round(18 * scale));
+        const labelFontSize = Math.max(9, Math.round(11 * scale));
+
+        percentLabel = new St.Label({
+            text: '--%',
+            style: `${fontCss}color: ${textColor}; font-size: ${percentFontSize}px; font-weight: bold; line-height: 1.0;`,
+        });
+
+        typeLabel = new St.Label({
+            text: defaultLabel,
+            style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SUB_LABEL_OPACITY}; font-weight: 500;`,
+        });
+
+        textInfoBox.add_child(percentLabel);
+        textInfoBox.add_child(typeLabel);
+
+        headerBox.add_child(textInfoBox);
+        headerBox.add_child(iconBadge);
+        mainLayout.add_child(headerBox);
+
+        // Külön kártya a diagramnak (mint a Dashboard-ban)
+        const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
+        const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
+        const cardRadius = Math.max(8, Math.round(10 * scale));
+        const cardPadding = Math.max(4, Math.round(6 * scale));
+
+        const chartCard = new St.BoxLayout({
+            orientation: Clutter.Orientation.VERTICAL,
+            x_expand: true,
+            y_expand: true,
+            style: `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPadding}px;`,
+        });
+
+        chartArea = new St.DrawingArea({
+            x_expand: true,
+            y_expand: true,
+            x_align: Clutter.ActorAlign.FILL,
+            y_align: Clutter.ActorAlign.FILL,
+        });
+
+        chartArea.connect('repaint', (area) => {
+            const ctx = area.get_context();
+            const [w, h] = area.get_surface_size();
+            drawTrendChart(ctx, w, h, samples, accentHex);
+            ctx.$dispose();
+        });
+
+        chartCard.add_child(chartArea);
+        mainLayout.add_child(chartCard);
+    }
 
     container.add_child(mainLayout);
+
+    const pushSample = (ratio) => {
+        if (!showChart || !chartArea) return;
+        samples.push(Math.max(0, Math.min(1, ratio)));
+        if (samples.length > CHART_MAX_SAMPLES) {
+            samples.shift();
+        }
+        chartArea.queue_repaint();
+    };
 
     let isDisposed = false;
     let prevIdle = 0;
     let prevTotal = 0;
 
-    // CPU terhelés számítása /proc/stat-ból (aszinkron olvasás subprocess nélkül)
     const readCpu = () => {
         try {
             const file = Gio.File.new_for_path('/proc/stat');
@@ -119,26 +248,25 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                     if (!cpuLine) return;
 
                     const parts = cpuLine.trim().split(/\s+/).slice(1).map(Number);
-                    const idle = parts[3] + (parts[4] || 0); // idle + iowait
+                    const idle = parts[3] + (parts[4] || 0);
                     const total = parts.reduce((acc, n) => acc + n, 0);
 
                     if (prevTotal > 0) {
                         const deltaTotal = total - prevTotal;
                         const deltaIdle = idle - prevIdle;
                         const usage = deltaTotal > 0 ? Math.round(((deltaTotal - deltaIdle) / deltaTotal) * 100) : 0;
-                        percentLabel.set_text(`${Math.max(0, Math.min(100, usage))}%`);
+                        const safeUsage = Math.max(0, Math.min(100, usage));
+                        percentLabel.set_text(`${safeUsage}%`);
+                        pushSample(safeUsage / 100);
                     }
 
                     prevIdle = idle;
                     prevTotal = total;
-                } catch (e) {
-                    // Ignore
-                }
+                } catch (e) {}
             });
         } catch (e) {}
     };
 
-    // RAM számítása /proc/meminfo-ból
     const readRam = () => {
         try {
             const file = Gio.File.new_for_path('/proc/meminfo');
@@ -163,13 +291,13 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                     if (total > 0) {
                         const usage = Math.round(((total - avail) / total) * 100);
                         percentLabel.set_text(`${usage}%`);
+                        pushSample(usage / 100);
                     }
                 } catch (e) {}
             });
         } catch (e) {}
     };
 
-    // Disk használat meghatározása
     const readDisk = () => {
         try {
             const proc = new Gio.Subprocess({
@@ -181,8 +309,12 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                 try {
                     const [, stdout] = p.communicate_utf8_finish(res);
                     if (isDisposed || !stdout) return;
-                    const clean = stdout.trim(); // pl. "16%"
-                    if (clean) percentLabel.set_text(clean.includes('%') ? clean : `${clean}%`);
+                    const clean = stdout.trim();
+                    if (clean) {
+                        percentLabel.set_text(clean.includes('%') ? clean : `${clean}%`);
+                        const val = parseInt(clean.replace('%', ''), 10);
+                        if (!isNaN(val)) pushSample(val / 100);
+                    }
                 } catch (e) {}
             });
         } catch (e) {}
@@ -201,10 +333,9 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                     if (!isNaN(milliC)) {
                         const tempC = Math.round(milliC / 1000);
                         percentLabel.set_text(`${tempC}°C`);
+                        pushSample(tempC / 100);
                     }
-                } catch (e) {
-                    // Ignore
-                }
+                } catch (e) {}
             });
         } catch (e) {}
     };
@@ -216,10 +347,8 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         else readCpu();
     };
 
-    // Első frissítés
     updateData();
 
-    // CPU-nál 2 másodperc, a többinél 5 másodperc bőven elég
     const intervalSec = monitorType === 'cpu' ? 2 : 5;
     const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, intervalSec, () => {
         if (isDisposed) return GLib.SOURCE_REMOVE;
