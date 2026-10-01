@@ -1,15 +1,13 @@
 {
   "uuid": "grid-desktop@pelach.github.com",
   "name": "Grid Desktop",
-  "description": "GNOME widgets for your desktop.\n* Place clock, weather, notes, music, system monitor, clipboard and image widgets on a desktop grid.\n* Local clipboard history widget.\n* Drag, resize, and customise each widget independently.",
+  "description": "Grid-based desktop widgets and icon management for GNOME.\n* Desktop icons support: place, organize, and manage files and launchers on the desktop.\n* Desktop widgets: clock, weather, notes, music, system monitor, clipboard, and image widgets on an aligned grid.\n* Local clipboard history with quick access.\n* Drag, resize, and customise each widget independently.",
   "shell-version": [
     "45",
     "46",
-    "47",
-    "48",
-    "49",
-    "50"
+    "47"
   ],
   "settings-schema": "org.gnome.shell.extensions.grid-desktop",
-  "url": "https://github.com/pelach/grid-desktop"
+  "url": "https://github.com/pelach/grid-desktop",
+  "version": 1
 }
