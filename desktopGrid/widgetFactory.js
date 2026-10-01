@@ -24,6 +24,7 @@ import { createSunScheduleNode } from '../widgets/solarSchedule.js';
 import { createRssHeadlinesNode } from '../widgets/rssHeadlines.js';
 import { createCurrencyTrackerNode } from '../widgets/currencyTracker.js';
 import { createMoodNode } from '../widgets/moodLogger.js';
+import { createHabitTrackerNode } from '../widgets/habitTracker.js';
 import {
     createStaticImageNode,
     createAnimatedImageNode,
@@ -75,6 +76,7 @@ const WIDGET_CREATORS = {
         return createStaticImageNode(data, w, h, x, y);
     },
     'desktop-icon': (data, w, h, x, y) => createDesktopIconNode(data, w, h, x, y),
+    'habitTracker': (data, w, h, x, y) => createHabitTrackerNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

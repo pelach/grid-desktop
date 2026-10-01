@@ -197,3 +197,7 @@ export function addCurrencyTrackerWidget(settings, width = 3, height = 2) {
         targetCurrency: 'HUF',
     }, width, height);
 }
+
+export function addHabitTrackerWidget(settings, width = 6, height = 3) {
+    addWidget(settings, { id: nextWidgetId(settings, 'habit'), type: 'habitTracker' }, width, height);
+}

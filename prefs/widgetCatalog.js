@@ -232,6 +232,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'currency-tracker/currencytracker.svg',
         fallbackIconName: 'bank-symbolic',
     },
+    habitTracker: {
+        title: 'Habit Tracker',
+        description: 'Simple tool to record and measure your daily routines.',
+        gridSize: '6x4',
+        thumbnail: 'habit-tracker/habit-tracker.svg',
+        fallbackIconName: 'checkbox-checked-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -257,7 +264,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'moodWidget',
         'systemInfo',
         'resourceWheel',
-        'currencyTracker'
+        'currencyTracker',
+        'habitTracker',
     ],
 });
 
@@ -345,6 +353,8 @@ function getStoreWidgetKey(widget) {
             return 'resourceWheel';
         case 'currency-tracker':
             return 'currencyTracker';
+        case 'habitTracker':
+            return 'habitTracker';
         default:
             return null;
     }
