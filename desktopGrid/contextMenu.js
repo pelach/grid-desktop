@@ -4,10 +4,13 @@ import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
-import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { toggleWidgetResizeHandle } from './widgetEditUtils.js';
 import { onWidgetResized, onWidgetDeleted } from './dragDrop.js';
 import { COLUMNS_COUNT, ROWS_COUNT, getWidgets, supportsSizePresets, SIZE_PRESET_TIERS } from '../utils/widgetUtils.js';
+
+const DEBUG = false;
+const logError = (...args) => { if (DEBUG) console.error(...args); };
+const logWarn = (...args) => { if (DEBUG) console.warn(...args); };
 
 export function createPopupMenuAt(grid, event) {
     if (grid._contextMenuCloseIdleId) {
@@ -77,18 +80,18 @@ export function openPreferences(grid, targetWidgetId = null) {
     if (targetWidgetId) {
         grid.settings.set_string('open-edit-widget-id', targetWidgetId);
     }
-    const extension = Extension.lookupByUUID(grid.metadata.uuid);
+    const extension = grid.extension || grid._extension;
     if (!extension) return;
     
     try {
         const promise = extension.openPreferences();
         if (promise && typeof promise.catch === 'function') {
             promise.catch((err) => {
-                console.warn('Gridgets: Could not open preferences window:', err?.message || err);
+                logWarn('Gridgets: Could not open preferences window:', err?.message || err);
             });
         }
     } catch (e) {
-        console.warn('Grid-desktop: Synchronous error opening preferences:', e?.message || e);
+        logWarn('Grid-desktop: Synchronous error opening preferences:', e?.message || e);
     }
 }
 
@@ -108,7 +111,7 @@ export function launchSettingsPanel(panelName = null) {
             return;
         }
     } catch (e) {
-        console.warn('Grid-desktop: DesktopAppInfo launch failed, falling back to subprocess:', e);
+        logWarn('Grid-desktop: DesktopAppInfo launch failed, falling back to subprocess:', e);
     }
 
     // 2. Tartalék megoldás (Subprocess - string argumentumlista)
@@ -117,7 +120,7 @@ export function launchSettingsPanel(panelName = null) {
         const proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE);
         proc.wait_async(null, null);
     } catch (err) {
-        console.error('Grid-desktop: Failed to launch GNOME Settings:', err);
+        logError('Grid-desktop: Failed to launch GNOME Settings:', err);
     }
 }
 export function launchFileUri(uri) {
@@ -143,14 +146,14 @@ export function launchFileUri(uri) {
             return;
         }
     } catch (e) {
-        console.warn('Grid-desktop: Hiba az alkalmazás indításakor:', e);
+        logWarn('Grid-desktop: Hiba az alkalmazás indításakor:', e);
     }
 
     try {
         const proc = Gio.Subprocess.new(['gio', 'open', uri], Gio.SubprocessFlags.NONE);
         proc.wait_async(null, null);
     } catch (err) {
-        console.error('Grid-desktop: Végzetes hiba az URI megnyitásakor:', err);
+        logError('Grid-desktop: Végzetes hiba az URI megnyitásakor:', err);
     }
 }
 
@@ -163,11 +166,11 @@ function trashFile(uri, callback) {
                 file.trash_finish(res);
                 if (callback) callback();
             } catch (err) {
-                console.error('Grid-desktop: Hiba a kukába helyezéskor:', err);
+                logError('Grid-desktop: Hiba a kukába helyezéskor:', err);
             }
         });
     } catch (e) {
-        console.error('Grid-desktop: Kukába dobás sikertelen:', e);
+        logError('Grid-desktop: Kukába dobás sikertelen:', e);
     }
 }
 
@@ -177,7 +180,7 @@ function emptyTrash() {
         const proc = Gio.Subprocess.new(['gio', 'trash', '--empty'], Gio.SubprocessFlags.NONE);
         proc.wait_async(null, null);
     } catch (e) {
-        console.error('Grid-desktop: Nem sikerült kiüríteni a kukát:', e);
+        logError('Grid-desktop: Nem sikerült kiüríteni a kukát:', e);
     }
 }
 
@@ -209,14 +212,14 @@ function unmountTargetUri(uri) {
                     try {
                         src.unmount_with_operation_finish(res);
                     } catch (e) {
-                        console.error('Grid-desktop: Hiba a kötet leválasztásakor:', e);
+                        logError('Grid-desktop: Hiba a kötet leválasztásakor:', e);
                     }
                 }
             );
             return;
         }
     } catch (e) {
-        console.warn('Grid-desktop: GIO unmount hiba, próbálkozás CLI-vel:', e);
+        logWarn('Grid-desktop: GIO unmount hiba, próbálkozás CLI-vel:', e);
     }
 
     // 2. Tartalék megoldás (gio mount -u URI): ez a Google Drive-val és hálózati megosztásokkal is azonnal működik
@@ -224,7 +227,7 @@ function unmountTargetUri(uri) {
         const proc = Gio.Subprocess.new(['gio', 'mount', '-u', uri], Gio.SubprocessFlags.NONE);
         proc.wait_async(null, null);
     } catch (err) {
-        console.error('Grid-desktop: Végzetes hiba a kötet leválasztásakor:', err);
+        logError('Grid-desktop: Végzetes hiba a kötet leválasztásakor:', err);
     }
 }
 
@@ -251,7 +254,7 @@ function showProperties(uri) {
             }
         );
     } catch (e) {
-        console.error('Grid-desktop: Nem sikerült megnyitni a tulajdonságokat:', e);
+        logError('Grid-desktop: Nem sikerült megnyitni a tulajdonságokat:', e);
         launchFileUri(uri);
     }
 }

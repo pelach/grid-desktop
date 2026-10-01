@@ -81,7 +81,7 @@ bit_format = 8bit
             initCavaConfig();
 
             if (!GLib.file_test(fifoPath, GLib.FileTest.EXISTS)) {
-                GLib.spawn_command_line_sync(`mkfifo "${fifoPath}"`);
+                GLib.spawn_command_line_async(`mkfifo "${fifoPath}"`);
             }
 
             cavaCancellable = new Gio.Cancellable();

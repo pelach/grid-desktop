@@ -237,6 +237,27 @@ class RssFeedEngine {
             callback(items);
         }
     }
+
+    abort() {
+        if (this.timerId) {
+            GLib.Source.remove(this.timerId);
+            this.timerId = null;
+        }
+        if (this.cancellable) {
+            this.cancellable.cancel();
+            this.cancellable = null;
+        }
+        if (this.session) {
+            this.session.abort();
+            this.session = null;
+        }
+        this.subscribers.clear();
+        this.lastItems = [];
+    }
+
+    destroy() {
+        this.abort();
+    }
 }
 
 /** Active engines keyed by feed URL; released when the last subscriber unsubscribes. */
@@ -245,16 +266,7 @@ const activeEngines = new Map();
 /** Clears all cached engines; called from the extension's disable(). */
 export function clearRssEngines() {
     for (const engine of activeEngines.values()) {
-        if (engine.timerId) {
-            GLib.Source.remove(engine.timerId);
-            engine.timerId = null;
-        }
-        if (engine.cancellable) {
-            engine.cancellable.cancel();
-            engine.cancellable = null;
-        }
-        engine.session.abort();
-        engine.lastItems = [];
+        engine.abort();
     }
     activeEngines.clear();
 }
@@ -279,3 +291,4 @@ export function subscribeToFeed(feedUrl, intervalSeconds, callback) {
         }
     };
 }
+

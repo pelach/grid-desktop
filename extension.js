@@ -88,6 +88,13 @@ export default class GridgetsExtension extends Extension {
             Main.layoutManager.disconnect(this._monitorsChangedId);
             this._monitorsChangedId = 0;
         }
+
+        if (this._monitorsChangedIdleId) {
+            GLib.Source.remove(this._monitorsChangedIdleId);
+            this._monitorsChangedIdleId = 0;
+        }
+
+
         if (this._interfaceSettings && this._interfaceSignalId > 0) {
             this._interfaceSettings.disconnect(this._interfaceSignalId);
             this._interfaceSignalId = 0;
@@ -119,6 +126,7 @@ export default class GridgetsExtension extends Extension {
 
     _spawnGrid(monitorIndex) {
         const grid = new DesktopGrid(this.path, this._settings, this.metadata, monitorIndex, this._interfaceSettings);
+        grid.extension = this;
         // _backgroundGroup is private Shell API, but it is the only layer that
         // renders above the wallpaper while staying below every window; GNOME
         // Shell exposes no public accessor for that position.

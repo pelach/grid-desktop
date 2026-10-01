@@ -47,7 +47,7 @@ export const STORE_WIDGETS = Object.freeze({
         title: 'Music Visualizer',
         description: 'Audio visualizer displaying animated frequency spectrum or waveforms.',
         gridSize: '4x4',
-        thumbnail: 'music/music-small.svg', 
+        thumbnail: 'music/music-small.png', 
         fallbackIconName: 'audio-x-generic-symbolic',
     },
     timeAndDate: {
@@ -75,7 +75,7 @@ export const STORE_WIDGETS = Object.freeze({
         title: 'Image / GIF',
         description: 'Display an image or animated GIF directly on your desktop.',
         gridSize: '2x2',
-        thumbnail: 'images/image-and-slideshow.svg',
+        thumbnail: 'images/image-and-slideshow.png',
         fallbackIconName: 'image-x-generic-symbolic',
     },
     imageSlideshow: {
