@@ -115,9 +115,9 @@ export function createClipboardNode(config, width, height, xPosition, yPosition)
         const maxLen = Math.max(PREVIEW_TEXT_MIN_LENGTH, Math.round(PREVIEW_TEXT_MAX_LENGTH * currentScale));
         const itemRadius = Math.max(1, Math.round(ITEM_RADIUS_PX * currentScale));
         const itemPadding = `${Math.max(1, Math.round(ITEM_PADDING_V_PX * currentScale))}px ${Math.max(1, Math.round(ITEM_PADDING_H_PX * currentScale))}px`;
-        const itemNormalStyle = `padding: ${itemPadding}; border-radius: ${itemRadius}px;`
+        const itemNormalStyle = `padding: ${itemPadding}px; border-radius: ${itemRadius}px;`
             + `background-color: ${textRgba(ITEM_IDLE_ALPHA)};`;
-        const itemHoverStyle = `padding: ${itemPadding}; border-radius: ${itemRadius}px;`
+        const itemHoverStyle = `padding: ${itemPadding}px; border-radius: ${itemRadius}px;`
             + `background-color: ${textRgba(ITEM_HOVER_ALPHA)};`;
 
         state.clipboardHistory.forEach((clipboardText) => {

@@ -36,7 +36,7 @@ export function resolveArtworkLayerStyle(state) {
     const borderRadius = state.config.appliedBorderRadius !== undefined ? `${state.config.appliedBorderRadius}px` : '0px';
     const backgroundColor = resolveWidgetBackgroundColor(state.config);
     const artworkCss = state.artworkCss || '';
-    return `${artworkCss}background-color: ${backgroundColor}; border-radius: ${borderRadius};`;
+    return `${artworkCss}background-color: ${backgroundColor}; border-radius: ${borderRadius}px;`;
 }
 
 export function applyArtworkToBackground(backgroundLayer, artUrl, config, state) {
