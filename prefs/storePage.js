@@ -28,7 +28,8 @@ import {
     addCurrencyTrackerWidget,
     addHabitTrackerWidget,
     addQuickTogglesWidget,
-    addAudioOutputWidget
+    addAudioOutputWidget,
+    addControlsSlidersWidget
 } from './widgetAdders.js';
 
 import {
@@ -228,6 +229,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.resourceWheel, () => addResourceWheelWidget(settings, 'cpu', 4, 3)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.quickToggles, () => addQuickTogglesWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.audioOutput, () => addAudioOutputWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.controlsSliders, () => addControlsSlidersWidget(settings)),
     ]));
 
     // ── Focus & Productivity ─────────────────────────────────

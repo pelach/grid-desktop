@@ -209,3 +209,7 @@ export function addQuickTogglesWidget(settings, width = 4, height = 4) {
 export function addAudioOutputWidget(settings, width = 4, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'audioOutput'), type: 'audioOutput' }, width, height);
 }
+
+export function addControlsSlidersWidget(settings, width = 3, height = 5) {
+    addWidget(settings, { id: nextWidgetId(settings, 'controlsSliders'), type: 'controlsSliders' }, width, height);
+}

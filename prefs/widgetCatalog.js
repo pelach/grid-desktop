@@ -253,6 +253,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system-utils/audio-output.png',
         fallbackIconName: 'preferences-system-symbolic',
     },
+    controlsSliders: {
+        title: 'Controls sliders',
+        description: 'Bright and volume sliders',
+        gridSize: '5x3',
+        thumbnail: 'system-utils/audio-output.png',
+        fallbackIconName: 'preferences-system-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -281,7 +288,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'currencyTracker',
         'habitTracker',
         'quickToggles',
-        'audioOutput'
+        'audioOutput',
+        'controlsSliders'
     ],
 });
 
@@ -374,7 +382,9 @@ function getStoreWidgetKey(widget) {
         case 'quickToggles':
             return 'quickToggles';
         case 'audioOutput':
-            return 'audioOutput';    
+            return 'audioOutput';   
+        case 'controlsSliders':
+            return 'controlsSliders';
         default:
             return null;
     }

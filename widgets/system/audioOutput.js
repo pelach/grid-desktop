@@ -54,14 +54,15 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
         x_expand: true,
     });
     const headerIcon = new St.Icon({
-        icon_name: 'audio-volume-high-symbolic',
+        icon_name: 'audio-speakers-symbolic',
         style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerLabel = new St.Label({
-        text: 'Sound Output',
+        text: 'Audio Output',
         y_align: Clutter.ActorAlign.CENTER,
     });
+    headerLabel.clutter_text.set_ellipsize(0);
     headerBox.add_child(headerIcon);
     headerBox.add_child(headerLabel);
     contentBox.add_child(headerBox);
@@ -182,12 +183,12 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
         scale = newScale;
         const titleFontSize = Math.max(11, Math.round(13 * scale));
 
-        contentBox.style = `padding: ${Math.max(6, Math.round(8 * scale))}px;`;
         headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
         headerIcon.icon_size = Math.round(16 * scale);
         headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
-
+        contentBox.style = `padding: ${Math.max(6, Math.round(8 * scale))}px;`;
+        
         refreshDevices();
     }
 

@@ -96,13 +96,15 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
     });
     mainBox.add_child(headerRow);
 
-    const titleIcon = new St.Widget({
+    const headerIcon = new St.Icon({
+        icon_name: 'checkbox-checked-symbolic',
+        style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    headerRow.add_child(titleIcon);
+    headerRow.add_child(headerIcon);
 
     const titleLabel = new St.Label({
-        text: 'HABIT TRACKER',
+        text: 'Habit Tracker',
         y_align: Clutter.ActorAlign.CENTER,
     });
     titleLabel.clutter_text.ellipsize = 0; 
@@ -319,26 +321,28 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
 
         mainBox.style = `padding: ${px(CONTAINER_PADDING_PX)}px; spacing: ${px(8)}px;`;
 
-        titleIcon.style = `width: ${px(7)}px; height: ${px(7)}px; border-radius: 9999px; `
-            + `background-color: #4ade80; margin-right: ${px(8)}px;`;
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
 
-        titleLabel.style = `${fontCss}font-size: ${px(12)}px; font-weight: bold; `
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY}; letter-spacing: 0.5px;`;
+        headerRow.style = `margin-bottom: ${px(4)}px;`;
+        headerIcon.icon_size = px(16);
+        headerIcon.style = `color: ${textColor}; margin-right: ${px(6)}px;`;
+
+        titleLabel.style = `${fontCss}font-size: ${titleFontSize}px; font-weight: bold; `
+            + `color: ${textColor}; opacity: 0.9;`;
 
         addButton.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.12); padding: ${px(4)}px;`;
         if (addButton.child) addButton.child.icon_size = px(13);
+            inlineInputBox.style = `spacing: ${px(6)}px; margin-bottom: ${px(6)}px;`;
+            entry.style = `${fontCss}font-size: ${px(12)}px; padding: ${px(4)}px ${px(8)}px; border-radius: ${px(6)}px;`;
+            
+            saveAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.15); padding: ${px(4)}px;`;
+            if (saveAddBtn.child) saveAddBtn.child.icon_size = px(12);
 
-        inlineInputBox.style = `spacing: ${px(6)}px; margin-bottom: ${px(6)}px;`;
-        entry.style = `${fontCss}font-size: ${px(12)}px; padding: ${px(4)}px ${px(8)}px; border-radius: ${px(6)}px;`;
-        
-        saveAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.15); padding: ${px(4)}px;`;
-        if (saveAddBtn.child) saveAddBtn.child.icon_size = px(12);
+            cancelAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.1); padding: ${px(4)}px;`;
+            if (cancelAddBtn.child) cancelAddBtn.child.icon_size = px(12);
 
-        cancelAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.1); padding: ${px(4)}px;`;
-        if (cancelAddBtn.child) cancelAddBtn.child.icon_size = px(12);
-
-        renderRows();
-    }
+            renderRows();
+        }
 
     applyScale(scale);
 

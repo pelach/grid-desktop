@@ -38,35 +38,29 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
         style: `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`,
     });
 
-    // ── Fejléc Pill Badge: BASE - TARGET ──────────────────────
-    const headerRow = new St.BoxLayout({
-        orientation: Clutter.Orientation.HORIZONTAL,
-        x_align: Clutter.ActorAlign.START,
-    });
+    const titleFontSize = Math.max(11, Math.round(13 * scale));
 
-    const pillBg = cssColorToRgba(textColor, 0.08);
-    const pill = new St.BoxLayout({
+    const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
-        y_align: Clutter.ActorAlign.CENTER,
-        style: `background-color: ${pillBg}; border-radius: 999px; padding: 3px 12px; spacing: 6px;`,
+        x_expand: true,
+        style: `margin-bottom: ${Math.round(4 * scale)}px;`,
     });
-
-    const headerDot = new St.Label({
-        text: '●',
-        style: `color: #81c784; font-size: ${Math.round(8 * scale)}px;`,
+    const headerIcon = new St.Icon({
+        icon_name: 'bank-symbolic',
+        icon_size: Math.round(16 * scale),
+        style: `color: ${textColor}; margin-right: 6px;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    const headerTitle = new St.Label({
+    const headerLabel = new St.Label({
         text: `${baseCurrency} / ${targetCurrency}`,
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.round(9 * scale)}px; font-weight: bold; letter-spacing: 0.8px;`,
+        style: `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    headerTitle.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+    headerLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
 
-    pill.add_child(headerDot);
-    pill.add_child(headerTitle);
-    headerRow.add_child(pill);
-    mainLayout.add_child(headerRow);
+    headerBox.add_child(headerIcon);
+    headerBox.add_child(headerLabel);
+    mainLayout.add_child(headerBox);
 
     // ── Törzs: Bal oldalon az érték + badge, jobb oldalon a Cairo grafikon ──
     const bodyRow = new St.BoxLayout({

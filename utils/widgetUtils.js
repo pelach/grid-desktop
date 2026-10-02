@@ -52,6 +52,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'habitTracker': {minCols: 7, minRows: 4 },
     'quickToggles': {minCols: 4, minRows: 4},
     'audioOutput': { minCols: 4, minRows: 4 },
+    'controlsSliders': { minCols: 4, minRows: 4 },
 });
 
 /**
@@ -509,7 +510,8 @@ const SIZE_PRESETS = {
     'currency-tracker': [[3, 2], [5, 3], [7, 4]],
     'habitTracker': [[7, 4], [9, 5], [11, 6]],
     'quickToggles': [[4, 4], [5, 5], [6, 6]],
-    'audioOutput': [[4, 4], [5, 5], [6, 6]]
+    'audioOutput': [[4, 4], [5, 5], [6, 6]],
+    'controlsSliders': [[5, 3], [6, 3], [7, 4]]
 };
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];

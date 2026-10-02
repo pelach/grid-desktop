@@ -45,35 +45,29 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         style: `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`,
     });
 
-    // ── Fejléc Pill Badge ─────────────────────────────────────
-    const headerRow = new St.BoxLayout({
+    const titleFontSize = Math.max(11, Math.round(13 * scale));
+
+    const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
-        x_align: Clutter.ActorAlign.START,
+        x_expand: true,
+        style: `margin-bottom: ${Math.round(4 * scale)}px;`,
     });
-
-    const pillBg = cssColorToRgba(textColor, 0.08);
-    const pill = new St.BoxLayout({
-        orientation: Clutter.Orientation.HORIZONTAL,
-        y_align: Clutter.ActorAlign.CENTER,
-        style: `background-color: ${pillBg}; border-radius: 999px; padding: 3px 12px; spacing: 6px;`,
-    });
-
-    const headerDot = new St.Label({
-        text: '●',
-        style: `color: #90caf9; font-size: ${Math.round(8 * scale)}px;`,
+    const headerIcon = new St.Icon({
+        icon_name: 'utilities-system-monitor-symbolic',
+        icon_size: Math.round(16 * scale),
+        style: `color: ${textColor}; margin-right: 6px;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    const headerTitle = new St.Label({
-        text: 'RESOURCE WHEEL',
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.round(9 * scale)}px; font-weight: bold; letter-spacing: 0.8px;`,
+    const headerLabel = new St.Label({
+        text: 'Resource Wheel',
+        style: `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    headerTitle.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+    headerLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
 
-    pill.add_child(headerDot);
-    pill.add_child(headerTitle);
-    headerRow.add_child(pill);
-    mainLayout.add_child(headerRow);
+    headerBox.add_child(headerIcon);
+    headerBox.add_child(headerLabel);
+    mainLayout.add_child(headerBox);
 
     // ── Középső blokk: 2:3 arány a keréknek, 1:3 a legendának ──
     const middleRow = new St.BoxLayout({

@@ -6,3 +6,4 @@ export { createSystemInfoNode } from './systemInfo.js';
 export { createResourceWheelNode } from './resourceWheel.js';
 export { createQuickTogglesNode } from './quickToggles.js';
 export { createAudioOutputNode } from './audioOutput.js';
+export { createControlsSlidersNode } from './controlsSliders.js';
