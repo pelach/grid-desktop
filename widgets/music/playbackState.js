@@ -156,11 +156,12 @@ export function fetchMusicDataForConfig(config, callback) {
     })();
 }
 
-function isSeekSenderMatch(state, senderUniqueName) {
+async function isSeekSenderMatch(state, senderUniqueName) {
     if (!state.container || isActorDestroyed(state.container)) return false;
     if (!state.currentPlayer) return false;
     if (state.currentPlayer === senderUniqueName) return true;
-    return resolveBusOwner(state.currentPlayer).then(owner => owner !== null && owner === senderUniqueName);
+    const owner = await resolveBusOwner(state.currentPlayer);
+    return owner !== null && owner === senderUniqueName;
 }
 
 // Shared across all instances to avoid duplicate D-Bus subscriptions.

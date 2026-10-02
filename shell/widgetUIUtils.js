@@ -42,9 +42,13 @@ export function formatTimeParts(dateTime, is24h) {
  * release via super.destroy()), instead of connecting 'destroy' listeners.
  */
 export const WidgetActor = GObject.registerClass(
-    class WidgetActor extends St.Widget {
+    class WidgetActor extends St.Bin {
         _init(params = {}) {
-            super._init(params);
+            super._init({
+                x_expand: true,
+                y_expand: true,
+                ...params,
+            });
             this._cleanupCallbacks = null;
         }
 
@@ -84,19 +88,16 @@ export function createWidgetContainer(config, width, height, xPosition, yPositio
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
 
-    const glassHighlight = 'box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), inset 1px 0 1px 0 rgba(255, 255, 255, 0.12), inset -1px 0 1px 0 rgba(255, 255, 255, 0.12);';
-
     const container = new WidgetActor({
         style_class: 'gridgets-widget',
-        style: `${fontCss}background-color: ${backgroundColor}; color: ${textColor}; ${glassHighlight} ${baseStyle}`,
+        style: `${fontCss}background-color: ${backgroundColor}; color: ${textColor}; ${baseStyle}`,
         x: xPosition,
         y: yPosition,
         width: width,
         height: height,
         reactive: true,
-        layout_manager: new Clutter.BinLayout(),
     });
-    container.set_clip_to_allocation(true);
+    
     return watchActorLifecycle(container);
 }
 
@@ -334,3 +335,5 @@ export function attachResponsiveScaler(widgetNode, refWidth, refHeight, updateCa
 
     return update;
 }
+
+
