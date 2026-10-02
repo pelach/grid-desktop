@@ -257,7 +257,7 @@ export const STORE_WIDGETS = Object.freeze({
         title: 'Controls sliders',
         description: 'Bright and volume sliders',
         gridSize: '5x3',
-        thumbnail: 'system-utils/audio-output.png',
+        thumbnail: 'system-utils/controls-sliders.png',
         fallbackIconName: 'preferences-system-symbolic',
     },
 });
