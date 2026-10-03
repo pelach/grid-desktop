@@ -100,9 +100,10 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
 
         for (const [id, item] of outputMenu._deviceItems) {
             const isDefault = (item._ornament === 2 || item.ornament === 2);
-
             const labelText = item.label?.text || 'Output Device';
-            const iconName = item.icon?.gicon?.get_names ? item.icon.gicon.get_names()[0] : (item.icon?.icon_name || 'audio-speakers-symbolic');
+
+            // A log alapján a ThemedIcon az item._icon.gicon-ban van:
+            const deviceGIcon = item._icon?.gicon || item.gicon;
 
             const rowBtn = new St.Button({
                 reactive: true,
@@ -117,7 +118,6 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
                 ? cssColorToRgba(textColor, 0.35) 
                 : cssColorToRgba(textColor, cardBorderAlpha);
 
-            // A margók a stílusban vannak definiálva, így biztosan érvényesülnek a Clutter/St alatt:
             rowBtn.style = `background-color: ${bg}; `
                 + `border: 1px solid ${border}; `
                 + `border-radius: ${cardRadius}px; `
@@ -132,12 +132,20 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
             });
             rowBtn.set_child(rowBox);
 
-            const devIcon = new St.Icon({
-                icon_name: iconName,
+            // Ha van gicon objektum, azt adjuk át, különben marad a sima név fallback:
+            const iconParams = {
                 icon_size: iconSize,
                 style: `color: ${textColor}; opacity: ${isDefault ? 1.0 : 0.85}; margin-right: ${Math.round(8 * scale)}px;`,
                 y_align: Clutter.ActorAlign.CENTER,
-            });
+            };
+
+            if (deviceGIcon) {
+                iconParams.gicon = deviceGIcon;
+            } else {
+                iconParams.icon_name = 'audio-speakers-symbolic';
+            }
+
+            const devIcon = new St.Icon(iconParams);
             rowBox.add_child(devIcon);
 
             const labelBox = new St.BoxLayout({
