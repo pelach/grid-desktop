@@ -264,7 +264,7 @@ export const STORE_WIDGETS = Object.freeze({
         title: 'Power profiles',
         description: 'Switch power profiles',
         gridSize: '4x4',
-        thumbnail: 'system-utils/controls-sliders.png',
+        thumbnail: 'system-utils/energy_management.png',
         fallbackIconName: 'preferences-system-symbolic',
     },
 });
