@@ -7,3 +7,4 @@ export { createResourceWheelNode } from './resourceWheel.js';
 export { createQuickTogglesNode } from './quickToggles.js';
 export { createAudioOutputNode } from './audioOutput.js';
 export { createControlsSlidersNode } from './controlsSliders.js';
+export { createPowerProfilesNode } from './powerProfiles.js';

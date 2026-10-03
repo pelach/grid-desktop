@@ -26,7 +26,13 @@ const CARD_BG_LIGHT_ALPHA = 0.04;
 const CARD_BORDER_DARK_ALPHA = 0.06;
 const CARD_BORDER_LIGHT_ALPHA = 0.10;
 
-export function createAudioOutputNode(config, width, height, xPosition, yPosition) {
+const PROFILES = [
+    { id: 'power-saver', label: 'Power saver', icon: 'power-profile-power-saver-symbolic' },
+    { id: 'balanced', label: 'Balanced', icon: 'power-profile-balanced-symbolic' },
+    { id: 'performance', label: 'Performance', icon: 'power-profile-performance-symbolic' },
+];
+
+export function createPowerProfilesNode(config, width, height, xPosition, yPosition) {
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
     const textColor = resolveWidgetForegroundColor(config);
@@ -52,12 +58,12 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
         x_expand: true,
     });
     const headerIcon = new St.Icon({
-        icon_name: 'audio-speakers-symbolic',
+        icon_name: 'power-profile-balanced-symbolic',
         style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerLabel = new St.Label({
-        text: 'Audio Output',
+        text: 'Energy management',
         y_align: Clutter.ActorAlign.CENTER,
     });
     headerLabel.clutter_text.set_ellipsize(0);
@@ -81,10 +87,11 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
     });
     scrollView.set_child(listContainer);
 
-    const outputMenu = Main.panel?.statusArea?.quickSettings?._volumeOutput?._output;
+    const powerToggle = Main.panel?.statusArea?.quickSettings?._powerProfiles?.quickSettingsItems?.[0];
+    const proxy = powerToggle?._proxy;
 
-    function refreshDevices() {
-        if (isActorDestroyed(container) || !outputMenu?._deviceItems) return;
+    function refreshProfiles() {
+        if (isActorDestroyed(container)) return;
 
         listContainer.destroy_all_children();
 
@@ -92,14 +99,21 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
         const cardRadius = Math.max(6, Math.round(10 * scale));
         const rowGap = Math.max(4, Math.round(6 * scale));
         const rightScrollGap = Math.max(6, Math.round(8 * scale));
-        const deviceFontSize = Math.max(11, Math.round(13 * scale));
+        const fontSize = Math.max(11, Math.round(13 * scale));
         const iconSize = Math.max(16, Math.round(18 * scale));
         const statusIconSize = Math.max(12, Math.round(14 * scale));
 
-        for (const [id, item] of outputMenu._deviceItems) {
-            const isDefault = (item._ornament === 2 || item.ornament === 2);
-            const labelText = item.label?.text || 'Output Device';
-            const deviceGIcon = item._icon?.gicon || item.gicon;
+        const activeProfile = proxy?.ActiveProfile || 'balanced';
+
+        const supportedProfileIds = proxy?.Profiles ? proxy.Profiles.map(p => p.Profile?.unpack ? p.Profile.unpack() : p.Profile) : null;
+
+        const visibleProfiles = PROFILES.filter(p => {
+            if (!supportedProfileIds) return true;
+            return supportedProfileIds.includes(p.id);
+        });
+
+        for (const prof of visibleProfiles) {
+            const isActive = (prof.id === activeProfile);
 
             const rowBtn = new St.Button({
                 reactive: true,
@@ -107,10 +121,10 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
                 x_expand: true,
             });
 
-            const bg = isDefault 
+            const bg = isActive 
                 ? cssColorToRgba(textColor, 0.18) 
                 : cssColorToRgba(textColor, cardBgAlpha);
-            const border = isDefault 
+            const border = isActive 
                 ? cssColorToRgba(textColor, 0.35) 
                 : cssColorToRgba(textColor, cardBorderAlpha);
 
@@ -128,31 +142,24 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
             });
             rowBtn.set_child(rowBox);
 
-            const iconParams = {
+            const devIcon = new St.Icon({
+                icon_name: prof.icon,
                 icon_size: iconSize,
-                style: `color: ${textColor}; opacity: ${isDefault ? 1.0 : 0.85}; margin-right: ${Math.round(8 * scale)}px;`,
+                style: `color: ${textColor}; opacity: ${isActive ? 1.0 : 0.85}; margin-right: ${Math.round(8 * scale)}px;`,
                 y_align: Clutter.ActorAlign.CENTER,
-            };
-
-            if (deviceGIcon) {
-                iconParams.gicon = deviceGIcon;
-            } else {
-                iconParams.icon_name = 'audio-speakers-symbolic';
-            }
-
-            const devIcon = new St.Icon(iconParams);
+            });
             rowBox.add_child(devIcon);
 
             const nameLabel = new St.Label({
-                text: labelText,
+                text: prof.label,
                 x_expand: true,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `${fontCss}color: ${textColor}; font-size: ${deviceFontSize}px; font-weight: 500;`,
+                style: `${fontCss}color: ${textColor}; font-size: ${fontSize}px; font-weight: 500;`,
             });
             nameLabel.clutter_text.set_ellipsize(3);
             rowBox.add_child(nameLabel);
 
-            if (isDefault) {
+            if (isActive) {
                 const checkIcon = new St.Icon({
                     icon_name: 'emblem-ok-symbolic',
                     icon_size: statusIconSize,
@@ -163,12 +170,14 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
             }
 
             rowBtn.connect('clicked', () => {
-                item.activate(Clutter.get_current_event());
-                refreshDevices();
-                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => {
-                    refreshDevices();
-                    return GLib.SOURCE_REMOVE;
-                });
+                if (proxy) {
+                    proxy.ActiveProfile = prof.id;
+                    refreshProfiles();
+                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => {
+                        refreshProfiles();
+                        return GLib.SOURCE_REMOVE;
+                    });
+                }
             });
 
             listContainer.add_child(rowBtn);
@@ -185,22 +194,19 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
         contentBox.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
         
-        refreshDevices();
+        refreshProfiles();
     }
 
-    const mixerControl = Main.panel?.statusArea?.quickSettings?._volumeOutput?._control;
-    let sigDefaultSink = 0;
-    let sigActiveUpdate = 0;
-
-    if (mixerControl) {
-        sigDefaultSink = mixerControl.connect('default-sink-changed', refreshDevices);
-        sigActiveUpdate = mixerControl.connect('active-output-update', refreshDevices);
+    let sigPropChanged = 0;
+    if (proxy) {
+        sigPropChanged = proxy.connect('g-properties-changed', () => {
+            refreshProfiles();
+        });
     }
 
     container.connect('destroy', () => {
-        if (mixerControl) {
-            if (sigDefaultSink) mixerControl.disconnect(sigDefaultSink);
-            if (sigActiveUpdate) mixerControl.disconnect(sigActiveUpdate);
+        if (proxy && sigPropChanged) {
+            proxy.disconnect(sigPropChanged);
         }
     });
 

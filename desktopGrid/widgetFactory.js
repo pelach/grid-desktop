@@ -14,7 +14,8 @@ import {
     createResourceWheelNode,
     createQuickTogglesNode,
     createAudioOutputNode,
-    createControlsSlidersNode
+    createControlsSlidersNode,
+    createPowerProfilesNode
 } from '../widgets/system/index.js';
 import { createPomodoroNode } from '../widgets/pomodoro.js';
 import { createPomodoroFocusNode } from '../widgets/pomodoroFocus.js';
@@ -83,6 +84,7 @@ const WIDGET_CREATORS = {
     'quickToggles': (data, w, h, x, y) => createQuickTogglesNode(data, w, h, x, y),
     'audioOutput': (data, w, h, x, y) => createAudioOutputNode(data, w, h, x, y),
     'controlsSliders': (data, w, h, x, y) => createControlsSlidersNode(data, w, h, x, y),
+    'powerProfiles': (data, w, h, x, y) => createPowerProfilesNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

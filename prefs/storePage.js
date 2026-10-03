@@ -29,7 +29,8 @@ import {
     addHabitTrackerWidget,
     addQuickTogglesWidget,
     addAudioOutputWidget,
-    addControlsSlidersWidget
+    addControlsSlidersWidget,
+    addPowerProfilesWidget
 } from './widgetAdders.js';
 
 import {
@@ -230,6 +231,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.quickToggles, () => addQuickTogglesWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.audioOutput, () => addAudioOutputWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.controlsSliders, () => addControlsSlidersWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.powerProfiles, () => addPowerProfilesWidget(settings)),
     ]));
 
     // ── Focus & Productivity ─────────────────────────────────

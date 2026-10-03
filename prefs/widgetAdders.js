@@ -213,3 +213,7 @@ export function addAudioOutputWidget(settings, width = 4, height = 4) {
 export function addControlsSlidersWidget(settings, width = 3, height = 5) {
     addWidget(settings, { id: nextWidgetId(settings, 'controlsSliders'), type: 'controlsSliders' }, width, height);
 }
+
+export function addPowerProfilesWidget(settings, width = 4, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'powerProfiles'), type: 'powerProfiles' }, width, height);
+}

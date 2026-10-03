@@ -53,6 +53,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'quickToggles': {minCols: 4, minRows: 4},
     'audioOutput': { minCols: 4, minRows: 4 },
     'controlsSliders': { minCols: 4, minRows: 4 },
+    'powerProfiles': { minCols: 4, minRows: 4}
 });
 
 /**
@@ -511,7 +512,8 @@ const SIZE_PRESETS = {
     'habitTracker': [[7, 4], [9, 5], [11, 6]],
     'quickToggles': [[4, 4], [5, 5], [6, 6]],
     'audioOutput': [[4, 4], [5, 5], [6, 6]],
-    'controlsSliders': [[5, 3], [6, 3], [7, 4]]
+    'controlsSliders': [[5, 3], [6, 3], [7, 4]],
+    'powerProfiles': [[4, 4], [5, 5], [6, 6]],
 };
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];

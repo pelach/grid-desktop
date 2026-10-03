@@ -260,6 +260,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system-utils/controls-sliders.png',
         fallbackIconName: 'preferences-system-symbolic',
     },
+    powerProfiles: {
+        title: 'Power profiles',
+        description: 'Switch power profiles',
+        gridSize: '4x4',
+        thumbnail: 'system-utils/controls-sliders.png',
+        fallbackIconName: 'preferences-system-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -289,7 +296,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'habitTracker',
         'quickToggles',
         'audioOutput',
-        'controlsSliders'
+        'controlsSliders',
+        'powerProfiles'
     ],
 });
 
@@ -385,6 +393,8 @@ function getStoreWidgetKey(widget) {
             return 'audioOutput';   
         case 'controlsSliders':
             return 'controlsSliders';
+        case 'powerProfiles':
+            return 'powerProfiles';
         default:
             return null;
     }
