@@ -13,8 +13,7 @@ import {
 
 import { 
     createWidgetContainer, 
-    attachResponsiveScaler, 
-    attachButtonFeedback 
+    attachResponsiveScaler 
 } from '../../shell/widgetUIUtils.js';
 
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
@@ -67,18 +66,19 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
     headerBox.add_child(headerLabel);
     contentBox.add_child(headerBox);
 
+    // Görgető konténer
     const scrollView = new St.ScrollView({
-        style_class: 'vfade',
+        hscrollbar_policy: St.PolicyType.NEVER,
+        vscrollbar_policy: St.PolicyType.AUTOMATIC,
+        overlay_scrollbars: false,
         x_expand: true,
         y_expand: true,
     });
-    scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.EXTERNAL);
     contentBox.add_child(scrollView);
 
     const listContainer = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
-        y_expand: true,
     });
     scrollView.set_child(listContainer);
 
@@ -91,13 +91,14 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
 
         const cardPadding = Math.max(4, Math.round(6 * scale));
         const cardRadius = Math.max(6, Math.round(10 * scale));
+        const rowGap = Math.max(4, Math.round(6 * scale));
+        const rightScrollGap = Math.max(6, Math.round(8 * scale)); // Térköz a gördítősávtól
         const deviceFontSize = Math.max(10, Math.round(12 * scale));
         const subFontSize = Math.max(9, Math.round(10 * scale));
         const iconSize = Math.max(16, Math.round(18 * scale));
         const statusIconSize = Math.max(12, Math.round(14 * scale));
 
         for (const [id, item] of outputMenu._deviceItems) {
-            // A Looking Glass alapján az aktív elem ornament értéke pontosan 2 (DOT):
             const isDefault = (item._ornament === 2 || item.ornament === 2);
 
             const labelText = item.label?.text || 'Output Device';
@@ -107,9 +108,7 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
                 reactive: true,
                 can_focus: true,
                 x_expand: true,
-                margin_bottom: Math.max(3, Math.round(5 * scale)),
             });
-            attachButtonFeedback(rowBtn);
 
             const bg = isDefault 
                 ? cssColorToRgba(textColor, 0.18) 
@@ -118,7 +117,13 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
                 ? cssColorToRgba(textColor, 0.35) 
                 : cssColorToRgba(textColor, cardBorderAlpha);
 
-            rowBtn.style = `background-color: ${bg}; border: 1px solid ${border}; border-radius: ${cardRadius}px; padding: ${cardPadding}px;`;
+            // A margók a stílusban vannak definiálva, így biztosan érvényesülnek a Clutter/St alatt:
+            rowBtn.style = `background-color: ${bg}; `
+                + `border: 1px solid ${border}; `
+                + `border-radius: ${cardRadius}px; `
+                + `padding: ${cardPadding}px; `
+                + `margin-bottom: ${rowGap}px; `
+                + `margin-right: ${rightScrollGap}px;`;
 
             const rowBox = new St.BoxLayout({
                 orientation: Clutter.Orientation.HORIZONTAL,
@@ -155,7 +160,6 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
             labelBox.add_child(subLabel);
             rowBox.add_child(labelBox);
 
-            // Ha aktív, felrakjuk a pipát a kártya jobb szélére
             if (isDefault) {
                 const checkIcon = new St.Icon({
                     icon_name: 'emblem-ok-symbolic',
@@ -183,16 +187,15 @@ export function createAudioOutputNode(config, width, height, xPosition, yPositio
         scale = newScale;
         const titleFontSize = Math.max(11, Math.round(13 * scale));
 
-        headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
         headerIcon.icon_size = Math.round(16 * scale);
         headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
-        contentBox.style = `padding: ${Math.max(6, Math.round(8 * scale))}px;`;
+        contentBox.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
         
         refreshDevices();
     }
 
-    // Élő szinkron
     const mixerControl = Main.panel?.statusArea?.quickSettings?._volumeOutput?._control;
     let sigDefaultSink = 0;
     let sigActiveUpdate = 0;
