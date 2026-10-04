@@ -48,6 +48,7 @@ const WIDGET_CREATORS = {
     'time': (data, w, h, x, y) => createTimeNode(data, w, h, x, y),
     'weather': weatherCreator,
     'weather_bars': weatherCreator,
+    'weather_cards': weatherCreator,
     'music': (data, w, h, x, y) => createMusicNode(data, w, h, x, y),
     'notes': (data, w, h, x, y) => createNotesNode(data, w, h, x, y),
     'clipboard': (data, w, h, x, y) => createClipboardNode(data, w, h, x, y),

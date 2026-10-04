@@ -13,6 +13,7 @@ import { buildSimpleLayout, attachSimpleScaler } from './weatherSimple.js';
 import { buildStandardLayout, attachStandardScaler } from './weatherStandard.js';
 import { buildBarsLayout, attachBarsScaler } from './weatherBars.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
+import { buildCardsLayout, attachCardsScaler } from './weatherCards.js';
 
 export function createWeatherNode(widgetData, width, height, xPosition, yPosition, isDynamicColor, isDynamicImage) {
     const extensionPath = widgetData.extensionPath || '';
@@ -25,7 +26,10 @@ export function createWeatherNode(widgetData, width, height, xPosition, yPositio
     const layoutVariant = resolveWeatherLayoutVariant(widgetData);
 
     let uiElements;
-    if (widgetData.type === 'weather_bars' || layoutVariant === 'bars') {
+    if (widgetData.type === 'weather_cards' || layoutVariant === 'cards') {
+        uiElements = buildCardsLayout(layout, widgetData, extensionPath);
+        attachCardsScaler(widgetNode, uiElements, widgetData);
+    } else if (widgetData.type === 'weather_bars' || layoutVariant === 'bars') {
         uiElements = buildBarsLayout(layout, widgetData, extensionPath);
         attachBarsScaler(widgetNode, uiElements, widgetData);
     } else if (layoutVariant === 'forecast') {
@@ -41,15 +45,21 @@ export function createWeatherNode(widgetData, width, height, xPosition, yPositio
 
     widgetNode.add_child(layout);
 
+    const isCards = widgetData.type === 'weather_cards' || layoutVariant === 'cards';
+
     const context = {
         widgetData,
         uiElements,
         widgetNode,
         bgImageActor,
-        isDynamicColor,
-        isDynamicImage,
+        isDynamicColor: isCards ? false : isDynamicColor,
+        isDynamicImage: isCards ? false : isDynamicImage,
         extensionPath,
     };
+    
+    if (isCards) {
+        bgImageActor.hide();
+    }
 
     const triggerWeatherFetch = () => {
         if (isActorDestroyed(widgetNode)) return;

@@ -412,6 +412,12 @@ export function updateTextLabels(json, uiElements, useFahrenheit) {
 }
 
 export function updateWidgetStyle(widgetNode, bgImageActor, widgetData, assets, isDynamicColor, isDynamicImage) {
+    
+    if (widgetData.type === 'weather_cards' || widgetData.layout === 'cards') {
+        bgImageActor.hide();
+        return;
+    }
+    
     const fontCss = buildFontCss(widgetData);
     const baseStyle = buildBaseWidgetStyle(widgetData);
 
@@ -480,6 +486,10 @@ export function updateWeatherUi(json, context) {
 
     updateHourlyForecastUi(json, uiElements, json.current.last_updated_epoch, extensionPath, useFahrenheit, folderName);
     updateDailyForecastUi(json, uiElements, extensionPath, useFahrenheit, folderName);
+    
+    if (uiElements && uiElements.isCardsLayout && typeof uiElements.updateCards === 'function') {
+        uiElements.updateCards(json, useFahrenheit);
+    }
 }
 
 function getWmoConditionText(code) {
@@ -566,14 +576,28 @@ export function clearGeocodeCache() {
 }
 
 async function fetchOpenMeteoWeather({ latitude, longitude, name }, context) {
-    const { widgetNode } = context;
+    const { widgetNode, uiElements } = context;
     if (isActorDestroyed(widgetNode) || !widgetNode.weatherSession) return;
 
     try {
-        const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude='
-            + `${latitude}&longitude=${longitude}&current_weather=true&forecast_days=6`
-            + '&hourly=temperature_2m,weathercode,is_day&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto';
-        const wJson = await fetchJsonAsync(widgetNode.weatherSession, weatherUrl);
+       const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude='
+        + `${latitude}&longitude=${longitude}&current_weather=true`
+        + '&current=relative_humidity_2m,uv_index'
+        + '&forecast_days=6'
+        + '&hourly=temperature_2m,relative_humidity_2m,uv_index,windspeed_10m,weathercode,is_day'
+        + '&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto';
+      
+        const metric = (context.widgetData?.weatherMetric || '').toLowerCase();
+        const needsAqi = (uiElements && uiElements.aqiCard) || metric === 'aqi';
+
+        const requests = [fetchJsonAsync(widgetNode.weatherSession, weatherUrl)];
+
+        if (needsAqi) {
+            const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&current=us_aqi&hourly=us_aqi&timezone=auto`;
+            requests.push(fetchJsonAsync(widgetNode.weatherSession, aqiUrl).catch(() => null));
+        }
+
+        const [wJson, aqiJson] = await Promise.all(requests);
 
         if (isActorDestroyed(widgetNode) || !wJson.current_weather) return;
 
@@ -639,17 +663,42 @@ async function fetchOpenMeteoWeather({ latitude, longitude, name }, context) {
             };
         }) : [];
 
+        let curHourIdx = 0;
+        if (wJson.hourly && wJson.hourly.time && wJson.current_weather && wJson.current_weather.time) {
+            const curTimePrefix = wJson.current_weather.time.slice(0, 13);
+            const foundIdx = wJson.hourly.time.findIndex(t => t.startsWith(curTimePrefix));
+            if (foundIdx !== -1) curHourIdx = foundIdx;
+        }
+
+        const resolvedHumidity = wJson.current?.relative_humidity_2m 
+            ?? wJson.current?.humidity 
+            ?? (wJson.hourly?.relative_humidity_2m ? wJson.hourly.relative_humidity_2m[curHourIdx] : null);
+
+        const resolvedUv = wJson.current?.uv_index 
+            ?? (wJson.hourly?.uv_index ? wJson.hourly.uv_index[curHourIdx] : null);
+
         const mapped = {
             location: { name },
             current: {
                 temp_c: wJson.current_weather.temperature,
                 temp_f: celsiusToFahrenheit(wJson.current_weather.temperature),
                 is_day: wJson.current_weather.is_day,
+                humidity: resolvedHumidity,
+                uv_index: resolvedUv,
+                windspeed: wJson.current_weather ? wJson.current_weather.windspeed : null,
+                aqi: (aqiJson && aqiJson.current) ? Math.round(aqiJson.current.us_aqi) : null,
                 last_updated_epoch: Math.floor(nowLocationMs / 1000),
                 last_updated_hour: nowLocationHourStr,
                 condition: { code: mappedCode, text: conditionText },
             },
             forecast: { forecastday },
+            // Metrikánkénti 24 órás trend adatok:
+            hourly_trends: {
+                humidity: (wJson.hourly && wJson.hourly.relative_humidity_2m) ? wJson.hourly.relative_humidity_2m.slice(0, 24) : [],
+                uv: (wJson.hourly && wJson.hourly.uv_index) ? wJson.hourly.uv_index.slice(0, 24) : [],
+                wind: (wJson.hourly && wJson.hourly.windspeed_10m) ? wJson.hourly.windspeed_10m.slice(0, 24) : [],
+                aqi: (aqiJson && aqiJson.hourly && aqiJson.hourly.us_aqi) ? aqiJson.hourly.us_aqi.slice(0, 24) : [],
+            },
         };
 
         updateWeatherUi(mapped, context);

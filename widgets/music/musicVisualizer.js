@@ -15,6 +15,29 @@ const MIN_CONTAINER_MARGIN_PX = 4;
 const NUM_BARS = 16;
 
 export function buildVisualizerLayout(config, state) {
+
+    function findCava() {
+        // 1. Keresés a GNOME Shell aktuális PATH-jában
+        let path = GLib.find_program_in_path('cava');
+        if (path) return path;
+
+        // 2. Tartalék útvonalak (Snap, Flatpak export, vagy egyéni binárisok)
+        const fallbacks = [
+            '/snap/bin/cava',
+            GLib.build_filenamev([GLib.get_home_dir(), '.local', 'bin', 'cava']),
+            '/usr/local/bin/cava'
+        ];
+
+        for (const fb of fallbacks) {
+            if (GLib.file_test(fb, GLib.FileTest.IS_EXECUTABLE)) {
+                return fb;
+            }
+        }
+
+        return null;
+    }
+
+
     // 1. Háttér albumborító
     const backgroundLayer = createBackgroundLayer(config);
     state.backgroundLayer = backgroundLayer;
@@ -44,7 +67,11 @@ export function buildVisualizerLayout(config, state) {
     if (controlsBox) state.container.add_child(controlsBox);
 
     // --- Cava / Fallback állapotok ---
-    const hasCava = Boolean(GLib.find_program_in_path('cava'));
+    //const hasCava = Boolean(GLib.find_program_in_path('cava'));
+
+    const cavaPath = findCava();   
+    const hasCava = Boolean(cavaPath);
+
     let barValues = new Uint8Array(NUM_BARS);
     let cavaSubproc = null;
     let cavaCancellable = null;

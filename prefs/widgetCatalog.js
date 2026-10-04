@@ -267,10 +267,17 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system-utils/energy_management.png',
         fallbackIconName: 'preferences-system-symbolic',
     },
+    weatherCards: {
+        title: 'Weather Cards',
+        description: 'Minimal weather cards with UV index, humidity, AQI, and trend chart.',
+        gridSize: '3x3',
+        thumbnail: 'weathers/weather_cards.png',
+        fallbackIconName: 'weather-clear-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
-    weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget'],
+    weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards'],
     music: ['musicPlayer', 'musicPlayerWide', 'musicVisualizer'],
     time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid'],
     media: ['imageGif', 'imageSlideshow'],
@@ -302,10 +309,14 @@ export const STORE_CATEGORIES = Object.freeze({
 });
 
 function getWeatherEntryKey(widget) {
-    const layout = widget.layout || (widget.width >= 6 ? 'forecast' : (widget.width === 4 ? 'simple' : 'standard'));
-    if (layout === 'bars') {
+    if (widget.type === 'weather_cards' || widget.layout === 'cards') {
+        return 'weatherCards';
+    }
+    if (widget.type === 'weather_bars' || widget.layout === 'bars') {
         return 'weatherBars';
     }
+
+    const layout = widget.layout || (widget.width >= 6 ? 'forecast' : (widget.width === 4 ? 'simple' : 'standard'));
     if (layout === 'forecast') {
         return 'weatherForecast';
     }
@@ -395,6 +406,8 @@ function getStoreWidgetKey(widget) {
             return 'controlsSliders';
         case 'powerProfiles':
             return 'powerProfiles';
+        case 'weather_cards':
+            return 'weatherCards';
         default:
             return null;
     }
@@ -422,9 +435,9 @@ function getPathBaseName(filePath, fallbackText) {
 export function getWidgetDetailText(widget) {
     switch (widget.type) {
         case 'weather':
-            return `Location: ${widget.location || 'London'}`;
         case 'weather_bars':
-            return `Location: ${widget.location || 'London'}`;    
+        case 'weather_cards':
+            return `Location: ${widget.location || 'London'}`; 
         case 'slideshow':
             return `Folder: ${getPathBaseName(widget.slideshowFolder, 'Unknown')}`;
         case 'image':

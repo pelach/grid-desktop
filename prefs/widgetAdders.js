@@ -217,3 +217,7 @@ export function addControlsSlidersWidget(settings, width = 3, height = 5) {
 export function addPowerProfilesWidget(settings, width = 4, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'powerProfiles'), type: 'powerProfiles' }, width, height);
 }
+
+export function addWeatherCardsWidget(settings, city = 'London', width = 3, height = 3, layout = 'standard') {
+    addWidget(settings, { id: nextWidgetId(settings, 'weather_cards'), type: 'weather_cards', location: city, layout }, width, height);
+}

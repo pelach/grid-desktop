@@ -35,6 +35,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'system-info': { minCols: 2, minRows: 2 },
     'resource-wheel': { minCols: 4, minRows: 3 },
     'weather': { minCols: 2, minRows: 2 },
+    'weather_cards': { minCols: 3, minRows: 3 },
     'weather_bars': { minCols: 6, minRows: 6 },
     'music': { minCols: 3, minRows: 2 },
     'notes': { minCols: 3, minRows: 3 },
@@ -484,7 +485,8 @@ const SIZE_PRESETS = {
     'timeAnalog': [[4, 4], [5, 5], [6, 6]],
     'worldClock': [[4, 4], [5, 5], [6, 6]],
     'weatherStandard': [[4, 4], [5, 5], [6, 6]],
-    'weatherSimple': [[4, 4], [5, 5], [6, 5]],
+    'weatherSimple': [[4, 4], [5, 5], [6, 6]],
+    'weatherCards': [[3, 3], [4, 4], [5, 5]],
     'weatherForecast': [[6, 4], [8, 5], [10, 6]],
     'weatherBars': [[6, 6], [8, 8], [10, 10]],
     'sun-schedule': [[4, 4], [5, 5], [6, 6]],
@@ -527,6 +529,8 @@ function resolveSizePresetTable(widgetData) {
             return (widgetData.layout === 'world') ? SIZE_PRESETS.worldClock : SIZE_PRESETS.time;
         case 'weather': {    
             const layout = widgetData.layout || 'standard';
+            if (layout === 'cards')
+                return SIZE_PRESETS.weatherCards;
             if (layout === 'bars')
                 return SIZE_PRESETS.weatherBars;
             if (layout === 'forecast')
@@ -535,6 +539,8 @@ function resolveSizePresetTable(widgetData) {
         }
         case 'weather_bars':
             return SIZE_PRESETS.weatherBars;
+        case 'weather_cards':
+            return SIZE_PRESETS.weatherCards;
         case 'music':
             return isWideMusicLayout(widgetData) ? SIZE_PRESETS.musicWide : SIZE_PRESETS.musicSmall;
         default:

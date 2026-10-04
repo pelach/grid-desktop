@@ -14,6 +14,7 @@ import {
     buildImageSettings,
     buildSystemInfoSettings,
     buildCurrencyTrackerSettings,
+    buildWeatherCardsSettings,
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -43,8 +44,11 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
             rowIdx = buildSunScheduleSettings(grid, rowIdx, widget, saveHandlers);
             break;
         case 'weather':
-        case 'weather_bars':    
+        case 'weather_bars':
             rowIdx = buildWeatherSettings(grid, rowIdx, widget, settings, saveHandlers);
+            break;
+        case 'weather_cards':
+            rowIdx = buildWeatherCardsSettings(grid, rowIdx, widget, saveHandlers);
             break;
         case 'time':
             rowIdx = buildTimeSettings(grid, rowIdx, widget, settings, saveHandlers);

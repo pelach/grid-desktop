@@ -7,6 +7,7 @@ import {
     addAnalogClockWidget,
     addWeatherWidget,
     addWeatherBarsWidget,
+    addWeatherCardsWidget,
     addMusicWidget,
     addMusicVisualizerWidget,
     addPomodoroWidget,
@@ -207,6 +208,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.weather[1]], () => addWeather(3, 3, 'simple')),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.weather[2]], () => addWeather(6, 4, 'forecast')),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.weatherBars, () => addWeatherBarsWidget(settings, settings.get_string('weather-city'), 6, 6)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.weatherCards, () => addWeatherCardsWidget(settings, settings.get_string('weather-city'), 3, 3)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.sunScheduleWidget, () => openAddSunScheduleDialog(window, settings)),
     ]));
 

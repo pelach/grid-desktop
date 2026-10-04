@@ -717,3 +717,56 @@ export function buildCurrencyTrackerSettings(grid, rowIdx, widget, saveHandlers)
 
     return rowIdx;
 }
+
+
+export function buildWeatherCardsSettings(grid, rowIdx, widget, saveHandlers) {
+    const currentLocation = { name: widget.location || 'London' };
+    if (widget.lat !== undefined && widget.lon !== undefined) {
+        currentLocation.latitude = widget.lat;
+        currentLocation.longitude = widget.lon;
+    }
+    const cityPicker = buildOpenMeteoCitySearchRow(grid, 'City Location:', currentLocation, rowIdx++);
+
+    // Metrika választó DropDown (mint a System Info-nál)
+    const metricLabel = new Gtk.Label({ label: 'Weather Metric:', xalign: 0, hexpand: true });
+    const metrics = ['uv', 'humidity', 'aqi', 'wind'];
+    const metricNames = ['UV Index', 'Humidity', 'Air Quality (AQI)', 'Wind Speed'];
+
+    const metricCombo = new Gtk.DropDown({
+        model: Gtk.StringList.new(metricNames),
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.END,
+    });
+
+    const currentMetric = (widget.weatherMetric || 'uv').toLowerCase();
+    const currentIdx = metrics.indexOf(currentMetric);
+    metricCombo.set_selected(currentIdx >= 0 ? currentIdx : 0);
+
+    grid.attach(metricLabel, 0, rowIdx, 1, 1);
+    grid.attach(metricCombo, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    // Trend chart kapcsoló
+    const chartLabel = new Gtk.Label({ label: 'Show Trend Chart:', xalign: 0, hexpand: true });
+    const chartSwitch = new Gtk.Switch({ valign: Gtk.Align.CENTER, halign: Gtk.Align.END });
+    chartSwitch.set_active(widget.showChart === true);
+
+    grid.attach(chartLabel, 0, rowIdx, 1, 1);
+    grid.attach(chartSwitch, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    saveHandlers.push((target) => {
+        const selectedCity = cityPicker.getSelectedLocation();
+        if (selectedCity && selectedCity.name) {
+            target.location = selectedCity.name;
+            if (selectedCity.latitude !== undefined && selectedCity.longitude !== undefined) {
+                target.lat = selectedCity.latitude;
+                target.lon = selectedCity.longitude;
+            }
+        }
+        target.weatherMetric = metrics[metricCombo.get_selected()] || 'uv';
+        target.showChart = chartSwitch.get_active();
+    });
+
+    return rowIdx;
+}
