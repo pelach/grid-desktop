@@ -1,5 +1,6 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Pango from 'gi://Pango';
 import { cssColorToRgba } from '../../utils/widgetUtils.js';
 
 export const BASE_CONTAINER_WIDTH = 260;
@@ -7,9 +8,9 @@ export const BASE_CONTAINER_HEIGHT = 130;
 export const TILE_GAP_PX = 10;
 export const TILE_MARGIN_PX = 10;
 
-const VALUE_FONT_SIZE_PX = 30;
+const VALUE_FONT_SIZE_PX = 28;
 const LABEL_FONT_SIZE_PX = 10;
-const TILE_PADDING_BASE_PX = 13;
+const TILE_PADDING_BASE_PX = 12;
 const TILE_RADIUS_BASE_PX = 10;
 const TILE_BG_ALPHA = 0.06;
 const TILE_BORDER_ALPHA = 0.08;
@@ -25,13 +26,17 @@ export function createSparklineTile({
     fontCss,
     textColor,
     scale,
-    rowSpacingPx = 3,
+    rowSpacingPx = 4,
     drawSamples,
 }) {
     const tilePadding = Math.max(1, Math.round(TILE_PADDING_BASE_PX * scale));
     const tileRadius = Math.max(1, Math.round(TILE_RADIUS_BASE_PX * scale));
-    const valueFontSize = Math.max(1, Math.round(VALUE_FONT_SIZE_PX * scale));
+    const valueFontSize = Math.max(1, Math.round(24 * scale));
     const labelFontSize = Math.max(1, Math.round(LABEL_FONT_SIZE_PX * scale));
+    const unitFontSize = Math.max(1, Math.round(valueFontSize * UNIT_FONT_SIZE_RATIO));
+
+    const numBoxMinWidth = Math.round(48 * scale);
+    const unitBoxWidth = Math.round(30 * scale);
 
     const tile = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -47,23 +52,34 @@ export function createSparklineTile({
     const valueRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.START,
-        style: `spacing: ${rowSpacingPx}px;`,
+        y_align: Clutter.ActorAlign.CENTER,
     });
+
+    // font-feature-settings: 'tnum' biztosítja az azonos szélességű számjegyeket (nincs mikrovibráció)
     const valueLabel = new St.Label({
         text: '0',
-        style: `${fontCss}color: ${textColor}; font-size: ${valueFontSize}px; font-weight: 300;`,
+        x_align: Clutter.ActorAlign.END,
+        style: `${fontCss}color: ${textColor}; font-size: ${valueFontSize}px; font-weight: 300; min-width: ${numBoxMinWidth}px; text-align: right;`,
     });
+    valueLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
+
+    // A mértékegység indexben, felső igazítással
     const unitLabel = new St.Label({
         text: unitText,
+        x_align: Clutter.ActorAlign.START,
+        y_align: Clutter.ActorAlign.START,
         style: `${fontCss}color: ${textColor}; opacity: ${unitOpacity}; `
-            + `font-size: ${Math.max(1, Math.round(valueFontSize * UNIT_FONT_SIZE_RATIO))}px; font-weight: 300;`,
+            + `font-size: ${unitFontSize}px; font-weight: 300; `
+            + `margin-top: ${Math.round(2 * scale)}px; margin-left: ${Math.round(2 * scale)}px;`,
     });
+    unitLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
+
     valueRow.add_child(valueLabel);
     valueRow.add_child(unitLabel);
 
     const nameLabel = new St.Label({
         text: labelText,
-        style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${unitOpacity};`,
+        style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${unitOpacity}; margin-top: 1px;`,
     });
 
     const sparkArea = new St.DrawingArea({

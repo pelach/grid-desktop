@@ -14,11 +14,19 @@ const SPARK_BASELINE_BYTES = BYTES_PER_KILOBYTE;
 const NETWORK_TILE_ROW_SPACING_PX = 4;
 
 export function formatBytesPerSecond(bytesPerSec) {
-    if (bytesPerSec < BYTES_PER_KILOBYTE)
-        return `${Math.round(bytesPerSec)} B/s`;
-    if (bytesPerSec < BYTES_PER_MEGABYTE)
-        return `${(bytesPerSec / BYTES_PER_KILOBYTE).toFixed(1)} KB/s`;
-    return `${(bytesPerSec / BYTES_PER_MEGABYTE).toFixed(1)} MB/s`;
+    const bytes = Math.max(0, bytesPerSec);
+    if (bytes < 1000) {
+        return `${Math.round(bytes)} B/s`;
+    }
+    const kb = bytes / 1024;
+    if (kb < 100) {
+        return `${kb.toFixed(1)} KB/s`;
+    }
+    if (kb < 1000) {
+        return `${Math.round(kb)} KB/s`;
+    }
+    const mb = kb / 1024;
+    return `${mb.toFixed(1)} MB/s`;
 }
 
 export function createNetworkSpeedNode(config, width, height, xPosition, yPosition) {
