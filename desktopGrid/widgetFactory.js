@@ -1,6 +1,7 @@
 import { createTimeNode } from '../widgets/time/index.js';
 import { createTimerNode } from '../widgets/time/timerWidget.js';
 import { createCountdownNode } from '../widgets/time/countdownWidget.js';
+import { createStopwatchNode } from '../widgets/time/stopwatchWidget.js';
 import { createWeatherNode } from '../widgets/weather/index.js';
 import { createMusicNode } from '../widgets/music/index.js';
 import { createNotesNode } from '../widgets/notes.js';
@@ -50,6 +51,7 @@ const WIDGET_CREATORS = {
     'time': (data, w, h, x, y) => createTimeNode(data, w, h, x, y),
     'timer': (data, w, h, x, y) => createTimerNode(data, w, h, x, y),
     'countdown': (data, w, h, x, y) => createCountdownNode(data, w, h, x, y),
+    'stopwatch': (data, w, h, x, y) => createStopwatchNode(data, w, h, x, y),
     'weather': weatherCreator,
     'weather_bars': weatherCreator,
     'weather_cards': weatherCreator,

@@ -277,15 +277,22 @@ export const STORE_WIDGETS = Object.freeze({
     timer: {
         title: 'Timer',
         description: 'Simple timer widgets.',
-        gridSize: '4x4',
+        gridSize: '3x3',
         thumbnail: 'date-and-time/timer.png',
         fallbackIconName: 'preferences-system-time-symbolic',
     },
     countdown: {
         title: 'Countdown',
         description: 'Simple countdown widget.',
-        gridSize: '4x4',
+        gridSize: '3x3',
         thumbnail: 'date-and-time/countdown.png',
+        fallbackIconName: 'preferences-system-time-symbolic',
+    },
+    stopwatch: {
+        title: 'Stopwatch',
+        description: 'Simple stopwatch widget.',
+        gridSize: '3x3',
+        thumbnail: 'date-and-time/stopwatch.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
     },
 });
@@ -293,7 +300,7 @@ export const STORE_WIDGETS = Object.freeze({
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards'],
     music: ['musicPlayer', 'musicPlayerWide', 'musicVisualizer'],
-    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer'],
+    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
         'systemDashboard',
@@ -426,6 +433,8 @@ function getStoreWidgetKey(widget) {
             return 'timer';
         case 'countdown':
             return 'countdown';
+        case 'stopwatch':
+            return 'stopwatch';    
         default:
             return null;
     }

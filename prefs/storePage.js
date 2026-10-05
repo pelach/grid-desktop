@@ -6,7 +6,7 @@ import {
     addTimeWidget,
     addAnalogClockWidget,
     addTimerWidget,
-    addCountdownWidget,
+    addStopWatchWidget,
     addWeatherWidget,
     addWeatherBarsWidget,
     addWeatherCardsWidget,
@@ -258,6 +258,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.calendarGrid, () => addCalendarGridWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.timer, () => addTimerWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.countdown, () => openAddCountdownDialog(window, settings)), 
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.stopwatch, () => addStopWatchWidget(settings)),
     ]));
 
     // ── Personal ─────────────────────────────────────────────

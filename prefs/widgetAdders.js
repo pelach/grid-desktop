@@ -222,7 +222,7 @@ export function addWeatherCardsWidget(settings, city = 'London', width = 3, heig
     addWidget(settings, { id: nextWidgetId(settings, 'weather_cards'), type: 'weather_cards', location: city, layout }, width, height);
 }
 
-export function addTimerWidget(settings, durationSeconds = 300, label = 'Timer', width = 4, height = 4) {
+export function addTimerWidget(settings, durationSeconds = 300, label = 'Timer', width = 3, height = 3) {
     addWidget(settings, {
         id: nextWidgetId(settings, 'timer'),
         type: 'timer',
@@ -231,7 +231,7 @@ export function addTimerWidget(settings, durationSeconds = 300, label = 'Timer',
     }, width, height);
 }
 
-export function addCountdownWidget(settings, eventName = 'Goal', targetDate = '', width = 4, height = 4) {
+export function addCountdownWidget(settings, eventName = 'Goal', targetDate = '', width = 3, height = 3) {
     addWidget(settings, {
         id: nextWidgetId(settings, 'countdown'),
         type: 'countdown',
@@ -239,4 +239,8 @@ export function addCountdownWidget(settings, eventName = 'Goal', targetDate = ''
         targetDate,
         startDate: new Date().toISOString(), 
     }, width, height);
+}
+
+export function addStopWatchWidget(settings, width = 3, height = 5) {
+    addWidget(settings, { id: nextWidgetId(settings, 'stopwatch'), type: 'stopwatch' }, width, height);
 }
