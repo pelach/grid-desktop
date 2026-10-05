@@ -221,3 +221,22 @@ export function addPowerProfilesWidget(settings, width = 4, height = 4) {
 export function addWeatherCardsWidget(settings, city = 'London', width = 3, height = 3, layout = 'standard') {
     addWidget(settings, { id: nextWidgetId(settings, 'weather_cards'), type: 'weather_cards', location: city, layout }, width, height);
 }
+
+export function addTimerWidget(settings, durationSeconds = 300, label = 'Timer', width = 4, height = 4) {
+    addWidget(settings, {
+        id: nextWidgetId(settings, 'timer'),
+        type: 'timer',
+        timerDurationSeconds: durationSeconds,
+        timerLabel: label,
+    }, width, height);
+}
+
+export function addCountdownWidget(settings, eventName = 'Goal', targetDate = '', width = 4, height = 4) {
+    addWidget(settings, {
+        id: nextWidgetId(settings, 'countdown'),
+        type: 'countdown',
+        eventName,
+        targetDate,
+        startDate: new Date().toISOString(), 
+    }, width, height);
+}

@@ -15,6 +15,8 @@ import {
     buildSystemInfoSettings,
     buildCurrencyTrackerSettings,
     buildWeatherCardsSettings,
+    buildTimerSettings,     
+    buildCountdownSettings,
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -76,6 +78,12 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
             break;
         case 'currency-tracker':
             rowIdx = buildCurrencyTrackerSettings(grid, rowIdx, widget, saveHandlers);
+            break;
+        case 'timer': 
+            rowIdx = buildTimerSettings(grid, rowIdx, widget, saveHandlers);
+            break;
+        case 'countdown': 
+            rowIdx = buildCountdownSettings(grid, rowIdx, widget, saveHandlers);
             break;
     }
 

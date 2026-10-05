@@ -770,3 +770,53 @@ export function buildWeatherCardsSettings(grid, rowIdx, widget, saveHandlers) {
 
     return rowIdx;
 }
+
+export function buildTimerSettings(grid, rowIdx, widget, saveHandlers) {
+    const labelRow = new Gtk.Label({ label: 'Timer Label:', xalign: 0, hexpand: true });
+    const labelEntry = new Gtk.Entry({ text: widget.timerLabel || 'Időzítő', hexpand: true });
+    grid.attach(labelRow, 0, rowIdx, 1, 1);
+    grid.attach(labelEntry, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    const durationLabel = new Gtk.Label({ label: 'Duration (Minutes):', xalign: 0, hexpand: true });
+    const currentMinutes = Math.round((widget.timerDurationSeconds || 300) / 60);
+    const durationSpin = Gtk.SpinButton.new_with_range(1, 720, 1);
+    durationSpin.set_valign(Gtk.Align.CENTER);
+    durationSpin.set_halign(Gtk.Align.END);
+    durationSpin.set_value(currentMinutes);
+    grid.attach(durationLabel, 0, rowIdx, 1, 1);
+    grid.attach(durationSpin, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    saveHandlers.push((target) => {
+        target.timerLabel = labelEntry.get_text().trim() || 'Timer';
+        target.timerDurationSeconds = Math.round(durationSpin.get_value()) * 60;
+    });
+
+    return rowIdx;
+}
+
+export function buildCountdownSettings(grid, rowIdx, widget, saveHandlers) {
+    const nameLabel = new Gtk.Label({ label: 'Event Name:', xalign: 0, hexpand: true });
+    const nameEntry = new Gtk.Entry({ text: widget.eventName || 'Goal', hexpand: true });
+    grid.attach(nameLabel, 0, rowIdx, 1, 1);
+    grid.attach(nameEntry, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    const dateLabel = new Gtk.Label({ label: 'Target Date (YYYY-MM-DD):', xalign: 0, hexpand: true });
+    const rawDate = widget.targetDate ? widget.targetDate.split('T')[0] : '';
+    const dateEntry = new Gtk.Entry({ text: rawDate, placeholder_text: 'YYYY-MM-DD', hexpand: true });
+    grid.attach(dateLabel, 0, rowIdx, 1, 1);
+    grid.attach(dateEntry, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    saveHandlers.push((target) => {
+        target.eventName = nameEntry.get_text().trim() || 'Goal';
+        const d = dateEntry.get_text().trim();
+        if (d) {
+            target.targetDate = `${d}T00:00:00`;
+        }
+    });
+
+    return rowIdx;
+}

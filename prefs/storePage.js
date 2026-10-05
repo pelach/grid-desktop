@@ -5,6 +5,8 @@ import Adw from 'gi://Adw';
 import {
     addTimeWidget,
     addAnalogClockWidget,
+    addTimerWidget,
+    addCountdownWidget,
     addWeatherWidget,
     addWeatherBarsWidget,
     addWeatherCardsWidget,
@@ -42,6 +44,7 @@ import {
     openAddGithubDialog,
     openAddRssHeadlinesDialog,
     openAddSunScheduleDialog,
+    openAddCountdownDialog,
 } from './widgetAddDialogs.js';
 
 import { STORE_CATEGORIES, STORE_WIDGETS } from './widgetCatalog.js';
@@ -253,6 +256,8 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.worldClock, () => openAddWorldClockDialog(window, settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.calendarWidget, () => addCalendarWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.calendarGrid, () => addCalendarGridWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.timer, () => addTimerWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.countdown, () => openAddCountdownDialog(window, settings)), 
     ]));
 
     // ── Personal ─────────────────────────────────────────────

@@ -29,6 +29,8 @@ const logWarn = (...args) => { if (DEBUG) console.warn(...args); };
 
 export const MIN_WIDGET_SIZES = Object.freeze({
     'pomodoro': { minCols: 3, minRows: 3 },
+    'countdown': { minCols: 3, minRows: 3 },
+    'timer': { minCols: 3, minRows: 3 },
     'network-speed': { minCols: 3, minRows: 2 },
     'cpu-ram': { minCols: 3, minRows: 2 },
     'time': { minCols: 2, minRows: 2 },
@@ -483,6 +485,8 @@ export const SIZE_PRESET_TIERS = ['Small', 'Medium', 'Large'];
 const SIZE_PRESETS = {
     'time': [[4, 3], [5, 4], [6, 5]],
     'timeAnalog': [[4, 4], [5, 5], [6, 6]],
+    'countdown': [[4, 4], [5, 5], [6, 6]],
+    'timer': [[4, 4], [5, 5], [6, 6]],
     'worldClock': [[4, 4], [5, 5], [6, 6]],
     'weatherStandard': [[4, 4], [5, 5], [6, 6]],
     'weatherSimple': [[4, 4], [5, 5], [6, 6]],

@@ -274,12 +274,26 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'weathers/weather_cards.png',
         fallbackIconName: 'weather-clear-symbolic',
     },
+    timer: {
+        title: 'Timer',
+        description: 'Simple timer widgets.',
+        gridSize: '4x4',
+        thumbnail: 'date-and-time/timer.png',
+        fallbackIconName: 'preferences-system-time-symbolic',
+    },
+    countdown: {
+        title: 'Countdown',
+        description: 'Simple countdown widget.',
+        gridSize: '4x4',
+        thumbnail: 'date-and-time/countdown.png',
+        fallbackIconName: 'preferences-system-time-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards'],
     music: ['musicPlayer', 'musicPlayerWide', 'musicVisualizer'],
-    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid'],
+    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
         'systemDashboard',
@@ -408,6 +422,10 @@ function getStoreWidgetKey(widget) {
             return 'powerProfiles';
         case 'weather_cards':
             return 'weatherCards';
+        case 'timer':
+            return 'timer';
+        case 'countdown':
+            return 'countdown';
         default:
             return null;
     }

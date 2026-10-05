@@ -10,6 +10,7 @@ import {
     addRssHeadlinesWidget,
     addSunScheduleWidget,
     addAppLauncherWidget,
+    addCountdownWidget,
 } from './widgetAdders.js';
 import { createAppSelectionControls } from './appSelection.js';
 import { createLiveCitySearchRow, buildOpenMeteoCitySearchRow } from './citySearch.js';
@@ -243,6 +244,39 @@ export function openAddSunScheduleDialog(parentWindow, settings) {
             const location = locationPicker.getSelectedLocation();
             if (location && location.name && location.latitude !== undefined && location.longitude !== undefined) {
                 addSunScheduleWidget(settings, location.name, location.latitude, location.longitude);
+            }
+        }
+        dialogWindow.destroy();
+    });
+
+    dialog.present();
+}
+
+export function openAddCountdownDialog(parentWindow, settings) {
+    const { dialog, grid } = createBaseWidgetAddDialog(parentWindow, 'Configure Countdown Widget');
+
+    // Esemény neve
+    const nameLabel = new Gtk.Label({ label: 'Event Name:', xalign: 0 });
+    const nameEntry = new Gtk.Entry({ placeholder_text: 'e.g. Vacation, Project Launch', hexpand: true });
+    grid.attach(nameLabel, 0, 0, 1, 1);
+    grid.attach(nameEntry, 1, 0, 1, 1);
+
+    // Céldátum beviteli mező (vagy Gtk.Calendar)
+    const dateLabel = new Gtk.Label({ label: 'Target Date (YYYY-MM-DD):', xalign: 0 });
+    const now = new Date();
+    // Default: mai nap + 7 nap
+    const defaultDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const dateEntry = new Gtk.Entry({ text: defaultDate, placeholder_text: 'YYYY-MM-DD', hexpand: true });
+    grid.attach(dateLabel, 0, 1, 1, 1);
+    grid.attach(dateEntry, 1, 1, 1, 1);
+
+    dialog.connect('response', (dialogWindow, responseId) => {
+        if (responseId === Gtk.ResponseType.OK) {
+            const eventName = nameEntry.get_text().trim() || 'My Event';
+            const targetDate = dateEntry.get_text().trim();
+            if (targetDate) {
+                // Átadjuk az addCountdownWidget-nek a paramétereket
+                addCountdownWidget(settings, eventName, `${targetDate}T00:00:00`, 4, 4);
             }
         }
         dialogWindow.destroy();
