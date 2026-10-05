@@ -438,7 +438,12 @@ export function monitorDesktop(settings, callback) {
                     return GLib.SOURCE_REMOVE;
                 }
                 const modified = syncDesktopIcons(settings, false);
-                if (modified && callback) callback(); 
+                if (modified && callback) {
+                    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                        callback();
+                        return GLib.SOURCE_REMOVE;
+                    });
+                }
                 return GLib.SOURCE_REMOVE;
             });
         };

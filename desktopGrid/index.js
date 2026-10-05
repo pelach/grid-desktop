@@ -63,7 +63,14 @@ export const DesktopGrid = GObject.registerClass(
             this.settings = settings;
             this.metadata = metadata;
 
-            monitorDesktop(this.settings, () => this._rebuildGrid());
+            monitorDesktop(this.settings, () => {
+                GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                    if (!isActorDestroyed(this)) {
+                        this._applyWidgetChanges();
+                    }
+                    return GLib.SOURCE_REMOVE;
+                });
+            });
 
             // Shared shell-side schema owned by the extension; created only as a fallback.
             this._ownInterfaceSettings = !interfaceSettings;

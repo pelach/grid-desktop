@@ -42,14 +42,27 @@ export function formatTimeParts(dateTime, is24h) {
  * release via super.destroy()), instead of connecting 'destroy' listeners.
  */
 export const WidgetActor = GObject.registerClass(
-    class WidgetActor extends St.Bin {
+    class WidgetActor extends St.Widget {
         _init(params = {}) {
             super._init({
+                layout_manager: new Clutter.BinLayout(),
                 x_expand: true,
                 y_expand: true,
                 ...params,
             });
             this._cleanupCallbacks = null;
+        }
+
+        // Visszaadjuk a set_child kompatibilitást a timer és countdown számára
+        set_child(child) {
+            this.destroy_all_children();
+            if (child) {
+                this.add_child(child);
+            }
+        }
+
+        get_child() {
+            return this.get_first_child();
         }
 
         registerCleanup(cleanupFn) {
@@ -62,8 +75,13 @@ export const WidgetActor = GObject.registerClass(
             if (this._cleanupCallbacks) {
                 const callbacks = this._cleanupCallbacks;
                 this._cleanupCallbacks = null;
-                for (const cleanup of callbacks)
-                    cleanup();
+                for (const cleanup of callbacks) {
+                    try {
+                        cleanup();
+                    } catch (e) {
+                        console.error('Widget cleanup error:', e);
+                    }
+                }
             }
             super.destroy();
         }

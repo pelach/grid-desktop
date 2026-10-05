@@ -25,9 +25,7 @@ export function createDesktopIconNode(data, w, h, x, y) {
         y_align: Clutter.ActorAlign.CENTER,
         x_expand: true,
         y_expand: true,
-        reactive: false, 
-        width: w,  
-        height: h,
+        reactive: false,
     });
 
     const iconSize = data.showLabel ? 48 : 64;
@@ -57,7 +55,6 @@ export function createDesktopIconNode(data, w, h, x, y) {
 
     rootContainer.add_child(box);
 
-    // Dupla klikk kezelése közvetlenül a rootContainer-en
     let lastClickTime = 0;
     const pressId = rootContainer.connect('button-press-event', (actor, event) => {
         if (event.get_button() === 1) {
@@ -69,7 +66,6 @@ export function createDesktopIconNode(data, w, h, x, y) {
             }
             lastClickTime = currentTime;
         }
-        // Vonszoláshoz TOVÁBB KELL ENGEDNI az eseményt a dragDrop figyelőnek!
         return Clutter.EVENT_PROPAGATE;
     });
 
@@ -78,7 +74,7 @@ export function createDesktopIconNode(data, w, h, x, y) {
             rootContainer.disconnect(pressId);
         }
     });
-    
-    rootContainer.queue_relayout();
+
+    // A queue_relayout() innen törölve! A szülő konténer intézi, amint bekerül a stage-re.
     return watchActorLifecycle(rootContainer);
 }
