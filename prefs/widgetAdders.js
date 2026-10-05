@@ -244,3 +244,12 @@ export function addCountdownWidget(settings, eventName = 'Goal', targetDate = ''
 export function addStopWatchWidget(settings, width = 3, height = 5) {
     addWidget(settings, { id: nextWidgetId(settings, 'stopwatch'), type: 'stopwatch' }, width, height);
 }
+
+export function addPingWidget(settings, width = 3, height = 3) {
+    addWidget(settings, {
+        id: nextWidgetId(settings, 'ping'),
+        type: 'ping-monitor',
+        pingHost: '1.1.1.1',
+        pingLabel: 'Cloudflare',
+    }, width, height);
+}

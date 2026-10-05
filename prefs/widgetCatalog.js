@@ -295,6 +295,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'date-and-time/stopwatch.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
     },
+    pingMonitor: {
+        title: 'Ping Monitor',
+        description: 'Live latency monitor with status indicator and history trend.',
+        gridSize: '3x3',
+        thumbnail: 'system-utils/ping-monitor.svg',
+        fallbackIconName: 'network-transmit-receive-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -325,7 +332,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'quickToggles',
         'audioOutput',
         'controlsSliders',
-        'powerProfiles'
+        'powerProfiles',
+        'pingMonitor'
     ],
 });
 
@@ -434,7 +442,9 @@ function getStoreWidgetKey(widget) {
         case 'countdown':
             return 'countdown';
         case 'stopwatch':
-            return 'stopwatch';    
+            return 'stopwatch';  
+        case 'ping-monitor':
+            return 'pingMonitor';  
         default:
             return null;
     }

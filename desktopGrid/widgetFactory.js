@@ -39,7 +39,7 @@ import {
 } from '../widgets/media/index.js';
 import { isAnimatedImageFile } from '../utils/widgetUtils.js';
 import { createDesktopIconNode } from '../widgets/desktopIcon.js';
-
+import { createPingNode } from '../widgets/system/pingWidget.js';
 
 const weatherCreator = (data, w, h, x, y) => {
     const dynamicColor = data.dynamicColor !== undefined ? data.dynamicColor : (data.globalWeatherDynamicColor !== false);
@@ -92,6 +92,7 @@ const WIDGET_CREATORS = {
     'audioOutput': (data, w, h, x, y) => createAudioOutputNode(data, w, h, x, y),
     'controlsSliders': (data, w, h, x, y) => createControlsSlidersNode(data, w, h, x, y),
     'powerProfiles': (data, w, h, x, y) => createPowerProfilesNode(data, w, h, x, y),
+    'ping-monitor': (data, w, h, x, y) => createPingNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

@@ -820,3 +820,45 @@ export function buildCountdownSettings(grid, rowIdx, widget, saveHandlers) {
 
     return rowIdx;
 }
+
+export function buildPingSettings(grid, rowIdx, widget, saveHandlers) {
+    // 1. Host / IP cím mező
+    const hostLabel = new Gtk.Label({ label: 'Host / IP Address:', xalign: 0, hexpand: true });
+    const hostEntry = new Gtk.Entry({
+        text: widget.pingHost || '1.1.1.1',
+        placeholder_text: 'e.g. 1.1.1.1 or google.com',
+        hexpand: true,
+    });
+    grid.attach(hostLabel, 0, rowIdx, 1, 1);
+    grid.attach(hostEntry, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    // 2. Címke (Label) mező
+    const nameLabel = new Gtk.Label({ label: 'Label:', xalign: 0, hexpand: true });
+    const nameEntry = new Gtk.Entry({
+        text: widget.pingLabel || 'Cloudflare',
+        placeholder_text: 'e.g. Cloudflare',
+        hexpand: true,
+    });
+    grid.attach(nameLabel, 0, rowIdx, 1, 1);
+    grid.attach(nameEntry, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    // 3. Trend chart kapcsoló (pontosan úgy, mint a buildSystemInfoSettings-ben)
+    const chartLabel = new Gtk.Label({ label: 'Show Trend Chart:', xalign: 0, hexpand: true });
+    const chartSwitch = new Gtk.Switch({ valign: Gtk.Align.CENTER, halign: Gtk.Align.END });
+    chartSwitch.set_active(widget.showChart !== false); // Alapból be van kapcsolva
+
+    grid.attach(chartLabel, 0, rowIdx, 1, 1);
+    grid.attach(chartSwitch, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    saveHandlers.push((target) => {
+        const host = hostEntry.get_text().trim();
+        target.pingHost = host || '1.1.1.1';
+        target.pingLabel = nameEntry.get_text().trim() || 'Ping';
+        target.showChart = chartSwitch.get_active();
+    });
+
+    return rowIdx;
+}
