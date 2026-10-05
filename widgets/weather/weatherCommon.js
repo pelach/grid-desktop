@@ -412,7 +412,6 @@ export function updateTextLabels(json, uiElements, useFahrenheit) {
 }
 
 export function updateWidgetStyle(widgetNode, bgImageActor, widgetData, assets, isDynamicColor, isDynamicImage) {
-    
     if (widgetData.type === 'weather_cards' || widgetData.layout === 'cards') {
         bgImageActor.hide();
         return;
@@ -428,39 +427,30 @@ export function updateWidgetStyle(widgetNode, bgImageActor, widgetData, assets, 
             ? TEXT_COLOR_ON_DARK_BG
             : TEXT_COLOR_ON_LIGHT_BG;
         
-            widgetNode.style = `
-            background-gradient-direction: vertical;
-            background-gradient-start: ${assets.bgStart};
-            background-gradient-end: ${bgEnd};
-            color: ${textColor};
-            ${fontCss}
-            ${baseStyle}
-        `;
+        widgetNode.style = `background-gradient-direction: vertical; `
+            + `background-gradient-start: ${assets.bgStart}; `
+            + `background-gradient-end: ${bgEnd}; `
+            + `color: ${textColor}; `
+            + `${fontCss}`
+            + `${baseStyle}`;
     } else {
         const bgColor = resolveWidgetBackgroundColor(widgetData);
         const textColor = resolveWidgetForegroundColor(widgetData);
-        widgetNode.style = `
-            background-color: ${bgColor};
-            color: ${textColor};
-            ${fontCss}
-            ${baseStyle}
-        `;
+        widgetNode.style = `background-color: ${bgColor}; `
+            + `color: ${textColor}; `
+            + `${fontCss}`
+            + `${baseStyle}`;
     }
 
     if (isDynamicImage && assets.bgImagePath) {
-        const borderRadius = widgetData.appliedBorderRadius ??
-            widgetData.borderRadius ??
-            DEFAULT_WEATHER_BORDER_RADIUS_PX;
-        
-        const isSquareLayout = widgetData.type === 'weather_bars' || resolveWeatherLayoutVariant(widgetData) === 'bars';
-        const bgPosition = isSquareLayout ? 'top center' : 'center';
+        const rawRadius = widgetData.appliedBorderRadius ?? widgetData.borderRadius;
+        const borderRadius = (Number.isFinite(rawRadius) && rawRadius >= 0)
+            ? Math.round(rawRadius)
+            : DEFAULT_WEATHER_BORDER_RADIUS_PX;
 
-        bgImageActor.style = `
-            background-image: url("${assets.bgImagePath}");
-            background-size: cover;
-            background-position: ${bgPosition};
-            border-radius: ${borderRadius}px;
-        `;
+        // Csak a Clutter St által ténylegesen támogatott tulajdonságokat adjuk át:
+        bgImageActor.style = `background-image: url("${assets.bgImagePath}"); `
+            + `border-radius: ${borderRadius}px;`;
         bgImageActor.show();
     } else {
         bgImageActor.hide();

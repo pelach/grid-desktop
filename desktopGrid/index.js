@@ -63,8 +63,13 @@ export const DesktopGrid = GObject.registerClass(
             this.settings = settings;
             this.metadata = metadata;
 
+            let desktopMonitorIdleId = 0;
             monitorDesktop(this.settings, () => {
-                GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                if (desktopMonitorIdleId) {
+                    GLib.Source.remove(desktopMonitorIdleId);
+                }
+                desktopMonitorIdleId = GLib.timeout_add(GLib.PRIORITY_DEFAULT_IDLE, 100, () => {
+                    desktopMonitorIdleId = 0;
                     if (!isActorDestroyed(this)) {
                         this._applyWidgetChanges();
                     }
@@ -275,7 +280,14 @@ export const DesktopGrid = GObject.registerClass(
         }
 
         _resolveGridLayout() {
-            const { cellSize, cellTotalWidth, cellTotalHeight, gridCols, gridRows } = calculateGridDimensions(this.width, this.height);
+            const currentW = (Number.isFinite(this.width) && this.width > 100) 
+                ? this.width 
+                : (global.stage.width || DEFAULT_STAGE_WIDTH);
+            const currentH = (Number.isFinite(this.height) && this.height > 100) 
+                ? this.height 
+                : (global.stage.height || DEFAULT_STAGE_HEIGHT);
+
+            const { cellSize, cellTotalWidth, cellTotalHeight, gridCols, gridRows } = calculateGridDimensions(currentW, currentH);
             return { gridCols, gridRows, cellSize, cellTotalWidth, cellTotalHeight };
         }
 
@@ -319,10 +331,19 @@ export const DesktopGrid = GObject.registerClass(
         }
 
         _createAndAttachWidget(widgetData, cellSize, cellTotalWidth, cellTotalHeight, globalSettings) {
-            const widgetWidth = (widgetData.width * cellSize) + ((widgetData.width - 1) * GRID_GAP_PX);
-            const widgetHeight = (widgetData.height * cellSize) + ((widgetData.height - 1) * GRID_GAP_PX);
-            const posX = GRID_MARGIN_PX + (widgetData.x * cellTotalWidth);
-            const posY = GRID_MARGIN_PX + (widgetData.y * cellTotalHeight);
+            const safeCellSize = (Number.isFinite(cellSize) && cellSize > 0) ? cellSize : 50;
+            const safeCellW = (Number.isFinite(cellTotalWidth) && cellTotalWidth > 0) ? cellTotalWidth : (safeCellSize + GRID_GAP_PX);
+            const safeCellH = (Number.isFinite(cellTotalHeight) && cellTotalHeight > 0) ? cellTotalHeight : (safeCellSize + GRID_GAP_PX);
+
+            const wUnits = Math.max(1, widgetData.width || 1);
+            const hUnits = Math.max(1, widgetData.height || 1);
+            const xUnits = Math.max(0, widgetData.x || 0);
+            const yUnits = Math.max(0, widgetData.y || 0);
+
+            const widgetWidth = Math.round((wUnits * safeCellSize) + ((wUnits - 1) * GRID_GAP_PX));
+            const widgetHeight = Math.round((hUnits * safeCellSize) + ((hUnits - 1) * GRID_GAP_PX));
+            const posX = Math.round(GRID_MARGIN_PX + (xUnits * safeCellW));
+            const posY = Math.round(GRID_MARGIN_PX + (yUnits * safeCellH));
 
             const resolvedData = Object.assign({}, resolveWidgetOverrides(widgetData, globalSettings), {
                 globalAnimateGif: globalSettings.globalAnimateGif,

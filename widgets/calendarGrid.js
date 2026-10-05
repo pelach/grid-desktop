@@ -163,15 +163,13 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
     }
 
     function applyLayout(currentWidth) {
+        if (!currentWidth || currentWidth <= 0) return;
+
         const s = state.scale;
         const pad = Math.round(REF_PADDING_PX * s);
 
         contentBox.style = `padding: ${pad}px;`;
 
-        // Pin every cell of every row to the same column width so rows share
-        // identical geometry. Without this, each row's BoxLayout computes its
-        // own slot sizes from content (empty cells, bold digits), and columns
-        // drift out of alignment between rows.
         const colWidth = Math.max(1, Math.floor((currentWidth - (pad * 2)) / 7));
         state.weekdayCells.forEach(slot => {
             slot.x_expand = false;
@@ -192,12 +190,8 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
                 + `color: ${textColor}; opacity: ${WEEKDAY_TEXT_OPACITY};`;
         });
 
-        // Align the month's left edge exactly with the first weekday glyph
-        // below it. Weekday labels are centered inside their pinned columns,
-        // so mirror that centering offset onto the header. Measured after the
-        // weekday styles above so the font metrics are up to date.
-        const [, sunNaturalWidth] = weekdaySlots[0].get_preferred_width(-1);
-        headerLabel.translation_x = Math.max(0, Math.floor((colWidth - sunNaturalWidth) / 2));
+        // A get_preferred_width() helyett a cella szélességéhez igazítjuk a pozíciót
+        headerLabel.translation_x = Math.max(0, Math.floor(colWidth * 0.1));
 
         daysGrid.style = `spacing: ${Math.round(ROW_GAP_PX * s)}px;`;
 
@@ -216,7 +210,7 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
         return GLib.SOURCE_CONTINUE;
     };
 
-    applyLayout(width);
+    fillDays();
     attachResponsiveScaler(container, REF_SIZE_PX, REF_SIZE_PX, (_ratio, w, h) => {
         state.scale = Math.min(w / REF_SIZE_PX, h / REF_SIZE_PX);
         applyLayout(w);

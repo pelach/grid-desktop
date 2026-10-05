@@ -1,9 +1,8 @@
 import St from 'gi://St';
-import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { resolveWidgetForegroundColor, resolveExplicitFontFamily, cssColorToRgba, resolveDesktopAppInfo } from '../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup } from '../shell/widgetUIUtils.js';
+import { createWidgetContainer, attachResponsiveScaler } from '../shell/widgetUIUtils.js';
 import { BUTTON_PRIMARY } from '../desktopGrid/constants.js';
 import { isActorDestroyed } from '../utils/actorLifecycle.js';
 
@@ -33,7 +32,8 @@ function computeGridLayout(appCount) {
 }
 
 function buildTileStyle(tileRgba, padding) {
-    return `background-color: ${tileRgba}; border-radius: ${TILE_RADIUS}px; padding: ${padding}px;`;
+    const safePad = (Number.isFinite(padding) && padding > 0) ? Math.round(padding) : TILE_PADDING_MIN;
+    return `background-color: ${tileRgba}; border-radius: ${TILE_RADIUS}px; padding: ${safePad}px;`;
 }
 
 export function createAppLauncherNode(config, width, height, xPosition, yPosition) {
@@ -197,15 +197,15 @@ export function createAppLauncherNode(config, width, height, xPosition, yPositio
         }
     }
 
-    const updateScaling = () => {
+    const updateScaling = (curW, curH) => {
         if (isActorDestroyed(container)) return;
-        const currentWidth = container.width || width || 240;
-        const currentHeight = container.height || height || 180;
-        const contentWidth = Math.max(1, currentWidth - (OUTER_MARGIN * 2));
-        const contentHeight = Math.max(1, currentHeight - (OUTER_MARGIN * 2));
+        const currentWidth = curW || container.width || width || 240;
+        const currentHeight = curH || container.height || height || 180;
+        const contentWidth = Math.max(10, currentWidth - (OUTER_MARGIN * 2));
+        const contentHeight = Math.max(10, currentHeight - (OUTER_MARGIN * 2));
 
-        const cellWidth = (contentWidth - (GRID_GAP * (cols - 1))) / cols;
-        const cellHeight = (contentHeight - (GRID_GAP * (rows - 1))) / rows;
+        const cellWidth = Math.max(10, (contentWidth - (GRID_GAP * (cols - 1))) / cols);
+        const cellHeight = Math.max(10, (contentHeight - (GRID_GAP * (rows - 1))) / rows);
         const minCell = Math.max(MIN_ICON_SIZE, Math.min(cellWidth, cellHeight));
 
         const padding = Math.min(TILE_PADDING_MAX, Math.max(TILE_PADDING_MIN, Math.round(minCell * TILE_PADDING_RATIO)));
@@ -218,21 +218,9 @@ export function createAppLauncherNode(config, width, height, xPosition, yPositio
         }
     };
 
-    container.connect('notify::width', updateScaling);
-    container.connect('notify::height', updateScaling);
-
-    let idleSourceId = null;
-    registerWidgetCleanup(container, () => {
-        if (idleSourceId) {
-            GLib.Source.remove(idleSourceId);
-            idleSourceId = null;
-        }
-    });
-
-    idleSourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-        idleSourceId = null;
-        updateScaling();
-        return GLib.SOURCE_REMOVE;
+    // A nyers notify-ok helyett a biztonságos és késleltetett attachResponsiveScaler
+    attachResponsiveScaler(container, width || 240, height || 180, (_ratio, curW, curH) => {
+        updateScaling(curW, curH);
     });
 
     return container;

@@ -174,7 +174,7 @@ export function openAddGithubDialog(parentWindow, settings) {
     const { dialog, grid } = createBaseWidgetAddDialog(parentWindow, 'Configure GitHub Activity Widget');
 
     const userLabel = new Gtk.Label({ label: 'GitHub Username:', xalign: 0 });
-    const userEntry = new Gtk.Entry({ placeholder_text: 'e.g. rebatnaath', hexpand: true });
+    const userEntry = new Gtk.Entry({ placeholder_text: 'e.g. pelach', hexpand: true });
     grid.attach(userLabel, 0, 0, 1, 1);
     grid.attach(userEntry, 1, 0, 1, 1);
 

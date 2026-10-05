@@ -217,6 +217,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     }
 
     function renderMonthLabels(weeks, startUnixSeconds) {
+        if (!container.get_stage() || container.width <= 0) return;
         // Must match the grid's column pitch exactly (cell + spacing), so the
         // labels track the matrix through any resize.
         const columnPitch = cellSize() + cellGap();
@@ -530,7 +531,6 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
             global.stage.set_key_focus(null);
     });
 
-    applyLayout();
     updateHeader();
 
     attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {

@@ -72,6 +72,8 @@ export const WidgetActor = GObject.registerClass(
         }
 
         destroy() {
+            this.reactive = false;
+            
             if (this._cleanupCallbacks) {
                 const callbacks = this._cleanupCallbacks;
                 this._cleanupCallbacks = null;
@@ -330,28 +332,49 @@ export function attachButtonFeedback(button) {
 }
 
 export function attachResponsiveScaler(widgetNode, refWidth, refHeight, updateCallback) {
-    const update = () => {
-        const currentWidth = widgetNode.width || refWidth;
-        const currentHeight = widgetNode.height || refHeight;
-        const scale = Math.min(currentWidth / refWidth, currentHeight / refHeight);
-        updateCallback(scale, currentWidth, currentHeight);
+    let updateSourceId = 0;
+
+    const triggerUpdate = () => {
+        if (updateSourceId) {
+            GLib.Source.remove(updateSourceId);
+            updateSourceId = 0;
+        }
+
+        // GLib.idle_add helyett egy minimális késleltetés (30-50ms), hogy a Clutter befejezhesse az elrendezést
+        updateSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT_IDLE, 50, () => {
+            updateSourceId = 0;
+            if (isActorDestroyed(widgetNode)) return GLib.SOURCE_REMOVE;
+
+            // Csak akkor méretezünk, ha már a képernyőn van és valós mérete van!
+            if (!widgetNode.get_stage()) return GLib.SOURCE_REMOVE;
+
+            const currentWidth = widgetNode.width;
+            const currentHeight = widgetNode.height;
+            if (!currentWidth || !currentHeight || currentWidth <= 0 || currentHeight <= 0)
+                return GLib.SOURCE_REMOVE;
+
+            const scale = Math.min(currentWidth / refWidth, currentHeight / refHeight);
+            updateCallback(scale, currentWidth, currentHeight);
+            return GLib.SOURCE_REMOVE;
+        });
     };
 
-    const widthId = widgetNode.connect('notify::width', update);
-    const heightId = widgetNode.connect('notify::height', update);
+    const widthId = widgetNode.connect('notify::width', triggerUpdate);
+    const heightId = widgetNode.connect('notify::height', triggerUpdate);
+
     widgetNode.connect('destroy', () => {
+        if (updateSourceId) {
+            GLib.Source.remove(updateSourceId);
+            updateSourceId = 0;
+        }
         widgetNode.disconnect(widthId);
         widgetNode.disconnect(heightId);
     });
 
-    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-        if (!isActorDestroyed(widgetNode)) {
-            update();
-        }
-        return GLib.SOURCE_REMOVE;
-    });
+    // Kezdeti indítás csak akkor, ha már stage-en van
+    triggerUpdate();
 
-    return update;
+    return triggerUpdate;
 }
 
 

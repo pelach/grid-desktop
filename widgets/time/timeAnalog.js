@@ -62,18 +62,18 @@ function loadSkinConfigAsync(skinName) {
     });
 }
 
-function createHandIcon(skinName, fileName, size) {
+function createHandIcon(skinName, fileName, size, isRotatable = false) {
     const fileUri = getSkinFileUri(skinName, fileName);
     const gfile = Gio.File.new_for_uri(fileUri);
     const icon = new St.Icon({
         gicon: new Gio.FileIcon({ file: gfile }),
         icon_size: size,
-        width: size,
-        height: size,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    icon.set_pivot_point(0.5, 0.5);
+    if (isRotatable) {
+        icon.set_pivot_point(0.5, 0.5);
+    }
     return icon;
 }
 
@@ -128,19 +128,14 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         widgetNode.style += ` border: 1px solid ${cssColorToRgba(textColor, BORDER_ALPHA)};`;
     }
 
-    const centerBin = new St.Bin({
+    // Felesleges StBin eltávolítva: a widgetNode (BinLayout) közvetlenül kezeli a konténert
+    const clockContainer = new St.Widget({
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
         x_expand: true,
         y_expand: true,
     });
-    widgetNode.add_child(centerBin);
-
-    const clockContainer = new Clutter.Actor({
-        x_align: Clutter.ActorAlign.CENTER,
-        y_align: Clutter.ActorAlign.CENTER,
-    });
-    centerBin.set_child(clockContainer);
+    widgetNode.add_child(clockContainer);
 
     let hands = null;
     let dateLabel = null;
@@ -158,13 +153,12 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
             const y = Math.round(size * dw.y - h / 2);
             const fontPx = Math.max(8, Math.round(size * (dw.fontSize || 0.06)));
 
-            const dateBox = new St.Bin({
+            const dateBox = new St.Widget({
                 width: w,
                 height: h,
                 x: x,
                 y: y,
-                x_align: Clutter.ActorAlign.CENTER,
-                y_align: Clutter.ActorAlign.CENTER,
+                layout_manager: new Clutter.BinLayout(),
                 style: `background-color: ${dw.bgColor || 'transparent'}; border-radius: 2px;`,
             });
 
@@ -177,29 +171,29 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
                 style: `color: ${dw.color || textColor}; font-size: ${fontPx}px; font-weight: bold; ${fontFamily}`,
             });
 
-            dateBox.set_child(dateLabel);
+            dateBox.add_child(dateLabel);
             clockContainer.add_child(dateBox);
         }
 
-        const background = createHandIcon(skinName, 'background.svg', size);
+        const background = createHandIcon(skinName, 'background.svg', size, false);
         clockContainer.add_child(background);
 
-        const hourHand = createHandIcon(skinName, 'hour_hand.svg', size);
-        const minuteHand = createHandIcon(skinName, 'minute_hand.svg', size);
+        const hourHand = createHandIcon(skinName, 'hour_hand.svg', size, true);
+        const minuteHand = createHandIcon(skinName, 'minute_hand.svg', size, true);
 
         clockContainer.add_child(hourHand);
         clockContainer.add_child(minuteHand);
 
         let secondHand = null;
         if (showSecondHand) {
-            secondHand = createHandIcon(skinName, 'second_hand.svg', size);
+            secondHand = createHandIcon(skinName, 'second_hand.svg', size, true);
             clockContainer.add_child(secondHand);
         }
 
         const capFileUri = getSkinFileUri(skinName, 'cap.svg');
         const capFile = Gio.File.new_for_uri(capFileUri);
         if (capFile.query_exists(null)) {
-            const capIcon = createHandIcon(skinName, 'cap.svg', size);
+            const capIcon = createHandIcon(skinName, 'cap.svg', size, false);
             clockContainer.add_child(capIcon);
         }
         
@@ -209,13 +203,25 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
             second: secondHand,
         };
 
-        updateHands(hands, showSecondHand, dateLabel);
+        // Késleltetjük a mutatók első elforgatását egy ciklussal, hogy a méretezés előbb lefusson
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            if (!isActorDestroyed(widgetNode) && hands) {
+                updateHands(hands, showSecondHand, dateLabel);
+            }
+            return GLib.SOURCE_REMOVE;
+        });
     };
 
-    const applyScale = () => {
-        const availableSpace = Math.min(width, height) * 0.88;
+    let isBuilding = false;
+    const applyScale = (curW = widgetNode.width || width, curH = widgetNode.height || height) => {
+        if (isActorDestroyed(widgetNode) || isBuilding) return;
+        if (!curW || !curH || curW <= 0 || curH <= 0) return;
+
+        isBuilding = true;
+        const availableSpace = Math.min(curW, curH) * 0.88;
         const scaledSize = Math.max(32, Math.round(availableSpace));
         buildClockElements(scaledSize);
+        isBuilding = false;
     };
 
     const state = {
@@ -228,11 +234,11 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         return GLib.SOURCE_CONTINUE;
     };
 
-    // Aszinkron betöltés indítása:
+    // Bőr konfiguráció aszinkron betöltése
     loadSkinConfigAsync(skinName).then((cfg) => {
         if (isActorDestroyed(widgetNode)) return;
         skinConfig = cfg;
-        applyScale();
+       
     });
 
     if (showSecondHand) {
@@ -242,9 +248,10 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
     }
 
     connectTimerCleanup(widgetNode, state);
-    attachResponsiveScaler(widgetNode, BASE_CLOCK_SIZE, BASE_CLOCK_SIZE, () => {
+    
+    attachResponsiveScaler(widgetNode, BASE_CLOCK_SIZE, BASE_CLOCK_SIZE, (_scale, curW, curH) => {
         if (isActorDestroyed(widgetNode)) return;
-        applyScale();
+        applyScale(curW, curH);
     });
 
     return widgetNode;

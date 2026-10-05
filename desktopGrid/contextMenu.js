@@ -81,17 +81,14 @@ export function openPreferences(grid, targetWidgetId = null) {
         grid.settings.set_string('open-edit-widget-id', targetWidgetId);
     }
     const extension = grid.extension || grid._extension;
-    if (!extension) return;
-    
+    const uuid = extension?.uuid || 'grid-desktop@pelach.github.com';
+
+    // Közvetlen CLI subprocess indítás, ami soha nem dob kezeletlen Promise hibát a Shellben:
     try {
-        const promise = extension.openPreferences();
-        if (promise && typeof promise.catch === 'function') {
-            promise.catch((err) => {
-                logWarn('Gridgets: Could not open preferences window:', err?.message || err);
-            });
-        }
+        const proc = Gio.Subprocess.new(['gnome-extensions', 'prefs', uuid], Gio.SubprocessFlags.NONE);
+        proc.wait_async(null, null);
     } catch (e) {
-        logWarn('Grid-desktop: Synchronous error opening preferences:', e?.message || e);
+        logError('Grid-desktop: Hiba a beállítások indításakor:', e);
     }
 }
 
