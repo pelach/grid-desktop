@@ -59,6 +59,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'controlsSliders': { minCols: 4, minRows: 4 },
     'powerProfiles': { minCols: 4, minRows: 4},
     'ping-monitor': { minCols: 2, minRows: 2 },
+    'storageBar': {minCols:8, minRows:4}
 });
 
 /**
@@ -524,6 +525,7 @@ const SIZE_PRESETS = {
     'controlsSliders': [[5, 3], [6, 3], [7, 4]],
     'powerProfiles': [[4, 4], [5, 5], [6, 6]],
     'ping-monitor': [[2, 2], [3, 3], [4, 4]],
+    'storageBar': [[8, 4], [10, 5], [12, 6]],
 };
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];

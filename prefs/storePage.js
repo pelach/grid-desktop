@@ -34,7 +34,8 @@ import {
     addAudioOutputWidget,
     addControlsSlidersWidget,
     addPowerProfilesWidget,
-    addPingWidget
+    addPingWidget,
+    addStorageBarWidget
 } from './widgetAdders.js';
 
 import {
@@ -239,6 +240,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.controlsSliders, () => addControlsSlidersWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.powerProfiles, () => addPowerProfilesWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.pingMonitor, () => addPingWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.storageBar, () => addStorageBarWidget(settings)),
     ]));
 
     // ── Focus & Productivity ─────────────────────────────────

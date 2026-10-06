@@ -302,6 +302,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system-utils/ping-monitor.svg',
         fallbackIconName: 'network-transmit-receive-symbolic',
     },
+    storageBar: {
+        title: 'Storage Bar',
+        description: 'Storge bar.',
+        gridSize: '8x4',
+        thumbnail: 'system-utils/storage-bar.svg',
+        fallbackIconName: 'drive-harddisk-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -333,7 +340,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'audioOutput',
         'controlsSliders',
         'powerProfiles',
-        'pingMonitor'
+        'pingMonitor',
+        'storageBar'
     ],
 });
 
@@ -445,6 +453,8 @@ function getStoreWidgetKey(widget) {
             return 'stopwatch';  
         case 'ping-monitor':
             return 'pingMonitor';  
+        case 'storageBar':
+            return 'storageBar';
         default:
             return null;
     }
