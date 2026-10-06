@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 160" width="270" height="160">
+  <defs>
+    <style>
+      .bg { fill: #202b38; rx: 12px; }
+      .header-title { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 800; fill: #ffffff; letter-spacing: 1.2px; }
+      .btn-active-text { font-family: system-ui, -apple-system, sans-serif; font-size: 9px; font-weight: bold; fill: #1e1e24; }
+      .btn-text { font-family: system-ui, -apple-system, sans-serif; font-size: 9px; font-weight: 600; fill: #a5b4c4; }
+      .rate-text { font-family: system-ui, -apple-system, sans-serif; font-size: 21px; font-weight: 800; fill: #ffffff; }
+      .pill-text { font-family: system-ui, -apple-system, sans-serif; font-size: 9px; font-weight: bold; fill: #e57373; }
+      .sub-text { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: #ffffff; opacity: 0.75; }
+      .footer-text { font-family: system-ui, -apple-system, sans-serif; font-size: 8px; fill: #ffffff; opacity: 0.45; }
+    </style>
+  </defs>
+
+  <!-- Kártya háttér kerettel -->
+  <rect width="270" height="160" class="bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Fejléc: Pötty + MARKETS felirat -->
+  <circle cx="21" cy="23" r="3.5" fill="#fed049" />
+  <text x="31" y="27" class="header-title">MARKETS</text>
+
+  <!-- Fejléc gombok (BTC aktív, ETH, SOL inaktív) -->
+  <!-- BTC -->
+  <rect x="180" y="14" width="31" height="17" rx="8.5" fill="#fed049" />
+  <text x="186" y="26" class="btn-active-text">BTC</text>
+
+  <!-- ETH -->
+  <rect x="214" y="14" width="23" height="17" rx="8.5" fill="rgba(255, 255, 255, 0.07)" />
+  <text x="218" y="26" class="btn-text">ETH</text>
+
+  <!-- SOL -->
+  <rect x="240" y="14" width="22" height="17" rx="8.5" fill="rgba(255, 255, 255, 0.07)" />
+  <text x="244" y="26" class="btn-text">SOL</text>
+
+  <!-- Érték (Árfolyam) -->
+  <text x="18" y="70" class="rate-text">27 978 263</text>
+
+  <!-- Változás Pill (-0.92%) -->
+  <rect x="18" y="81" width="46" height="17" rx="4" fill="rgba(244, 67, 54, 0.22)" />
+  <text x="23" y="93" class="pill-text">-0.92%</text>
+
+  <!-- Coin neve -->
+  <text x="70" y="94" class="sub-text">Bitcoin</text>
+
+  <!-- 24h Vörös Trend Chart vonal -->
+  <path d="M 172 73 
+           L 177 69 
+           L 182 76 
+           L 185 71 
+           L 188 64 
+           L 190 92 
+           L 193 96 
+           L 196 92 
+           L 200 83 
+           L 204 80 
+           L 209 85 
+           L 214 78 
+           L 218 84 
+           L 223 90 
+           L 227 88 
+           L 232 75 
+           L 234 76" 
+        fill="none" 
+        stroke="#f26969" 
+        stroke-width="2.5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Lábléc -->
+  <text x="18" y="142" class="footer-text">24h Live Market Tracking · CoinGecko</text>
+</svg>

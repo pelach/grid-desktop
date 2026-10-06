@@ -862,3 +862,32 @@ export function buildPingSettings(grid, rowIdx, widget, saveHandlers) {
 
     return rowIdx;
 }
+
+export function buildCryptoTrackerSettings(grid, rowIdx, widget, saveHandlers) {
+    // A CoinGecko simple/price és markets által támogatott leggyakoribb fiat devizák
+    const SUPPORTED_CURRENCIES = [
+        'HUF', 'USD', 'EUR', 'GBP', 'CHF', 'CZK', 'PLN', 'CAD', 'AUD', 'JPY'
+    ];
+
+    // Cél deviza (Target / vs_currency)
+    const targetLabel = new Gtk.Label({ label: 'Target Currency:', xalign: 0, hexpand: true });
+    const targetCombo = new Gtk.DropDown({
+        model: Gtk.StringList.new(SUPPORTED_CURRENCIES),
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.END,
+    });
+
+    const currentTarget = (widget.targetCurrency || 'HUF').toUpperCase();
+    const targetIdx = SUPPORTED_CURRENCIES.indexOf(currentTarget);
+    targetCombo.set_selected(targetIdx >= 0 ? targetIdx : 0);
+
+    grid.attach(targetLabel, 0, rowIdx, 1, 1);
+    grid.attach(targetCombo, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    saveHandlers.push((target) => {
+        target.targetCurrency = SUPPORTED_CURRENCIES[targetCombo.get_selected()] || 'HUF';
+    });
+
+    return rowIdx;
+}

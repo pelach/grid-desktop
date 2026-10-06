@@ -309,6 +309,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system-utils/storage-bar.svg',
         fallbackIconName: 'drive-harddisk-symbolic',
     },
+    cryptoWidget: {
+        title: 'Crypto Tracker',
+        description: 'Track BTC, ETH, and SOL rates with trend chart via CoinGecko.',
+        gridSize: '4x7',
+        thumbnail: 'crypto-tracker/cryptotracker.svg',
+        fallbackIconName: 'bank-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -341,7 +348,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'controlsSliders',
         'powerProfiles',
         'pingMonitor',
-        'storageBar'
+        'storageBar',
+        'cryptoWidget'
     ],
 });
 
@@ -455,6 +463,8 @@ function getStoreWidgetKey(widget) {
             return 'pingMonitor';  
         case 'storageBar':
             return 'storageBar';
+        case 'cryptoWidget':
+            return 'cryptoWidget';
         default:
             return null;
     }
@@ -517,6 +527,10 @@ export function getWidgetDetailText(widget) {
             const base = (widget.baseCurrency || 'EUR').toUpperCase();
             const target = (widget.targetCurrency || 'HUF').toUpperCase();
             return `Pair: ${base} / ${target}`;
+        }
+        case 'cryptoWidget': {
+            const target = (widget.targetCurrency || 'HUF').toUpperCase();
+            return `Currency: ${target}`;
         }
         default:
             return '';

@@ -257,3 +257,11 @@ export function addPingWidget(settings, width = 4, height = 4) {
 export function addStorageBarWidget(settings, width = 8, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'storageBar'), type: 'storageBar' }, width, height);
 }
+
+export function addCryptoWidget(settings, width = 7, height = 4) {
+    addWidget(settings, {
+        id: nextWidgetId(settings, 'cryptoWidget'),
+        type: 'cryptoWidget',
+        targetCurrency: 'HUF' 
+    }, width, height);
+}

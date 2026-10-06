@@ -18,6 +18,7 @@ import {
     buildTimerSettings,     
     buildCountdownSettings,
     buildPingSettings,
+    buildCryptoTrackerSettings,
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -88,6 +89,9 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
             break;
         case 'ping-monitor':
             rowIdx = buildPingSettings(grid, rowIdx, widget, saveHandlers);
+            break;
+        case 'cryptoWidget':
+            rowIdx = buildCryptoTrackerSettings(grid, rowIdx, widget, saveHandlers);
             break;
     }
 
