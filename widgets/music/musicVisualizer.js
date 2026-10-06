@@ -85,19 +85,19 @@ export function buildVisualizerLayout(config, state) {
 
     function initCavaConfig() {
         const confContent = `[general]
-bars = ${NUM_BARS}
-framerate = 30
+    bars = ${NUM_BARS}
+    framerate = 30
 
-[input]
-method = pipewire
-source = auto
+    [input]
+    method = pulse
+    source = auto
 
-[output]
-method = raw
-raw_target = ${fifoPath}
-data_format = binary
-bit_format = 8bit
-`;
+    [output]
+    method = raw
+    raw_target = ${fifoPath}
+    data_format = binary
+    bit_format = 8bit
+    `;
         GLib.file_set_contents(confPath, confContent);
     }
 
@@ -114,7 +114,7 @@ bit_format = 8bit
             cavaCancellable = new Gio.Cancellable();
 
             cavaSubproc = Gio.Subprocess.new(
-                ['cava', '-p', confPath],
+                [cavaPath, '-p', confPath],
                 Gio.SubprocessFlags.NONE
             );
 
