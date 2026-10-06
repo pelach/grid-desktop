@@ -17,7 +17,7 @@ A customizable desktop widget extension for GNOME Shell, providing an interactiv
 
 ## Compatibility
 
-- **GNOME Shell:** 45, 46, 47
+- **GNOME Shell:** 45, 46, 47, 48
 - **Display Server:** Wayland (recommended) & X11
 
 ---
