@@ -182,14 +182,14 @@ export function addSystemInfoWidget(settings, systemInfoType = 'cpu', width = 2,
     }, width, height);
 }
 
-export function addResourceWheelWidget(settings, width = 4, height = 3) {
+export function addResourceWheelWidget(settings, width = 5, height = 4) {
     addWidget(settings, {
         id: nextWidgetId(settings, 'resource-wheel'),
         type: 'resource-wheel',
     }, width, height);
 }
 
-export function addCurrencyTrackerWidget(settings, width = 3, height = 2) {
+export function addCurrencyTrackerWidget(settings, width = 7, height = 4) {
     addWidget(settings, {
         id: nextWidgetId(settings, 'currency-tracker'),
         type: 'currency-tracker',
@@ -222,7 +222,7 @@ export function addWeatherCardsWidget(settings, city = 'London', width = 3, heig
     addWidget(settings, { id: nextWidgetId(settings, 'weather_cards'), type: 'weather_cards', location: city, layout }, width, height);
 }
 
-export function addTimerWidget(settings, durationSeconds = 300, label = 'Timer', width = 3, height = 3) {
+export function addTimerWidget(settings, durationSeconds = 300, label = 'Timer', width = 4, height = 4) {
     addWidget(settings, {
         id: nextWidgetId(settings, 'timer'),
         type: 'timer',
@@ -231,8 +231,8 @@ export function addTimerWidget(settings, durationSeconds = 300, label = 'Timer',
     }, width, height);
 }
 
-export function addCountdownWidget(settings, eventName = 'Goal', targetDate = '', width = 3, height = 3) {
-    addWidget(settings, {
+export function addCountdownWidget(settings, eventName = 'Goal', targetDate = '', width = 4, height = 4) {
+    addWidget(settings, { 
         id: nextWidgetId(settings, 'countdown'),
         type: 'countdown',
         eventName,
@@ -241,11 +241,11 @@ export function addCountdownWidget(settings, eventName = 'Goal', targetDate = ''
     }, width, height);
 }
 
-export function addStopWatchWidget(settings, width = 3, height = 5) {
+export function addStopWatchWidget(settings, width = 4, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'stopwatch'), type: 'stopwatch' }, width, height);
 }
 
-export function addPingWidget(settings, width = 3, height = 3) {
+export function addPingWidget(settings, width = 4, height = 4) {
     addWidget(settings, {
         id: nextWidgetId(settings, 'ping'),
         type: 'ping-monitor',
