@@ -2,7 +2,7 @@
 
 A customizable desktop widget extension for GNOME Shell, providing an interactive, density-adaptive grid on your desktop canvas.
 
-![Gridgets Preview](./assets/screenshot/sreenshot_all_widgets.jpg)
+![Gridgets Preview](https://raw.githubusercontent.com/pelach/grid-desktop/main/assets/screenshot/sreenshot_all_widgets.jpg)
 ---
 
 ## Features
