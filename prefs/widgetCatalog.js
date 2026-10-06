@@ -316,6 +316,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'crypto-tracker/cryptotracker.svg',
         fallbackIconName: 'bank-symbolic',
     },
+    todayHistory: {
+        title: 'Today in History',
+        description: 'Historical events and milestones on this day via Wikipedia.',
+        gridSize: '4x4',
+        thumbnail: 'history/history.svg',
+        fallbackIconName: 'help-about-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -349,7 +356,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'powerProfiles',
         'pingMonitor',
         'storageBar',
-        'cryptoWidget'
+        'cryptoWidget',
+        'todayHistory'
     ],
 });
 
@@ -465,6 +473,8 @@ function getStoreWidgetKey(widget) {
             return 'storageBar';
         case 'cryptoWidget':
             return 'cryptoWidget';
+        case 'todayHistory':
+            return 'todayHistory';
         default:
             return null;
     }
@@ -531,6 +541,10 @@ export function getWidgetDetailText(widget) {
         case 'cryptoWidget': {
             const target = (widget.targetCurrency || 'HUF').toUpperCase();
             return `Currency: ${target}`;
+        }
+        case 'todayHistory': {
+            const lang = (widget.language || 'hu').toUpperCase();
+            return `Language: ${lang}`;
         }
         default:
             return '';

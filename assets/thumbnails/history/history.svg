@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 160" width="270" height="160">
+  <defs>
+    <style>
+      .bg { fill: #202b38; rx: 12px; }
+      .header-title { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 800; fill: #ffffff; letter-spacing: 1.2px; }
+      .btn-arrow { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; font-weight: bold; fill: #ffffff; opacity: 0.8; }
+      .year-pill-text { font-family: system-ui, -apple-system, sans-serif; font-size: 10px; font-weight: bold; fill: #1e1e24; }
+      .body-text { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: #ffffff; opacity: 0.95; line-height: 1.35; }
+      .footer-text { font-family: system-ui, -apple-system, sans-serif; font-size: 8px; fill: #ffffff; opacity: 0.45; }
+    </style>
+  </defs>
+
+  <!-- Kártya háttér finom kerettel -->
+  <rect width="270" height="160" class="bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Fejléc: Info/Könyv ikon + ON THIS DAY felirat -->
+  <g transform="translate(18, 14)">
+    <circle cx="7" cy="7" r="6" fill="none" stroke="#ffffff" stroke-width="1.4" opacity="0.85" />
+    <circle cx="7" cy="4.2" r="0.8" fill="#ffffff" opacity="0.85" />
+    <line x1="7" y1="6.5" x2="7" y2="10.2" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" opacity="0.85" />
+    <text x="18" y="11" class="header-title">ON THIS DAY</text>
+  </g>
+
+  <!-- Fejléc lapozó nyilak (jobb felül) -->
+  <rect x="216" y="14" width="16" height="16" rx="4" fill="rgba(255, 255, 255, 0.08)" />
+  <text x="221" y="26" class="btn-arrow">‹</text>
+
+  <rect x="236" y="14" width="16" height="16" rx="4" fill="rgba(255, 255, 255, 0.08)" />
+  <text x="241" y="26" class="btn-arrow">›</text>
+
+  <!-- Évszám Badge (1969) -->
+  <rect x="18" y="42" width="42" height="18" rx="5" fill="#fed049" />
+  <text x="25" y="55" class="year-pill-text">1969</text>
+
+  <!-- Szövegtörzs (példa történelmi esemény) -->
+  <text x="18" y="78" class="body-text">The first permanent ARPANET link is</text>
+  <text x="18" y="94" class="body-text">established between UCLA and SRI, marking</text>
+  <text x="18" y="110" class="body-text">the foundational milestone of the Internet.</text>
+
+  <!-- Lábléc: Dátum és forrás bal oldalon, számláló jobb oldalon -->
+  <text x="18" y="142" class="footer-text">October 06 · Wikipedia (EN)</text>
+  <text x="234" y="142" class="footer-text">1 / 28</text>
+</svg>

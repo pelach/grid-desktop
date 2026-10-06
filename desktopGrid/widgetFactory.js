@@ -42,6 +42,7 @@ import { isAnimatedImageFile } from '../utils/widgetUtils.js';
 import { createDesktopIconNode } from '../widgets/desktopIcon.js';
 import { createPingNode } from '../widgets/system/pingWidget.js';
 import { createCryptoTrackerNode } from '../widgets/cryptoWidget.js';
+import { createTodayHistoryNode } from '../widgets/todayHistory.js';
 
 const weatherCreator = (data, w, h, x, y) => {
     const dynamicColor = data.dynamicColor !== undefined ? data.dynamicColor : (data.globalWeatherDynamicColor !== false);
@@ -97,6 +98,7 @@ const WIDGET_CREATORS = {
     'ping-monitor': (data, w, h, x, y) => createPingNode(data, w, h, x, y),
     'storageBar': (data, w, h, x, y) => createStorageBarNode(data, w, h, x, y),
     'cryptoWidget': (data, w, h, x, y) => createCryptoTrackerNode(data, w, h, x, y),
+    'todayHistory': (data, w, h, x, y) => createTodayHistoryNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

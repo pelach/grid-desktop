@@ -36,7 +36,8 @@ import {
     addPowerProfilesWidget,
     addPingWidget,
     addStorageBarWidget,
-    addCryptoWidget
+    addCryptoWidget,
+    addTodayHistoryWidget
 } from './widgetAdders.js';
 
 import {
@@ -275,6 +276,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.currencyTracker, () => addCurrencyTrackerWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.habitTracker, () => addHabitTrackerWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.cryptoWidget, () => addCryptoWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.todayHistory, () => addTodayHistoryWidget(settings)),
     ]));
 
     // Raise PreferencesPage's internal ~600px clamp so the grid grows with the window.

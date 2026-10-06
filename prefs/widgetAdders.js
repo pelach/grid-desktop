@@ -265,3 +265,12 @@ export function addCryptoWidget(settings, width = 7, height = 4) {
         targetCurrency: 'HUF' 
     }, width, height);
 }
+
+export function addTodayHistoryWidget(settings, width = 4, height = 4) {
+    addWidget(settings, {
+        id: nextWidgetId(settings, 'today-history'),
+        type: 'todayHistory',
+        language: 'en',
+        category: 'selected',
+    }, width, height);
+}

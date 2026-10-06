@@ -891,3 +891,62 @@ export function buildCryptoTrackerSettings(grid, rowIdx, widget, saveHandlers) {
 
     return rowIdx;
 }
+
+export function buildHistoryTrackerSettings(grid, rowIdx, widget, saveHandlers) {
+    // 1. Nyelvválasztó
+    const langLabel = new Gtk.Label({ label: 'Wikipedia Language:', xalign: 0, hexpand: true });
+    const languages = [
+       // { code: 'hu', name: 'Magyar (Hungarian)' },
+        { code: 'en', name: 'English' },
+        { code: 'de', name: 'Deutsch' },
+        { code: 'fr', name: 'Français' },
+        { code: 'es', name: 'Español' },
+    ];
+    const langNames = languages.map(l => l.name);
+
+    const langCombo = new Gtk.DropDown({
+        model: Gtk.StringList.new(langNames),
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.END,
+    });
+
+    const currentLang = widget.language || 'hu';
+    const langIdx = languages.findIndex(l => l.code === currentLang);
+    langCombo.set_selected(langIdx >= 0 ? langIdx : 0);
+
+    grid.attach(langLabel, 0, rowIdx, 1, 1);
+    grid.attach(langCombo, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    // 2. Kategóriaválasztó
+    const typeLabel = new Gtk.Label({ label: 'Event Category:', xalign: 0, hexpand: true });
+    const categories = [
+        { key: 'selected', name: 'Curated Events' },
+        { key: 'events', name: 'All Events' },
+        { key: 'births', name: 'Births' },
+        { key: 'deaths', name: 'Deaths' },
+    ];
+    const categoryNames = categories.map(c => c.name);
+
+    const categoryCombo = new Gtk.DropDown({
+        model: Gtk.StringList.new(categoryNames),
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.END,
+    });
+
+    const currentCat = widget.category || 'selected';
+    const catIdx = categories.findIndex(c => c.key === currentCat);
+    categoryCombo.set_selected(catIdx >= 0 ? catIdx : 0);
+
+    grid.attach(typeLabel, 0, rowIdx, 1, 1);
+    grid.attach(categoryCombo, 1, rowIdx, 1, 1);
+    rowIdx++;
+
+    // Mentés kezelő
+    saveHandlers.push((target) => {
+        target.language = languages[langCombo.get_selected()]?.code || 'hu';
+        target.category = categories[categoryCombo.get_selected()]?.key || 'selected';
+    });
+
+    return rowIdx;
+}

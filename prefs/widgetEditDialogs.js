@@ -19,6 +19,7 @@ import {
     buildCountdownSettings,
     buildPingSettings,
     buildCryptoTrackerSettings,
+    buildHistoryTrackerSettings,
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -92,6 +93,9 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
             break;
         case 'cryptoWidget':
             rowIdx = buildCryptoTrackerSettings(grid, rowIdx, widget, saveHandlers);
+            break;
+        case 'todayHistory':
+            rowIdx = buildHistoryTrackerSettings(grid, rowIdx, widget, saveHandlers);
             break;
     }
 
