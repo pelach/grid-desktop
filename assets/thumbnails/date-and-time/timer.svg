@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <!-- Halvány kártya háttér -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2c2a38"/>
+      <stop offset="100%" stop-color="#1e1c26"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Lekerekített widget kártya -->
+  <rect x="6" y="6" width="108" height="108" rx="18" fill="url(#bgGrad)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+
+  <!-- Alap körív (háttér sáv) -->
+  <circle cx="60" cy="60" r="40" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5"/>
+
+  <!-- Haladási körív (Accent kék) -->
+  <circle cx="60" cy="60" r="40" fill="none" stroke="#3584e4" stroke-width="5"
+          stroke-linecap="round" stroke-dasharray="251.32" stroke-dashoffset="180"
+          transform="rotate(-90 60 60)"/>
+
+  <!-- Cím felirat -->
+  <text x="60" y="44" fill="rgba(255,255,255,0.6)" font-size="9" font-family="Cantarell, sans-serif" font-weight="500" text-anchor="middle">Timer</text>
+
+  <!-- Idő felirat -->
+  <text x="60" y="64" fill="#ffffff" font-size="18" font-family="Cantarell, sans-serif" font-weight="300" text-anchor="middle" letter-spacing="0.5">01:00</text>
+
+  <!-- Reset ikon (balra lent) -->
+  <g transform="translate(46, 75) scale(0.65)" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 2 10 A 8 8 0 1 1 5 16"/>
+    <polyline points="2 5 2 10 7 10"/>
+  </g>
+
+  <!-- Play ikon (jobbra lent) -->
+  <g transform="translate(64, 76) scale(0.65)" fill="rgba(255,255,255,0.85)">
+    <polygon points="3,2 14,8 3,14"/>
+  </g>
+</svg>

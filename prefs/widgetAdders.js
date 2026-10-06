@@ -274,3 +274,9 @@ export function addTodayHistoryWidget(settings, width = 4, height = 4) {
         category: 'selected',
     }, width, height);
 }
+export function addPowerTogglesWidget(settings, width = 2, height = 2) {
+    addWidget(settings, {
+        id: nextWidgetId(settings, 'power-toggles'),
+        type: 'powerToggles',
+    }, width, height);
+}

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 240" width="260" height="240">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .city-main { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; font-weight: 600; fill: #ffffff; opacity: 0.9; }
+      .gmt-main { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; fill: #ffffff; opacity: 0.65; }
+      .time-main { font-family: system-ui, -apple-system, sans-serif; font-size: 36px; font-weight: 300; fill: #ffffff; }
+      .ampm-main { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; fill: #ffffff; opacity: 0.65; }
+      .city-sec { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 500; fill: #ffffff; opacity: 0.85; }
+      .time-sec { font-family: system-ui, -apple-system, sans-serif; font-size: 20px; font-weight: 400; fill: #ffffff; }
+      .ampm-sec { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: #ffffff; opacity: 0.65; }
+      .gmt-sec { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: #ffffff; opacity: 0.65; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="260" height="240" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- 1. FELSŐ SOR: Fő város (Kathmandu) -->
+  <g transform="translate(20, 24)">
+    <!-- Bal oldal: Városnév és GMT -->
+    <text x="0" y="20" class="city-main">Kathmandu</text>
+    <text x="0" y="38" class="gmt-main">GMT +5:45</text>
+
+    <!-- Jobb oldal: Idő és AM/PM -->
+    <text x="220" y="32" text-anchor="end" class="time-main">11:43<tspan dx="4" class="ampm-main">PM</tspan></text>
+  </g>
+
+  <!-- 2. ALSÓ SOR: 2 Másodlagos város (Oregon & Munich) -->
+  <g transform="translate(20, 168)">
+    <!-- Bal alsó: Oregon -->
+    <g transform="translate(0, 0)">
+      <text x="0" y="14" class="city-sec">Oregon</text>
+      <text x="0" y="36" class="time-sec">11:37<tspan dx="3" class="ampm-sec">PM</tspan></text>
+      <text x="0" y="52" class="gmt-sec">GMT -7</text>
+    </g>
+
+    <!-- Jobb alsó: Munich -->
+    <g transform="translate(220, 0)">
+      <text x="0" y="14" text-anchor="end" class="city-sec">Munich</text>
+      <text x="0" y="36" text-anchor="end" class="time-sec">7:58<tspan dx="3" class="ampm-sec">PM</tspan></text>
+      <text x="0" y="52" text-anchor="end" class="gmt-sec">GMT +2</text>
+    </g>
+  </g>
+</svg>

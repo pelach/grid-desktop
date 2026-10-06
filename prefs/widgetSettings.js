@@ -637,8 +637,8 @@ export function buildImageSettings(grid, rowIdx, widget, settings, saveHandlers,
 
 export function buildSystemInfoSettings(grid, rowIdx, widget, saveHandlers) {
     const typeLabel = new Gtk.Label({ label: 'Monitor Metric:', xalign: 0, hexpand: true });
-    const types = ['cpu', 'ram', 'disk', 'thermal'];
-    const typeNames = ['CPU Usage', 'RAM Usage', 'Disk Usage', 'Thermal'];
+    const types = ['cpu', 'ram', 'disk', 'thermal', 'gpu'];
+    const typeNames = ['CPU Usage', 'RAM Usage', 'Disk Usage','Thermal (CPU)', 'GPU Temp'];
 
     const typeCombo = new Gtk.DropDown({
         model: Gtk.StringList.new(typeNames),

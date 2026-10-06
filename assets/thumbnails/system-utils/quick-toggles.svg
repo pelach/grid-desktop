@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <style>
+      .bg { fill: #202b38; rx: 14px; }
+      .btn-bg { fill: rgba(255, 255, 255, 0.07); stroke: rgba(255, 255, 255, 0.1); stroke-width: 1; }
+      .btn-active-bg { fill: rgba(255, 255, 255, 0.22); stroke: rgba(255, 255, 255, 0.35); stroke-width: 1; }
+      .icon { fill: none; stroke: #ffffff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .icon-fill { fill: #ffffff; }
+    </style>
+  </defs>
+
+  <!-- Kártya háttér -->
+  <rect width="180" height="180" class="bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- 1. Bal felső: Dark Mode (Aktív hold ikon kiemelt háttérrel) -->
+  <circle cx="53" cy="53" r="28" class="btn-active-bg" />
+  <path d="M 57 44 A 10 10 0 1 1 47 54 A 8 8 0 0 0 57 44 Z" fill="#ffffff" />
+
+  <!-- 2. Jobb felső: Night Light (Napocska / Éjszakai fény ikon) -->
+  <circle cx="127" cy="53" r="28" class="btn-bg" />
+  <circle cx="127" cy="53" r="6" class="icon" />
+  <line x1="127" y1="41" x2="127" y2="44" class="icon" />
+  <line x1="127" y1="62" x2="127" y2="65" class="icon" />
+  <line x1="115" y1="53" x2="118" y2="53" class="icon" />
+  <line x1="136" y1="53" x2="139" y2="53" class="icon" />
+  <line x1="118.5" y1="44.5" x2="120.5" y2="46.5" class="icon" />
+  <line x1="133.5" y1="59.5" x2="135.5" y2="61.5" class="icon" />
+  <line x1="118.5" y1="61.5" x2="120.5" y2="59.5" class="icon" />
+  <line x1="133.5" y1="46.5" x2="135.5" y2="44.5" class="icon" />
+
+  <!-- 3. Bal alsó: Harang (Értesítések / DND) -->
+  <circle cx="53" cy="127" r="28" class="btn-bg" />
+  <path d="M 47 132 C 47 124 49 123 49 120 C 49 118 51 116 53 116 C 55 116 57 118 57 120 C 57 123 59 124 59 132 Z" class="icon" />
+  <circle cx="53" cy="135" r="1.5" class="icon-fill" />
+  <line x1="45" y1="132" x2="61" y2="132" class="icon" />
+
+  <!-- 4. Jobb alsó: Lakat (Lock Screen) -->
+  <circle cx="127" cy="127" r="28" class="btn-bg" />
+  <rect x="120" y="124" width="14" height="11" rx="2" class="icon" />
+  <path d="M 123 124 L 123 119 A 4 4 0 0 1 131 119 L 131 124" class="icon" />
+  <circle cx="127" cy="129.5" r="1" class="icon-fill" />
+</svg>

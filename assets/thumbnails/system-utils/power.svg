@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <style>
+      .bg { fill: #202b38; rx: 14px; }
+      .btn-bg { fill: rgba(255, 255, 255, 0.08); stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; }
+      .btn-danger-bg { fill: rgba(235, 64, 52, 0.18); stroke: rgba(235, 64, 52, 0.35); stroke-width: 1; }
+      .icon { fill: none; stroke: #ffffff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .icon-danger { fill: none; stroke: #ff6b6b; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <!-- Kártya háttér -->
+  <rect width="180" height="180" class="bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- 1. Bal felső: Felfüggesztés (Pause) -->
+  <circle cx="53" cy="53" r="28" class="btn-bg" />
+  <line x1="49" y1="45" x2="49" y2="61" class="icon" />
+  <line x1="57" y1="45" x2="57" y2="61" class="icon" />
+
+  <!-- 2. Jobb felső: Újraindítás (Refresh) -->
+  <circle cx="127" cy="53" r="28" class="btn-bg" />
+  <path d="M 134 47 A 9 9 0 1 0 136 55" class="icon" />
+  <polyline points="131 43 135 47 131 51" class="icon" />
+
+  <!-- 3. Bal alsó: Kikapcsolás (Power Off - Danger) -->
+  <circle cx="53" cy="127" r="28" class="btn-danger-bg" />
+  <line x1="53" y1="118" x2="53" y2="126" class="icon-danger" />
+  <path d="M 46 122 A 9 9 0 1 0 60 122" class="icon-danger" />
+
+  <!-- 4. Jobb alsó: Kijelentkezés (Logout) -->
+  <circle cx="127" cy="127" r="28" class="btn-bg" />
+  <line x1="120" y1="127" x2="134" y2="127" class="icon" />
+  <polyline points="130 122 135 127 130 132" class="icon" />
+</svg>

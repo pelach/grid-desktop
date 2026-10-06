@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .header-title { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 500; fill: #ffffff; opacity: 0.65; }
+      .item-bg { fill: rgba(255, 255, 255, 0.06); rx: 8px; }
+      .item-text { font-family: monospace, system-ui, sans-serif; font-size: 11.5px; fill: #ffffff; opacity: 0.9; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="240" height="160" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Fejléc és elválasztó vonal -->
+  <text x="14" y="24" class="header-title">Clipboard History</text>
+  <line x1="14" y1="32" x2="226" y2="32" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1" />
+
+  <!-- Vágólap bejegyzések -->
+  <g transform="translate(14, 40)">
+    <!-- 1. tétel -->
+    <rect x="0" y="0" width="212" height="24" class="item-bg" />
+    <text x="10" y="16" class="item-text">Some copied text</text>
+
+    <!-- 2. tétel -->
+    <rect x="0" y="28" width="212" height="24" class="item-bg" />
+    <text x="10" y="44" class="item-text">hello hehahahha</text>
+
+    <!-- 3. tétel -->
+    <rect x="0" y="56" width="212" height="24" class="item-bg" />
+    <text x="10" y="72" class="item-text">67 67 67 67 67</text>
+
+    <!-- 4. tétel -->
+    <rect x="0" y="84" width="212" height="24" class="item-bg" />
+    <text x="10" y="100" class="item-text">we love gnome &lt;3</text>
+  </g>
+</svg>

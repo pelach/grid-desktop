@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" width="240" height="120">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .tile-bg { fill: rgba(255, 255, 255, 0.05); stroke: rgba(255, 255, 255, 0.07); stroke-width: 1; rx: 10px; }
+      .val-text { font-family: system-ui, -apple-system, sans-serif; font-size: 22px; font-weight: bold; fill: #ffffff; }
+      .unit-text { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 500; fill: #ffffff; opacity: 0.65; }
+      .label-text { font-family: system-ui, -apple-system, sans-serif; font-size: 10px; font-weight: 600; fill: #ffffff; opacity: 0.65; letter-spacing: 0.5px; }
+    </style>
+    <linearGradient id="downSparkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3584e4" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#3584e4" stop-opacity="0.0" />
+    </linearGradient>
+    <linearGradient id="upSparkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fő kártya háttér -->
+  <rect width="240" height="120" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- 1. TILE: Download (Bal oldal) -->
+  <rect x="10" y="10" width="105" height="100" class="tile-bg" />
+  
+  <text x="20" y="34" class="val-text">56 <tspan class="unit-text">KB/s</tspan></text>
+  <text x="20" y="48" class="label-text">DOWNLOAD</text>
+
+  <!-- Download Sparkline -->
+  <path d="M 18 100 
+           L 18 94 
+           L 30 90 
+           L 44 95 
+           L 54 84 
+           L 66 65 
+           L 78 72 
+           L 90 58 
+           L 100 68 
+           L 107 62 
+           L 107 100 Z" 
+        fill="url(#downSparkGrad)" />
+
+  <path d="M 18 94 
+           L 30 90 
+           L 44 95 
+           L 54 84 
+           L 66 65 
+           L 78 72 
+           L 90 58 
+           L 100 68 
+           L 107 62" 
+        fill="none" stroke="#3584e4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- 2. TILE: Upload (Jobb oldal) -->
+  <rect x="125" y="10" width="105" height="100" class="tile-bg" />
+  
+  <text x="135" y="34" class="val-text">25 <tspan class="unit-text">KB/s</tspan></text>
+  <text x="135" y="48" class="label-text">UPLOAD</text>
+
+  <!-- Upload Sparkline -->
+  <path d="M 133 100 
+           L 133 95 
+           L 145 92 
+           L 158 90 
+           L 170 82 
+           L 182 86 
+           L 194 76 
+           L 208 80 
+           L 222 75 
+           L 222 100 Z" 
+        fill="url(#upSparkGrad)" />
+
+  <path d="M 133 95 
+           L 145 92 
+           L 158 90 
+           L 170 82 
+           L 182 86 
+           L 194 76 
+           L 208 80 
+           L 222 75" 
+        fill="none" stroke="#ffffff" stroke-width="1.8" stroke-opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

@@ -1,168 +1,74 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   width="1000"
-   height="1000"
-   viewBox="0 0 1000 1000"
-   fill="none"
-   version="1.1"
-   id="svg53"
-   xml:space="preserve"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg"><defs
-     id="defs53" /><g
-     id="g61"
-     transform="translate(0.01777185,-5.1519098)"><rect
-       width="1000"
-       height="1000"
-       rx="50"
-       fill="#232625"
-       id="rect1"
-       x="-0.017771848"
-       y="5.1519098" /><rect
-       x="45.805099"
-       y="214.68051"
-       width="881"
-       height="258"
-       rx="28"
-       fill="#2c2c30"
-       id="rect3" /><rect
-       x="46.851574"
-       y="500.50244"
-       width="881"
-       height="258"
-       rx="28"
-       fill="#2c2c30"
-       id="rect3-2" /><g
-       id="g55-9"
-       transform="matrix(6.2549291,0,0,6.9805051,791.20116,557.53745)"><rect
-         x="2"
-         y="5"
-         width="10"
-         height="6"
-         rx="1"
-         ry="1"
-         fill="#dedede"
-         id="rect1-3-1" /><path
-         d="m 15,6 v 4 A 1,2 0 0 0 16,8 1,2 0 0 0 15,6 Z"
-         fill="#dedede"
-         id="path1-5-2" /><path
-         d="M 3,3 C 1.338,3 0,4.338 0,6 v 4 c 0,1.662 1.338,3 3,3 h 8 c 1.662,0 3,-1.338 3,-3 V 6 C 14,4.338 12.662,3 11,3 Z m 0,1 h 8 c 1.108,0 2,0.892 2,2 v 4 c 0,1.108 -0.892,2 -2,2 H 3 C 1.892,12 1,11.108 1,10 V 6 C 1,4.892 1.892,4 3,4 Z"
-         fill="#dedede"
-         id="path2-6-7" /></g><g
-       style="enable-background:new"
-       id="g53"
-       transform="matrix(8.7321482,0,0,8.3290508,86.558265,275.0601)"><path
-         d="M 2,2 C 0.892,2 0,2.892 0,4 v 7 c 0,1.108 0.892,2 2,2 h 12 c 1.108,0 2,-0.892 2,-2 V 4 C 16,2.892 15.108,2 14,2 Z m 0,1 h 12 c 0.554,0 1,0.446 1,1 v 7 c 0,0.554 -0.446,1 -1,1 H 2 C 1.446,12 1,11.554 1,11 V 4 C 1,3.446 1.446,3 2,3 Z"
-         fill="#dedede"
-         id="path1" /><path
-         d="M 0.5,13 C 0.223,13 0,13.223 0,13.5 0,13.777 0.223,14 0.5,14 h 15 C 15.777,14 16,13.777 16,13.5 16,13.223 15.777,13 15.5,13 h -4.5254 c -0.0557,0.21543 -0.24129,0.37695 -0.47461,0.37695 h -5 C 5.26667,13.37695 5.08108,13.21543 5.02538,13 h -4.5254 z"
-         fill="#dedede"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         stroke-width="1.5"
-         id="path2" /></g><path
-       color="#000000"
-       d="m 156.41545,544.69695 c -31.61961,0 -57.230057,23.05225 -57.230057,51.5134 v 25.7567 h 9.538347 v -25.7567 c 0,-23.8507 21.1942,-42.92783 47.69171,-42.92783 26.50706,0 47.69172,19.07713 47.69172,42.92783 v 51.5134 c 0,14.26922 -12.7623,25.75671 -28.61503,25.75671 v -8.58557 h -38.15337 v 17.17114 h 38.15337 c 21.13697,0 38.15337,-15.31665 38.15337,-34.34228 v -51.5134 c 0,-28.46115 -25.60091,-51.5134 -57.23006,-51.5134 z m -38.15338,60.09897 v 34.34227 h 9.53835 c 0,0 9.53835,0 9.53835,-8.58557 v -17.17114 c 0,-8.58556 -9.53835,-8.58556 -9.53835,-8.58556 z m 66.76841,0 c 0,0 -9.53834,0 -9.53834,8.58556 v 17.17114 c 0,8.58557 9.53834,8.58557 9.53834,8.58557 h 9.53835 v -34.34227 z"
-       fill="#dedede"
-       font-family="sans-serif"
-       font-weight="400"
-       overflow="visible"
-       style="line-height:normal;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;text-transform:none;text-orientation:mixed;shape-padding:0;isolation:auto;mix-blend-mode:normal;stroke-width:9.04943"
-       white-space="normal"
-       id="path1-6" /><g
-       id="g54"
-       transform="matrix(6.386852,0,0,6.386852,52.004435,30.686139)"><path
-         d="M 3,5 C 2.446,5 2,5.446 2,6 v 4 c 0,0.554 0.446,1 1,1 h 2.4688 l 0.25,-1 H 4 A 1.0001,1.0001 0 0 1 3.16797,8.4453 L 5.46487,5 h -2.4648 z m 5.5312,0 -0.25,1 H 10 a 1.0001,1.0001 0 0 1 0.83203,1.5547 L 8.53513,11 h 2.4648 c 0.554,0 1,-0.446 1,-1 V 6 c 0,-0.554 -0.446,-1 -1,-1 H 8.53113 Z M 6.1894,7.5176 5.86909,8.00002 h 1.1309 A 1.0001,1.0001 0 0 1 6.18944,7.5176 Z M 6.99995,8.00002 A 1.0001,1.0001 0 0 1 7.80854,8.4844 L 8.13081,8.00002 h -1.1309 z"
-         fill="#dedede"
-         id="path1-7" /><path
-         d="m 15,6 v 4 A 1,2 0 0 0 16,8 1,2 0 0 0 15,6 Z"
-         fill="#dedede"
-         id="path2-5" /><path
-         d="M 3,3 C 1.338,3 0,4.338 0,6 v 4 c 0,1.662 1.338,3 3,3 h 8 c 1.662,0 3,-1.338 3,-3 V 6 C 14,4.338 12.662,3 11,3 Z m 0,1 h 8 c 1.108,0 2,0.892 2,2 v 4 c 0,1.108 -0.892,2 -2,2 H 3 C 1.892,12 1,11.108 1,10 V 6 C 1,4.892 1.892,4 3,4 Z"
-         fill="#dedede"
-         id="path3" /><path
-         d="M 7.334,4 4,9 h 3 l -0.75,3 h 0.41602 l 3.334,-5 h -3 l 0.75,-3 z"
-         fill="#dedede"
-         id="path4" /></g><g
-       id="g55"
-       transform="matrix(6.8046079,0,0,6.8046079,786.80373,287.25564)"><rect
-         x="2"
-         y="5"
-         width="10"
-         height="6"
-         rx="1"
-         ry="1"
-         fill="#dedede"
-         id="rect1-3" /><path
-         d="m 15,6 v 4 A 1,2 0 0 0 16,8 1,2 0 0 0 15,6 Z"
-         fill="#dedede"
-         id="path1-5" /><path
-         d="M 3,3 C 1.338,3 0,4.338 0,6 v 4 c 0,1.662 1.338,3 3,3 h 8 c 1.662,0 3,-1.338 3,-3 V 6 C 14,4.338 12.662,3 11,3 Z m 0,1 h 8 c 1.108,0 2,0.892 2,2 v 4 c 0,1.108 -0.892,2 -2,2 H 3 C 1.892,12 1,11.108 1,10 V 6 C 1,4.892 1.892,4 3,4 Z"
-         fill="#dedede"
-         id="path2-6" /></g><text
-       xml:space="preserve"
-       style="font-size:48px;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#dedede;fill-opacity:1;stroke-width:1.00157"
-       x="328.92776"
-       y="98.502441"
-       id="text55"><tspan
-         id="tspan55"
-         x="328.92776"
-         y="98.502441"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Cantarell;-inkscape-font-specification:Cantarell">Battery Status</tspan></text><text
-       xml:space="preserve"
-       style="font-size:48px;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#dedede;fill-opacity:1;stroke-width:1.00157"
-       x="362.07687"
-       y="327.16882"
-       id="text56"><tspan
-         id="tspan56"
-         x="362.07687"
-         y="327.16882"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Cantarell;-inkscape-font-specification:Cantarell">This PC</tspan></text><text
-       xml:space="preserve"
-       style="font-size:42.6667px;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#dedede;fill-opacity:1;stroke-width:1.01228"
-       x="428.29477"
-       y="319.733"
-       id="text57"
-       transform="scale(0.82357989,1.2142113)"><tspan
-         id="tspan57"
-         x="428.29477"
-         y="319.733"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:42.6667px;font-family:Cantarell;-inkscape-font-specification:Cantarell;stroke-width:1.01228">Charging</tspan></text><text
-       xml:space="preserve"
-       style="font-size:48px;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#dedede;fill-opacity:1;stroke-width:1.11742"
-       x="475.8692"
-       y="484.59213"
-       id="text58"
-       transform="scale(0.79933866,1.2510342)"><tspan
-         id="tspan58"
-         x="475.8692"
-         y="484.59213"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:48px;font-family:Cantarell;-inkscape-font-specification:Cantarell;stroke-width:1.11742">picun NC60</tspan></text><text
-       xml:space="preserve"
-       style="font-size:42.6667px;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#dedede;fill-opacity:1;stroke-width:0.903157"
-       x="445.13574"
-       y="553.30646"
-       id="text59"
-       transform="scale(0.82136894,1.2174797)"><tspan
-         id="tspan59"
-         x="445.13574"
-         y="553.30646"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:42.6667px;font-family:Cantarell;-inkscape-font-specification:Cantarell;stroke-width:0.903157">Connected</tspan></text><text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:48px;font-family:Cantarell;-inkscape-font-specification:Cantarell;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#dedede;fill-opacity:1;stroke-width:1.00157"
-       x="700.07086"
-       y="358.34851"
-       id="text60"><tspan
-         id="tspan60"
-         x="700.07086"
-         y="358.34851"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Cantarell;-inkscape-font-specification:'Cantarell Bold'">98%</tspan></text><text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:48px;font-family:Cantarell;-inkscape-font-specification:Cantarell;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#dedede;fill-opacity:1;stroke-width:1.00157"
-       x="687.61493"
-       y="630.03748"
-       id="text61"><tspan
-         id="tspan61"
-         x="687.61493"
-         y="630.03748"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Cantarell;-inkscape-font-specification:'Cantarell Bold'">100%</tspan></text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="240" height="200">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .header-title { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: bold; fill: #ffffff; opacity: 0.9; }
+      .row-card { fill: rgba(255, 255, 255, 0.05); stroke: rgba(255, 255, 255, 0.07); stroke-width: 1; rx: 10px; }
+      .dev-name { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; font-weight: 500; fill: #ffffff; }
+      .dev-sub { font-family: system-ui, -apple-system, sans-serif; font-size: 10px; fill: #ffffff; opacity: 0.65; }
+      .pct-val { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: bold; fill: #ffffff; }
+      .icon-stroke { fill: none; stroke: #ffffff; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="240" height="200" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Fejléc -->
+  <g transform="translate(14, 16)">
+    <!-- Battery Header Icon -->
+    <rect x="0" y="2" width="16" height="9" rx="2" fill="none" stroke="#ffffff" stroke-width="1.5" />
+    <path d="M 17 5 L 17 8" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+    <rect x="2" y="4" width="10" height="5" fill="#ffffff" rx="1" />
+    <text x="24" y="11" class="header-title">Battery Status</text>
+  </g>
+
+  <!-- 1. ESZKÖZ KÁRTYA: Laptop (This PC) -->
+  <g transform="translate(12, 42)">
+    <rect width="216" height="66" class="row-card" />
+    
+    <!-- Laptop Icon -->
+    <g transform="translate(12, 18)" class="icon-stroke">
+      <rect x="3" y="2" width="22" height="15" rx="1.5" stroke-width="1.6" />
+      <line x1="0" y1="21" x2="28" y2="21" stroke-width="2" />
+    </g>
+
+    <!-- Név & Állapot -->
+    <text x="48" y="29" class="dev-name">This PC</text>
+    <text x="48" y="47" class="dev-sub">Charging</text>
+
+    <!-- Százalék & Akku ikon -->
+    <text x="160" y="38" class="pct-val" text-anchor="end">98%</text>
+    <g transform="translate(168, 25)">
+      <rect x="0" y="2" width="22" height="13" rx="2.5" fill="none" stroke="#ffffff" stroke-width="1.6" opacity="0.85" />
+      <path d="M 23 6 L 23 11" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.85" />
+      <rect x="2.5" y="4.5" width="15" height="8" rx="1" fill="#ffffff" opacity="0.85" />
+      <!-- Kis villám szimbólum töltéshez -->
+      <polygon points="12,1 7,8 11,8 10,14 15,7 11,7" fill="#ffffff" />
+    </g>
+  </g>
+
+  <!-- 2. ESZKÖZ KÁRTYA: Fejhallgató -->
+  <g transform="translate(12, 118)">
+    <rect width="216" height="66" class="row-card" />
+    
+    <!-- Headset Icon -->
+    <g transform="translate(14, 18)" class="icon-stroke" stroke-width="1.6">
+      <path d="M 3 14 A 11 11 0 0 1 25 14" />
+      <rect x="1" y="13" width="5" height="10" rx="2" fill="#ffffff" fill-opacity="0.3" />
+      <rect x="22" y="13" width="5" height="10" rx="2" fill="#ffffff" fill-opacity="0.3" />
+    </g>
+
+    <!-- Név & Állapot -->
+    <text x="48" y="29" class="dev-name">picun NC60</text>
+    <text x="48" y="47" class="dev-sub">Connected</text>
+
+    <!-- Százalék & Akku ikon -->
+    <text x="160" y="38" class="pct-val" text-anchor="end">100%</text>
+    <g transform="translate(168, 25)">
+      <rect x="0" y="2" width="22" height="13" rx="2.5" fill="none" stroke="#ffffff" stroke-width="1.6" opacity="0.85" />
+      <path d="M 23 6 L 23 11" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.85" />
+      <rect x="2.5" y="4.5" width="17" height="8" rx="1" fill="#ffffff" opacity="0.85" />
+    </g>
+  </g>
+</svg>

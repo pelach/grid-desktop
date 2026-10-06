@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .month-header { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 700; fill: #ffffff; }
+      .wday-text { font-family: system-ui, -apple-system, sans-serif; font-size: 9px; font-weight: 600; fill: #ffffff; opacity: 0.45; }
+      .day-num { font-family: system-ui, -apple-system, sans-serif; font-size: 10.5px; fill: #ffffff; opacity: 0.9; }
+      .day-weekend { font-family: system-ui, -apple-system, sans-serif; font-size: 10.5px; fill: #ffffff; opacity: 0.55; }
+      .today-circle { fill: #3584e4; }
+      .today-num { font-family: system-ui, -apple-system, sans-serif; font-size: 10.5px; font-weight: bold; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="200" height="200" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Fejléc: Hónap és Év -->
+  <text x="18" y="28" class="month-header">Aug 2026</text>
+
+  <!-- Hét napjainak fejléce (S M T W T F S) -->
+  <g transform="translate(18, 46)">
+    <text x="12" y="0" text-anchor="middle" class="wday-text">S</text>
+    <text x="35" y="0" text-anchor="middle" class="wday-text">M</text>
+    <text x="58" y="0" text-anchor="middle" class="wday-text">T</text>
+    <text x="81" y="0" text-anchor="middle" class="wday-text">W</text>
+    <text x="104" y="0" text-anchor="middle" class="wday-text">T</text>
+    <text x="127" y="0" text-anchor="middle" class="wday-text">F</text>
+    <text x="150" y="0" text-anchor="middle" class="wday-text">S</text>
+  </g>
+
+  <!-- Naptárrács számai -->
+  <g transform="translate(18, 56)">
+    <!-- 1. Hét -->
+    <g transform="translate(0, 16)">
+      <text x="150" y="0" text-anchor="middle" class="day-weekend">1</text>
+    </g>
+
+    <!-- 2. Hét -->
+    <g transform="translate(0, 38)">
+      <text x="12" y="0" text-anchor="middle" class="day-weekend">2</text>
+      <text x="35" y="0" text-anchor="middle" class="day-num">3</text>
+      <text x="58" y="0" text-anchor="middle" class="day-num">4</text>
+      <text x="81" y="0" text-anchor="middle" class="day-num">5</text>
+      <text x="104" y="0" text-anchor="middle" class="day-num">6</text>
+      <text x="127" y="0" text-anchor="middle" class="day-num">7</text>
+      <text x="150" y="0" text-anchor="middle" class="day-weekend">8</text>
+    </g>
+
+    <!-- 3. Hét -->
+    <g transform="translate(0, 60)">
+      <text x="12" y="0" text-anchor="middle" class="day-weekend">9</text>
+      <text x="35" y="0" text-anchor="middle" class="day-num">10</text>
+      <text x="58" y="0" text-anchor="middle" class="day-num">11</text>
+      <text x="81" y="0" text-anchor="middle" class="day-num">12</text>
+      <text x="104" y="0" text-anchor="middle" class="day-num">13</text>
+      <text x="127" y="0" text-anchor="middle" class="day-num">14</text>
+      <text x="150" y="0" text-anchor="middle" class="day-weekend">15</text>
+    </g>
+
+    <!-- 4. Hét -->
+    <g transform="translate(0, 82)">
+      <text x="12" y="0" text-anchor="middle" class="day-weekend">16</text>
+      <text x="35" y="0" text-anchor="middle" class="day-num">17</text>
+      <text x="58" y="0" text-anchor="middle" class="day-num">18</text>
+      <text x="81" y="0" text-anchor="middle" class="day-num">19</text>
+      <text x="104" y="0" text-anchor="middle" class="day-num">20</text>
+      <text x="127" y="0" text-anchor="middle" class="day-num">21</text>
+      <text x="150" y="0" text-anchor="middle" class="day-weekend">22</text>
+    </g>
+
+    <!-- 5. Hét (Mai nap: 25. kék kitöltött körben) -->
+    <g transform="translate(0, 104)">
+      <text x="12" y="0" text-anchor="middle" class="day-weekend">23</text>
+      <text x="35" y="0" text-anchor="middle" class="day-num">24</text>
+      
+      <!-- Mai nap kiemelés -->
+      <circle cx="58" cy="-4" r="9" class="today-circle" />
+      <text x="58" y="0" text-anchor="middle" class="today-num">25</text>
+
+      <text x="81" y="0" text-anchor="middle" class="day-num">26</text>
+      <text x="104" y="0" text-anchor="middle" class="day-num">27</text>
+      <text x="127" y="0" text-anchor="middle" class="day-num">28</text>
+      <text x="150" y="0" text-anchor="middle" class="day-weekend">29</text>
+    </g>
+
+    <!-- 6. Hét -->
+    <g transform="translate(0, 126)">
+      <text x="12" y="0" text-anchor="middle" class="day-weekend">30</text>
+      <text x="35" y="0" text-anchor="middle" class="day-num">31</text>
+    </g>
+  </g>
+</svg>

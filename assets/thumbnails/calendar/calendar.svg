@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .header-bg { fill: rgba(255, 255, 255, 0.04); }
+      .content-bg { fill: rgba(255, 255, 255, 0.06); rx: 10px; }
+      .day-text { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 600; fill: #ffffff; opacity: 0.65; }
+      .date-text { font-family: system-ui, -apple-system, sans-serif; font-size: 52px; font-weight: 300; fill: #ffffff; }
+      .month-text { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 600; fill: #ffffff; opacity: 0.75; letter-spacing: 0.5px; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="200" height="200" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Naptárlap forma -->
+  <g transform="translate(16, 16)">
+    <!-- Fejléc sáv (Nap neve) -->
+    <path d="M 0 10 A 10 10 0 0 1 10 0 L 158 0 A 10 10 0 0 1 168 10 L 168 34 L 0 34 Z" class="header-bg" />
+    <text x="84" y="22" text-anchor="middle" class="day-text">Saturday</text>
+    
+    <!-- Test kártya (Dátum szám és hónap) -->
+    <path d="M 0 34 L 168 34 L 168 158 A 10 10 0 0 1 158 168 L 10 168 A 10 10 0 0 1 0 158 Z" class="content-bg" />
+    <text x="84" y="104" text-anchor="middle" class="date-text">1</text>
+    <text x="84" y="138" text-anchor="middle" class="month-text">August</text>
+  </g>
+</svg>

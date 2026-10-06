@@ -37,7 +37,8 @@ import {
     addPingWidget,
     addStorageBarWidget,
     addCryptoWidget,
-    addTodayHistoryWidget
+    addTodayHistoryWidget,
+    addPowerTogglesWidget
 } from './widgetAdders.js';
 
 import {
@@ -231,18 +232,26 @@ export function buildStorePage(window, settings, extensionPath) {
     // ── System Monitor ───────────────────────────────────────
     page.add(createCategoryGroup('System Monitor', [
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.systemDashboard, () => addSystemDashboardWidget(settings, 4, 4)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.batteryStatus, () => addBatteryStatusWidget(settings, 4, 3)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.systemMonitor, () => addCpuRamWidget(settings, 4, 2)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.networkSpeed, () => addNetworkSpeedWidget(settings, 3, 2)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.screenTimeWidget, () => addScreenTimeWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.systemInfo, () => addSystemInfoWidget(settings, 'cpu', 2, 2)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.storageBar, () => addStorageBarWidget(settings)),
+        
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.resourceWheel, () => addResourceWheelWidget(settings, 'cpu', 5, 4)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.systemInfo, () => addSystemInfoWidget(settings, 'cpu', 2, 2)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.networkSpeed, () => addNetworkSpeedWidget(settings, 3, 2)),
+        
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.pingMonitor, () => addPingWidget(settings)),
+
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.quickToggles, () => addQuickTogglesWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.powerToggles, () => addPowerTogglesWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.powerProfiles, () => addPowerProfilesWidget(settings)),
+
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.batteryStatus, () => addBatteryStatusWidget(settings, 4, 3)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.audioOutput, () => addAudioOutputWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.controlsSliders, () => addControlsSlidersWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.powerProfiles, () => addPowerProfilesWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.pingMonitor, () => addPingWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.storageBar, () => addStorageBarWidget(settings)),
+        
+       
+        
+   
     ]));
 
     // ── Focus & Productivity ─────────────────────────────────
@@ -269,14 +278,18 @@ export function buildStorePage(window, settings, extensionPath) {
 
     // ── Personal ─────────────────────────────────────────────
     page.add(createCategoryGroup('Personal', [
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.currencyTracker, () => addCurrencyTrackerWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.cryptoWidget, () => addCryptoWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.githubWidget, () => openAddGithubDialog(window, settings)),
+
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.habitTracker, () => addHabitTrackerWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.moodWidget, () => addMoodWidget(settings)),
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.screenTimeWidget, () => addScreenTimeWidget(settings)),
+        
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.todayHistory, () => addTodayHistoryWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.rssHeadlinesWidget, () => openAddRssHeadlinesDialog(window, settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.quotesWidget, () => addQuotesWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.moodWidget, () => addMoodWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.currencyTracker, () => addCurrencyTrackerWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.habitTracker, () => addHabitTrackerWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.cryptoWidget, () => addCryptoWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.todayHistory, () => addTodayHistoryWidget(settings)),
+
     ]));
 
     // Raise PreferencesPage's internal ~600px clamp so the grid grows with the window.

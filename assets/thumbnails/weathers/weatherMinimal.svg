@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="skyGradMin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a75d3" />
+      <stop offset="50%" stop-color="#1b5cb8" />
+      <stop offset="100%" stop-color="#0f3e82" />
+    </linearGradient>
+    <radialGradient id="sunGlowMin" cx="100%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#ffe875" stop-opacity="0.9" />
+      <stop offset="35%" stop-color="#f6a623" stop-opacity="0.4" />
+      <stop offset="70%" stop-color="#2a75d3" stop-opacity="0" />
+    </radialGradient>
+    <style>
+      .temp-huge { font-family: system-ui, -apple-system, sans-serif; font-size: 44px; font-weight: 300; fill: #ffffff; }
+      .temp-deg { font-family: system-ui, -apple-system, sans-serif; font-size: 22px; font-weight: 400; fill: #ffffff; }
+      .city-sub { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 500; fill: #ffffff; opacity: 0.85; }
+    </style>
+  </defs>
+
+  <!-- Kártya háttér és keret -->
+  <rect width="180" height="180" rx="14" fill="url(#skyGradMin)" stroke="rgba(255, 255, 255, 0.2)" stroke-width="1" />
+  <rect width="180" height="180" rx="14" fill="url(#sunGlowMin)" />
+
+  <!-- Napsugárzás a sarokban -->
+  <g transform="translate(180, 0)">
+    <circle cx="0" cy="0" r="28" fill="#ffdd55" />
+    <path d="M -45 5 L 0 0 L -40 25 Z" fill="#ffffff" opacity="0.25" />
+    <path d="M -30 40 L 0 0 L -10 50 Z" fill="#ffffff" opacity="0.2" />
+  </g>
+
+  <!-- Középre zárt hőmérséklet és városnév -->
+  <g transform="translate(90, 88)">
+    <text x="0" y="0" text-anchor="middle" class="temp-huge">25<tspan class="temp-deg">°c</tspan></text>
+    <text x="0" y="24" text-anchor="middle" class="city-sub">Kathmandu</text>
+  </g>
+</svg>

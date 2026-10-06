@@ -96,6 +96,9 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     } else if (monitorType === 'thermal') {
         iconName = 'sensors-temperature-symbolic';
         defaultLabel = 'Thermal';
+    } else if (monitorType === 'gpu') {
+        iconName = 'video-display-symbolic';
+        defaultLabel = 'GPU';
     }
 
     const mainLayout = new St.BoxLayout({
@@ -189,7 +192,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         headerBox.add_child(iconBadge);
         mainLayout.add_child(headerBox);
 
-        // Külön kártya a diagramnak (mint a Dashboard-ban)
         const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
         const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
         const cardRadius = Math.max(8, Math.round(10 * scale));
@@ -234,6 +236,48 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     let isDisposed = false;
     let prevIdle = 0;
     let prevTotal = 0;
+
+    // --- GPU Szenzor felderítés ---
+    let gpuHwmonTempPath = null;
+    let hasNvidiaSmi = false;
+    let gpuDetectionDone = false;
+
+    const detectGpuSource = () => {
+        if (gpuDetectionDone) return;
+        gpuDetectionDone = true;
+
+        try {
+            const hwmonDir = Gio.File.new_for_path('/sys/class/hwmon');
+            if (hwmonDir.query_exists(null)) {
+                const enumerator = hwmonDir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
+                let info;
+                const gpuNames = ['amdgpu', 'radeon', 'nouveau', 'i915', 'xe'];
+
+                while ((info = enumerator.next_file(null)) !== null) {
+                    const dirName = info.get_name();
+                    const nameFilePath = `/sys/class/hwmon/${dirName}/name`;
+                    const nameFile = Gio.File.new_for_path(nameFilePath);
+                    if (nameFile.query_exists(null)) {
+                        const [, nameBytes] = nameFile.load_contents(null);
+                        const devName = new TextDecoder().decode(nameBytes).trim().toLowerCase();
+                        if (gpuNames.includes(devName)) {
+                            // Találtunk dGPU hwmon szenzort!
+                            const tempPath = `/sys/class/hwmon/${dirName}/temp1_input`;
+                            if (Gio.File.new_for_path(tempPath).query_exists(null)) {
+                                gpuHwmonTempPath = tempPath;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e) {}
+
+        // Ha nincs szabványos sysfs GPU szenzor, megnézzük van-e nvidia-smi
+        if (!gpuHwmonTempPath) {
+            hasNvidiaSmi = GLib.find_program_in_path('nvidia-smi') !== null;
+        }
+    };
 
     const readCpu = () => {
         try {
@@ -340,16 +384,67 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         } catch (e) {}
     };
 
+    const readGpu = () => {
+        detectGpuSource();
+
+        // 1. AMD / Intel dGPU hwmon közvetlen olvasás
+        if (gpuHwmonTempPath) {
+            try {
+                const file = Gio.File.new_for_path(gpuHwmonTempPath);
+                file.load_contents_async(null, (f, res) => {
+                    try {
+                        const [, contents] = f.load_contents_finish(res);
+                        if (isDisposed || !contents) return;
+                        const milliC = parseInt(new TextDecoder().decode(contents).trim(), 10);
+                        if (!isNaN(milliC)) {
+                            const tempC = Math.round(milliC / 1000);
+                            percentLabel.set_text(`${tempC}°C`);
+                            pushSample(tempC / 100);
+                        }
+                    } catch (e) {}
+                });
+            } catch (e) {}
+            return;
+        }
+
+        // 2. Nvidia SMI segédprogram
+        if (hasNvidiaSmi) {
+            try {
+                const proc = new Gio.Subprocess({
+                    argv: ['nvidia-smi', '--query-gpu=temperature.gpu', '--format=csv,noheader,nounits'],
+                    flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE,
+                });
+                proc.init(null);
+                proc.communicate_utf8_async(null, null, (p, res) => {
+                    try {
+                        const [, stdout] = p.communicate_utf8_finish(res);
+                        if (isDisposed || !stdout) return;
+                        const tempC = parseInt(stdout.trim(), 10);
+                        if (!isNaN(tempC)) {
+                            percentLabel.set_text(`${tempC}°C`);
+                            pushSample(tempC / 100);
+                        }
+                    } catch (e) {}
+                });
+            } catch (e) {}
+            return;
+        }
+
+        // 3. Fallback integrált grafikára (SoC / CPU csomag hőmérséklet)
+        readThermal();
+    };
+
     const updateData = () => {
         if (monitorType === 'ram') readRam();
         else if (monitorType === 'disk') readDisk();
         else if (monitorType === 'thermal') readThermal();
+        else if (monitorType === 'gpu') readGpu();
         else readCpu();
     };
 
     updateData();
 
-    const intervalSec = monitorType === 'cpu' ? 2 : 5;
+    const intervalSec = (monitorType === 'cpu' || monitorType === 'gpu') ? 2 : 5;
     const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, intervalSec, () => {
         if (isDisposed) return GLib.SOURCE_REMOVE;
         updateData();

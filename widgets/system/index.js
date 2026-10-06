@@ -9,3 +9,4 @@ export { createAudioOutputNode } from './audioOutput.js';
 export { createControlsSlidersNode } from './controlsSliders.js';
 export { createPowerProfilesNode } from './powerProfiles.js';
 export { createStorageBarNode } from './storageBarWidget.js';
+export { createPowerTogglesNode } from './powerToggles.js';

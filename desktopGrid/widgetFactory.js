@@ -19,7 +19,8 @@ import {
     createAudioOutputNode,
     createControlsSlidersNode,
     createPowerProfilesNode,
-    createStorageBarNode
+    createStorageBarNode,
+    createPowerTogglesNode
 } from '../widgets/system/index.js';
 import { createPomodoroNode } from '../widgets/pomodoro.js';
 import { createPomodoroFocusNode } from '../widgets/pomodoroFocus.js';
@@ -99,6 +100,7 @@ const WIDGET_CREATORS = {
     'storageBar': (data, w, h, x, y) => createStorageBarNode(data, w, h, x, y),
     'cryptoWidget': (data, w, h, x, y) => createCryptoTrackerNode(data, w, h, x, y),
     'todayHistory': (data, w, h, x, y) => createTodayHistoryNode(data, w, h, x, y),
+    'powerToggles': (data, w, h, x, y) => createPowerTogglesNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

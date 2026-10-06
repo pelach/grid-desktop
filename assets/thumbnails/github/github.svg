@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 200" width="420" height="200">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .user-text { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 700; fill: #ffffff; }
+      .badge-text { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: #ffffff; opacity: 0.65; }
+      .label-text { font-family: system-ui, -apple-system, sans-serif; font-size: 9px; fill: #ffffff; opacity: 0.65; }
+      .footer-text { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; fill: #ffffff; opacity: 0.65; }
+      .legend-text { font-family: system-ui, -apple-system, sans-serif; font-size: 10px; fill: #ffffff; opacity: 0.65; }
+      .c-empty { fill: rgba(255, 255, 255, 0.12); rx: 2px; }
+      .c-l1 { fill: #0e4429; rx: 2px; }
+      .c-l2 { fill: #006d32; rx: 2px; }
+      .c-l3 { fill: #26a641; rx: 2px; }
+      .c-l4 { fill: #39d353; rx: 2px; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="420" height="200" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- FEJLÉC: Avatar, név és hozzájárulások -->
+  <g transform="translate(18, 16)">
+    <!-- Avatar kör -->
+    <circle cx="14" cy="14" r="14" fill="rgba(255, 255, 255, 0.15)" />
+    <!-- GitHub Octocat stilizált sziluett -->
+    <path d="M 14 6 C 9.5 6 6 9.5 6 14 C 6 17.6 8.3 20.6 11.6 21.7 C 12 21.8 12.1 21.5 12.1 21.3 C 12.1 21.1 12.1 20.6 12.1 20 C 9.9 20.5 9.4 19 9.4 19 C 9 18 8.5 17.7 8.5 17.7 C 7.8 17.2 8.6 17.2 8.6 17.2 C 9.4 17.3 9.8 18 9.8 18 C 10.5 19.2 11.7 18.8 12.1 18.6 C 12.2 18.1 12.4 17.7 12.6 17.5 C 10.8 17.3 9 16.6 9 13.4 C 9 12.5 9.3 11.8 9.8 11.2 C 9.7 11 9.4 10.2 9.9 9.1 C 9.9 9.1 10.6 8.9 12.1 10 C 12.8 9.8 13.4 9.7 14.1 9.7 C 14.8 9.7 15.5 9.8 16.1 10 C 17.6 8.9 18.3 9.1 18.3 9.1 C 18.8 10.2 18.5 11 18.4 11.2 C 18.9 11.8 19.2 12.5 19.2 13.4 C 19.2 16.6 17.3 17.3 15.6 17.5 C 15.9 17.8 16.2 18.3 16.2 19.1 C 16.2 20.2 16.2 21.1 16.2 21.3 C 16.2 21.5 16.4 21.8 16.8 21.7 C 20.1 20.6 22.3 17.6 22.3 14 C 22.3 9.5 18.7 6 14 6 Z" fill="#ffffff" opacity="0.85" />
+    
+    <text x="36" y="18" class="user-text">pelach</text>
+    <text x="384" y="18" text-anchor="end" class="badge-text">330 contributions</text>
+  </g>
+
+  <!-- MÁTRIX: Hónapfeliratok, napok és a commit rács -->
+  <g transform="translate(18, 54)">
+    <!-- Hónapcímkék -->
+    <text x="32" y="10" class="label-text">Jun</text>
+    <text x="116" y="10" class="label-text">Jul</text>
+    <text x="200" y="10" class="label-text">Aug</text>
+    <text x="284" y="10" class="label-text">Sep</text>
+    <text x="354" y="10" class="label-text">Oct</text>
+
+    <!-- Napcímkék (Mon, Wed, Fri) -->
+    <text x="0" y="32" class="label-text">Mon</text>
+    <text x="0" y="58" class="label-text">Wed</text>
+    <text x="0" y="84" class="label-text">Fri</text>
+
+    <!-- Hozzájárulás cellák (24 oszlop x 7 sor) -->
+    <g transform="translate(26, 18)">
+      <!-- 1-4. hét -->
+      <rect x="0" y="0" width="10" height="10" class="c-empty" /><rect x="0" y="13" width="10" height="10" class="c-l1" /><rect x="0" y="26" width="10" height="10" class="c-empty" /><rect x="0" y="39" width="10" height="10" class="c-l2" /><rect x="0" y="52" width="10" height="10" class="c-empty" /><rect x="0" y="65" width="10" height="10" class="c-empty" /><rect x="0" y="78" width="10" height="10" class="c-empty" />
+      <rect x="14" y="0" width="10" height="10" class="c-empty" /><rect x="14" y="13" width="10" height="10" class="c-empty" /><rect x="14" y="26" width="10" height="10" class="c-l2" /><rect x="14" y="39" width="10" height="10" class="c-l3" /><rect x="14" y="52" width="10" height="10" class="c-l1" /><rect x="14" y="65" width="10" height="10" class="c-empty" /><rect x="14" y="78" width="10" height="10" class="c-empty" />
+      <rect x="28" y="0" width="10" height="10" class="c-l1" /><rect x="28" y="13" width="10" height="10" class="c-l3" /><rect x="28" y="26" width="10" height="10" class="c-l4" /><rect x="28" y="39" width="10" height="10" class="c-empty" /><rect x="28" y="52" width="10" height="10" class="c-l2" /><rect x="28" y="65" width="10" height="10" class="c-empty" /><rect x="28" y="78" width="10" height="10" class="c-empty" />
+      <rect x="42" y="0" width="10" height="10" class="c-empty" /><rect x="42" y="13" width="10" height="10" class="c-empty" /><rect x="42" y="26" width="10" height="10" class="c-l1" /><rect x="42" y="39" width="10" height="10" class="c-empty" /><rect x="42" y="52" width="10" height="10" class="c-empty" /><rect x="42" y="65" width="10" height="10" class="c-empty" /><rect x="42" y="78" width="10" height="10" class="c-empty" />
+
+      <!-- 5-8. hét -->
+      <rect x="56" y="0" width="10" height="10" class="c-l2" /><rect x="56" y="13" width="10" height="10" class="c-l4" /><rect x="56" y="26" width="10" height="10" class="c-l4" /><rect x="56" y="39" width="10" height="10" class="c-l2" /><rect x="56" y="52" width="10" height="10" class="c-l3" /><rect x="56" y="65" width="10" height="10" class="c-empty" /><rect x="56" y="78" width="10" height="10" class="c-empty" />
+      <rect x="70" y="0" width="10" height="10" class="c-empty" /><rect x="70" y="13" width="10" height="10" class="c-l1" /><rect x="70" y="26" width="10" height="10" class="c-empty" /><rect x="70" y="39" width="10" height="10" class="c-l3" /><rect x="70" y="52" width="10" height="10" class="c-empty" /><rect x="70" y="65" width="10" height="10" class="c-empty" /><rect x="70" y="78" width="10" height="10" class="c-empty" />
+      <rect x="84" y="0" width="10" height="10" class="c-l3" /><rect x="84" y="13" width="10" height="10" class="c-l2" /><rect x="84" y="26" width="10" height="10" class="c-l4" /><rect x="84" y="39" width="10" height="10" class="c-l4" /><rect x="84" y="52" width="10" height="10" class="c-l1" /><rect x="84" y="65" width="10" height="10" class="c-empty" /><rect x="84" y="78" width="10" height="10" class="c-empty" />
+      <rect x="98" y="0" width="10" height="10" class="c-empty" /><rect x="98" y="13" width="10" height="10" class="c-empty" /><rect x="98" y="26" width="10" height="10" class="c-empty" /><rect x="98" y="39" width="10" height="10" class="c-l1" /><rect x="98" y="52" width="10" height="10" class="c-empty" /><rect x="98" y="65" width="10" height="10" class="c-empty" /><rect x="98" y="78" width="10" height="10" class="c-empty" />
+
+      <!-- 9-16. hét (sűrűbb szakasz) -->
+      <rect x="112" y="0" width="10" height="10" class="c-l1" /><rect x="112" y="13" width="10" height="10" class="c-l2" /><rect x="112" y="26" width="10" height="10" class="c-l3" /><rect x="112" y="39" width="10" height="10" class="c-l3" /><rect x="112" y="52" width="10" height="10" class="c-l2" /><rect x="112" y="65" width="10" height="10" class="c-empty" /><rect x="112" y="78" width="10" height="10" class="c-empty" />
+      <rect x="126" y="0" width="10" height="10" class="c-l2" /><rect x="126" y="13" width="10" height="10" class="c-l4" /><rect x="126" y="26" width="10" height="10" class="c-l4" /><rect x="126" y="39" width="10" height="10" class="c-l4" /><rect x="126" y="52" width="10" height="10" class="c-l3" /><rect x="126" y="65" width="10" height="10" class="c-l1" /><rect x="126" y="78" width="10" height="10" class="c-empty" />
+      <rect x="140" y="0" width="10" height="10" class="c-empty" /><rect x="140" y="13" width="10" height="10" class="c-l1" /><rect x="140" y="26" width="10" height="10" class="c-l2" /><rect x="140" y="39" width="10" height="10" class="c-l1" /><rect x="140" y="52" width="10" height="10" class="c-empty" /><rect x="140" y="65" width="10" height="10" class="c-empty" /><rect x="140" y="78" width="10" height="10" class="c-empty" />
+      <rect x="154" y="0" width="10" height="10" class="c-l3" /><rect x="154" y="13" width="10" height="10" class="c-l4" /><rect x="154" y="26" width="10" height="10" class="c-l3" /><rect x="154" y="39" width="10" height="10" class="c-l4" /><rect x="154" y="52" width="10" height="10" class="c-l4" /><rect x="154" y="65" width="10" height="10" class="c-empty" /><rect x="154" y="78" width="10" height="10" class="c-empty" />
+      <rect x="168" y="0" width="10" height="10" class="c-l1" /><rect x="168" y="13" width="10" height="10" class="c-l2" /><rect x="168" y="26" width="10" height="10" class="c-l2" /><rect x="168" y="39" width="10" height="10" class="c-l1" /><rect x="168" y="52" width="10" height="10" class="c-l3" /><rect x="168" y="65" width="10" height="10" class="c-empty" /><rect x="168" y="78" width="10" height="10" class="c-empty" />
+      <rect x="182" y="0" width="10" height="10" class="c-empty" /><rect x="182" y="13" width="10" height="10" class="c-empty" /><rect x="182" y="26" width="10" height="10" class="c-l1" /><rect x="182" y="39" width="10" height="10" class="c-empty" /><rect x="182" y="52" width="10" height="10" class="c-empty" /><rect x="182" y="65" width="10" height="10" class="c-empty" /><rect x="182" y="78" width="10" height="10" class="c-empty" />
+      <rect x="196" y="0" width="10" height="10" class="c-l2" /><rect x="196" y="13" width="10" height="10" class="c-l3" /><rect x="196" y="26" width="10" height="10" class="c-l4" /><rect x="196" y="39" width="10" height="10" class="c-l4" /><rect x="196" y="52" width="10" height="10" class="c-l2" /><rect x="196" y="65" width="10" height="10" class="c-empty" /><rect x="196" y="78" width="10" height="10" class="c-empty" />
+      <rect x="210" y="0" width="10" height="10" class="c-empty" /><rect x="210" y="13" width="10" height="10" class="c-l1" /><rect x="210" y="26" width="10" height="10" class="c-l1" /><rect x="210" y="39" width="10" height="10" class="c-l2" /><rect x="210" y="52" width="10" height="10" class="c-empty" /><rect x="210" y="65" width="10" height="10" class="c-empty" /><rect x="210" y="78" width="10" height="10" class="c-empty" />
+
+      <!-- 17-24. hét -->
+      <rect x="224" y="0" width="10" height="10" class="c-l3" /><rect x="224" y="13" width="10" height="10" class="c-l4" /><rect x="224" y="26" width="10" height="10" class="c-l4" /><rect x="224" y="39" width="10" height="10" class="c-l3" /><rect x="224" y="52" width="10" height="10" class="c-l4" /><rect x="224" y="65" width="10" height="10" class="c-empty" /><rect x="224" y="78" width="10" height="10" class="c-empty" />
+      <rect x="238" y="0" width="10" height="10" class="c-l1" /><rect x="238" y="13" width="10" height="10" class="c-l2" /><rect x="238" y="26" width="10" height="10" class="c-empty" /><rect x="238" y="39" width="10" height="10" class="c-l2" /><rect x="238" y="52" width="10" height="10" class="c-l1" /><rect x="238" y="65" width="10" height="10" class="c-empty" /><rect x="238" y="78" width="10" height="10" class="c-empty" />
+      <rect x="252" y="0" width="10" height="10" class="c-empty" /><rect x="252" y="13" width="10" height="10" class="c-l1" /><rect x="252" y="26" width="10" height="10" class="c-l3" /><rect x="252" y="39" width="10" height="10" class="c-l4" /><rect x="252" y="52" width="10" height="10" class="c-l3" /><rect x="252" y="65" width="10" height="10" class="c-empty" /><rect x="252" y="78" width="10" height="10" class="c-empty" />
+      <rect x="266" y="0" width="10" height="10" class="c-l2" /><rect x="266" y="13" width="10" height="10" class="c-l3" /><rect x="266" y="26" width="10" height="10" class="c-l2" /><rect x="266" y="39" width="10" height="10" class="c-l1" /><rect x="266" y="52" width="10" height="10" class="c-empty" /><rect x="266" y="65" width="10" height="10" class="c-empty" /><rect x="266" y="78" width="10" height="10" class="c-empty" />
+      <rect x="280" y="0" width="10" height="10" class="c-l4" /><rect x="280" y="13" width="10" height="10" class="c-l4" /><rect x="280" y="26" width="10" height="10" class="c-l4" /><rect x="280" y="39" width="10" height="10" class="c-l4" /><rect x="280" y="52" width="10" height="10" class="c-l3" /><rect x="280" y="65" width="10" height="10" class="c-l2" /><rect x="280" y="78" width="10" height="10" class="c-empty" />
+      <rect x="294" y="0" width="10" height="10" class="c-l1" /><rect x="294" y="13" width="10" height="10" class="c-empty" /><rect x="294" y="26" width="10" height="10" class="c-l2" /><rect x="294" y="39" width="10" height="10" class="c-l3" /><rect x="294" y="52" width="10" height="10" class="c-l2" /><rect x="294" y="65" width="10" height="10" class="c-empty" /><rect x="294" y="78" width="10" height="10" class="c-empty" />
+      <rect x="308" y="0" width="10" height="10" class="c-empty" /><rect x="308" y="13" width="10" height="10" class="c-l1" /><rect x="308" y="26" width="10" height="10" class="c-l2" /><rect x="308" y="39" width="10" height="10" class="c-empty" /><rect x="308" y="52" width="10" height="10" class="c-empty" /><rect x="308" y="65" width="10" height="10" class="c-empty" /><rect x="308" y="78" width="10" height="10" class="c-empty" />
+      <rect x="322" y="0" width="10" height="10" class="c-l3" /><rect x="322" y="13" width="10" height="10" class="c-l4" /><rect x="322" y="26" width="10" height="10" class="c-l4" /><rect x="322" y="39" width="10" height="10" class="c-empty" /><rect x="322" y="52" width="10" height="10" class="c-empty" /><rect x="322" y="65" width="10" height="10" class="c-empty" /><rect x="322" y="78" width="10" height="10" class="c-empty" />
+    </g>
+  </g>
+
+  <!-- LÁBLÉC: Szinkronizálás állapota és jelmagyarázat (Legend) -->
+  <g transform="translate(18, 172)">
+    <text x="0" y="10" class="footer-text">Synced 21:17</text>
+
+    <!-- Less / More skála -->
+    <g transform="translate(290, 0)">
+      <text x="0" y="9" class="legend-text">Less</text>
+      <rect x="26" y="2" width="8" height="8" class="c-empty" />
+      <rect x="38" y="2" width="8" height="8" class="c-l1" />
+      <rect x="50" y="2" width="8" height="8" class="c-l2" />
+      <rect x="62" y="2" width="8" height="8" class="c-l3" />
+      <rect x="74" y="2" width="8" height="8" class="c-l4" />
+      <text x="86" y="9" class="legend-text">More</text>
+    </g>
+  </g>
+</svg>

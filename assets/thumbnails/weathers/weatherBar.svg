@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 260" width="260" height="260">
+  <defs>
+    <linearGradient id="skyGradBars" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a75d3" />
+      <stop offset="60%" stop-color="#1b5cb8" />
+      <stop offset="100%" stop-color="#0f3e82" />
+    </linearGradient>
+    <radialGradient id="sunGlowBars" cx="100%" cy="0%" r="75%">
+      <stop offset="0%" stop-color="#ffe875" stop-opacity="0.85" />
+      <stop offset="35%" stop-color="#f6a623" stop-opacity="0.35" />
+      <stop offset="70%" stop-color="#2a75d3" stop-opacity="0" />
+    </radialGradient>
+    <!-- Hőmérsékleti sáv színátmenet -->
+    <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5b8cbd" />
+      <stop offset="100%" stop-color="#ffd043" />
+    </linearGradient>
+    <style>
+      .city-name { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 600; fill: #ffffff; }
+      .temp-main { font-family: system-ui, -apple-system, sans-serif; font-size: 28px; font-weight: 300; fill: #ffffff; }
+      .cond-name { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 400; fill: #ffffff; }
+      .hl-sub { font-family: system-ui, -apple-system, sans-serif; font-size: 9px; fill: #ffffff; opacity: 0.75; }
+      .h-time { font-family: system-ui, -apple-system, sans-serif; font-size: 9px; fill: #ffffff; opacity: 0.85; }
+      .h-temp { font-family: system-ui, -apple-system, sans-serif; font-size: 9.5px; font-weight: 500; fill: #ffffff; }
+      .d-day { font-family: system-ui, -apple-system, sans-serif; font-size: 10px; font-weight: 600; fill: #ffffff; }
+      .d-temp { font-family: system-ui, -apple-system, sans-serif; font-size: 10px; fill: #ffffff; opacity: 0.85; }
+      .d-temp-hi { font-family: system-ui, -apple-system, sans-serif; font-size: 10px; font-weight: 500; fill: #ffffff; }
+      .bar-bg { fill: rgba(255, 255, 255, 0.15); rx: 2px; }
+      .bar-fill { fill: url(#barGrad); rx: 2px; }
+      .cloud-sym { fill: #ffffff; opacity: 0.9; }
+    </style>
+  </defs>
+
+  <!-- Kártya háttér -->
+  <rect width="260" height="260" rx="14" fill="url(#skyGradBars)" stroke="rgba(255, 255, 255, 0.2)" stroke-width="1" />
+  <rect width="260" height="260" rx="14" fill="url(#sunGlowBars)" />
+
+  <!-- Napsugárzás a sarokban -->
+  <g transform="translate(260, 0)">
+    <circle cx="0" cy="0" r="30" fill="#ffdd55" />
+    <path d="M -45 5 L 0 0 L -40 25 Z" fill="#ffffff" opacity="0.25" />
+  </g>
+
+  <!-- 1. FEJLÉC: Város, Hőmérséklet, Állapot -->
+  <g transform="translate(16, 14)">
+    <text x="0" y="14" class="city-name">Kathmandu</text>
+    <text x="0" y="42" class="temp-main">25°</text>
+
+    <g transform="translate(228, 0)">
+      <path d="M -18 14 A 4 4 0 0 1 -17 6 A 6 6 0 0 1 -6 5 A 5 5 0 0 1 -1 10 A 5 5 0 0 1 -2 14 Z" class="cloud-sym" />
+      <text x="0" y="26" text-anchor="end" class="cond-name">Overcast</text>
+      <text x="0" y="38" text-anchor="end" class="hl-sub">H:28° L:16°</text>
+    </g>
+  </g>
+
+  <!-- 2. ÓRÁNKÉNTI MINI SÁV -->
+  <g transform="translate(16, 68)">
+    <!-- 5 mini oszlop -->
+    <g transform="translate(14, 0)">
+      <text x="0" y="8" text-anchor="middle" class="h-time">5 PM</text>
+      <path d="M -6 18 A 2.5 2.5 0 0 1 -5 13 A 3.5 3.5 0 0 1 1 12 A 3 3 0 0 1 5 15 A 3 3 0 0 1 4 18 Z" class="cloud-sym" />
+      <text x="0" y="28" text-anchor="middle" class="h-temp">25°</text>
+    </g>
+    <g transform="translate(64, 0)">
+      <text x="0" y="8" text-anchor="middle" class="h-time">6 PM</text>
+      <path d="M -6 18 A 2.5 2.5 0 0 1 -5 13 A 3.5 3.5 0 0 1 1 12 A 3 3 0 0 1 5 15 A 3 3 0 0 1 4 18 Z" class="cloud-sym" />
+      <text x="0" y="28" text-anchor="middle" class="h-temp">24°</text>
+    </g>
+    <g transform="translate(114, 0)">
+      <text x="0" y="8" text-anchor="middle" class="h-time">7 PM</text>
+      <path d="M -6 18 A 2.5 2.5 0 0 1 -5 13 A 3.5 3.5 0 0 1 1 12 A 3 3 0 0 1 5 15 A 3 3 0 0 1 4 18 Z" class="cloud-sym" />
+      <text x="0" y="28" text-anchor="middle" class="h-temp">24°</text>
+    </g>
+    <g transform="translate(164, 0)">
+      <text x="0" y="8" text-anchor="middle" class="h-time">8 PM</text>
+      <path d="M -6 18 A 2.5 2.5 0 0 1 -5 13 A 3.5 3.5 0 0 1 1 12 A 3 3 0 0 1 5 15 A 3 3 0 0 1 4 18 Z" class="cloud-sym" />
+      <text x="0" y="28" text-anchor="middle" class="h-temp">22°</text>
+    </g>
+    <g transform="translate(214, 0)">
+      <text x="0" y="8" text-anchor="middle" class="h-time">9 PM</text>
+      <path d="M -6 18 A 2.5 2.5 0 0 1 -5 13 A 3.5 3.5 0 0 1 1 12 A 3 3 0 0 1 5 15 A 3 3 0 0 1 4 18 Z" class="cloud-sym" />
+      <text x="0" y="28" text-anchor="middle" class="h-temp">21°</text>
+    </g>
+  </g>
+
+  <!-- 3. HETI ELŐREJELZÉS HŐMÉRSÉKLETI SÁVOKKAL (5 nap) -->
+  <g transform="translate(16, 116)">
+    <!-- Wed -->
+    <g transform="translate(0, 0)">
+      <text x="0" y="10" class="d-day">Wed</text>
+      <path d="M 32 10 A 2.5 2.5 0 0 1 33 5 A 3.5 3.5 0 0 1 39 4 A 3 3 0 0 1 43 7 A 3 3 0 0 1 42 10 Z" class="cloud-sym" />
+      <text x="64" y="10" text-anchor="end" class="d-temp">16°</text>
+      <rect x="74" y="5" width="112" height="4" class="bar-bg" />
+      <rect x="94" y="5" width="70" height="4" class="bar-fill" />
+      <text x="228" y="10" text-anchor="end" class="d-temp-hi">24°</text>
+    </g>
+
+    <!-- Thu -->
+    <g transform="translate(0, 26)">
+      <text x="0" y="10" class="d-day">Thu</text>
+      <path d="M 32 10 A 2.5 2.5 0 0 1 33 5 A 3.5 3.5 0 0 1 39 4 A 3 3 0 0 1 43 7 A 3 3 0 0 1 42 10 Z" class="cloud-sym" />
+      <text x="64" y="10" text-anchor="end" class="d-temp">17°</text>
+      <rect x="74" y="5" width="112" height="4" class="bar-bg" />
+      <rect x="100" y="5" width="68" height="4" class="bar-fill" />
+      <text x="228" y="10" text-anchor="end" class="d-temp-hi">24°</text>
+    </g>
+
+    <!-- Fri -->
+    <g transform="translate(0, 52)">
+      <text x="0" y="10" class="d-day">Fri</text>
+      <path d="M 32 10 A 2.5 2.5 0 0 1 33 5 A 3.5 3.5 0 0 1 39 4 A 3 3 0 0 1 43 7 A 3 3 0 0 1 42 10 Z" class="cloud-sym" />
+      <text x="64" y="10" text-anchor="end" class="d-temp">15°</text>
+      <rect x="74" y="5" width="112" height="4" class="bar-bg" />
+      <rect x="88" y="5" width="78" height="4" class="bar-fill" />
+      <text x="228" y="10" text-anchor="end" class="d-temp-hi">24°</text>
+    </g>
+
+    <!-- Sat -->
+    <g transform="translate(0, 78)">
+      <text x="0" y="10" class="d-day">Sat</text>
+      <path d="M 32 10 A 2.5 2.5 0 0 1 33 5 A 3.5 3.5 0 0 1 39 4 A 3 3 0 0 1 43 7 A 3 3 0 0 1 42 10 Z" class="cloud-sym" />
+      <text x="64" y="10" text-anchor="end" class="d-temp">14°</text>
+      <rect x="74" y="5" width="112" height="4" class="bar-bg" />
+      <rect x="82" y="5" width="66" height="4" class="bar-fill" />
+      <text x="228" y="10" text-anchor="end" class="d-temp-hi">21°</text>
+    </g>
+
+    <!-- Sun -->
+    <g transform="translate(0, 104)">
+      <text x="0" y="10" class="d-day">Sun</text>
+      <path d="M 32 10 A 2.5 2.5 0 0 1 33 5 A 3.5 3.5 0 0 1 39 4 A 3 3 0 0 1 43 7 A 3 3 0 0 1 42 10 Z" class="cloud-sym" />
+      <text x="64" y="10" text-anchor="end" class="d-temp">15°</text>
+      <rect x="74" y="5" width="112" height="4" class="bar-bg" />
+      <rect x="88" y="5" width="72" height="4" class="bar-fill" />
+      <text x="228" y="10" text-anchor="end" class="d-temp-hi">23°</text>
+    </g>
+  </g>
+</svg>

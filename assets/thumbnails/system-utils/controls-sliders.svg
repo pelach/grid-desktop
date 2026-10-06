@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140" width="240" height="140">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .header-title { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: bold; fill: #ffffff; opacity: 0.9; }
+      .icon-btn-bg { fill: rgba(255, 255, 255, 0.08); rx: 15px; }
+      .slider-track { fill: rgba(255, 255, 255, 0.12); rx: 11px; }
+      .vol-fill { fill: #b8e2f8; rx: 11px; }
+      .bright-fill { fill: #a3c9be; rx: 11px; }
+      .pct-label { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: bold; fill: #ffffff; }
+      .icon-stroke { fill: none; stroke: #ffffff; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="240" height="140" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Fejléc: Fogaskerék ikon és Controls felirat -->
+  <g transform="translate(14, 14)">
+    <g transform="translate(0, 1)">
+      <circle cx="8" cy="8" r="3" fill="none" stroke="#ffffff" stroke-width="1.8" />
+      <circle cx="8" cy="8" r="6.5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-dasharray="3.2 2.2" />
+    </g>
+    <text x="22" y="13" class="header-title">Controls</text>
+  </g>
+
+  <!-- 1. SOR: Hangerő vezérlő (62%) -->
+  <g transform="translate(14, 42)">
+    <!-- Hangerő ikon gomb -->
+    <rect width="30" height="30" class="icon-btn-bg" />
+    <g transform="translate(7, 7)">
+      <path d="M 2 5 L 5 5 L 9 2 L 9 14 L 5 11 L 2 11 Z" fill="#ffffff" />
+      <path d="M 12 4 A 5 5 0 0 1 12 12" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+    </g>
+
+    <!-- Kapszula csúszka háttér és aktív kitöltés (szélesség: 140px, magasság: 22px) -->
+    <rect x="36" y="4" width="140" height="22" class="slider-track" />
+    <rect x="36" y="4" width="87" height="22" class="vol-fill" />
+
+    <!-- Százalék felirat -->
+    <text x="222" y="19" text-anchor="end" class="pct-label">62%</text>
+  </g>
+
+  <!-- 2. SOR: Fényerő vezérlő (100%) -->
+  <g transform="translate(14, 84)">
+    <!-- Fényerő ikon gomb -->
+    <rect width="30" height="30" class="icon-btn-bg" />
+    <g transform="translate(7, 7)">
+      <circle cx="8" cy="8" r="3.5" class="icon-stroke" stroke-width="1.4" />
+      <line x1="8" y1="1" x2="8" y2="3" class="icon-stroke" stroke-width="1.4" />
+      <line x1="8" y1="13" x2="8" y2="15" class="icon-stroke" stroke-width="1.4" />
+      <line x1="1" y1="8" x2="3" y2="8" class="icon-stroke" stroke-width="1.4" />
+      <line x1="13" y1="8" x2="15" y2="8" class="icon-stroke" stroke-width="1.4" />
+      <line x1="3" y1="3" x2="4.5" y2="4.5" class="icon-stroke" stroke-width="1.4" />
+      <line x1="11.5" y1="11.5" x2="13" y2="13" class="icon-stroke" stroke-width="1.4" />
+      <line x1="3" y1="13" x2="4.5" y2="11.5" class="icon-stroke" stroke-width="1.4" />
+      <line x1="11.5" y1="4.5" x2="13" y2="3" class="icon-stroke" stroke-width="1.4" />
+    </g>
+
+    <!-- Kapszula csúszka háttér és aktív kitöltés (100%-os zöldes csík) -->
+    <rect x="36" y="4" width="140" height="22" class="slider-track" />
+    <rect x="36" y="4" width="140" height="22" class="bright-fill" />
+
+    <!-- Százalék felirat -->
+    <text x="222" y="19" text-anchor="end" class="pct-label">100%</text>
+  </g>
+</svg>

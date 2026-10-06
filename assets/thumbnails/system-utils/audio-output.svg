@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .header-title { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: bold; fill: #ffffff; opacity: 0.9; }
+      .row-card { fill: rgba(255, 255, 255, 0.05); stroke: rgba(255, 255, 255, 0.07); stroke-width: 1; rx: 8px; }
+      .row-card-active { fill: rgba(255, 255, 255, 0.18); stroke: rgba(255, 255, 255, 0.35); stroke-width: 1; rx: 8px; }
+      .dev-name { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 500; fill: #ffffff; }
+      .icon-stroke { fill: none; stroke: #ffffff; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="200" height="200" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Fejléc -->
+  <g transform="translate(14, 16)">
+    <!-- Speakers Header Icon -->
+    <path d="M 2 5 L 6 5 L 11 1 L 11 15 L 6 11 L 2 11 Z" fill="#ffffff" opacity="0.9" />
+    <path d="M 14 4 A 6 6 0 0 1 14 12" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" />
+    <text x="22" y="11" class="header-title">Audio Output</text>
+  </g>
+
+  <!-- 1. Gomb (Aktív): Analog Output -->
+  <g transform="translate(12, 38)">
+    <rect width="176" height="38" class="row-card-active" />
+    <g transform="translate(8, 10)" class="icon-stroke" stroke-width="1.4">
+      <path d="M 2 6 L 6 6 L 10 2 L 10 16 L 6 12 L 2 12 Z" fill="#ffffff" />
+      <path d="M 13 5 A 5 5 0 0 1 13 13" />
+    </g>
+    <text x="32" y="23" class="dev-name">Analog Output - UC...</text>
+    <!-- Pipa ikon -->
+    <polyline points="152,18 156,22 164,13" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- 2. Gomb: Digital S/PDIF -->
+  <g transform="translate(12, 82)">
+    <rect width="176" height="38" class="row-card" />
+    <g transform="translate(8, 10)" class="icon-stroke" stroke-width="1.4" opacity="0.75">
+      <path d="M 2 6 L 6 6 L 10 2 L 10 16 L 6 12 L 2 12 Z" fill="#ffffff" />
+    </g>
+    <text x="32" y="23" class="dev-name" opacity="0.8">Digital S/PDIF Output</text>
+  </g>
+
+  <!-- 3. Gomb: HDMI / DisplayPort -->
+  <g transform="translate(12, 126)">
+    <rect width="176" height="38" class="row-card" />
+    <g transform="translate(8, 10)" class="icon-stroke" stroke-width="1.4" opacity="0.75">
+      <path d="M 2 6 L 6 6 L 10 2 L 10 16 L 6 12 L 2 12 Z" fill="#ffffff" />
+    </g>
+    <text x="32" y="23" class="dev-name" opacity="0.8">HDMI / DisplayPort...</text>
+  </g>
+</svg>

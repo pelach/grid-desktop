@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="180" height="120">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .time-main { font-family: system-ui, -apple-system, sans-serif; font-size: 32px; font-weight: 300; fill: #ffffff; }
+      .ampm-sub { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 500; fill: #ffffff; opacity: 0.65; }
+      .date-sub { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; fill: #ffffff; opacity: 0.65; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="180" height="120" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Idő és dátum középre zárt blokk -->
+  <g transform="translate(90, 52)">
+    <text x="0" y="0" text-anchor="middle" class="time-main">11:43<tspan dx="4" dy="-6" class="ampm-sub">PM</tspan></text>
+    <text x="0" y="26" text-anchor="middle" class="date-sub">Tuesday, Jul 28</text>
+  </g>
+</svg>

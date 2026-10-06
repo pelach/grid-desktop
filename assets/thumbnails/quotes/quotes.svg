@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="220" height="220">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .quote-text { font-family: "Georgia", serif, system-ui; font-size: 16px; font-style: italic; line-height: 1.45; fill: #ffffff; }
+      .author-text { font-family: system-ui, -apple-system, sans-serif; font-size: 12.5px; fill: #ffffff; opacity: 0.65; }
+      .quote-mark { fill: #3584e4; opacity: 0.22; font-family: "Georgia", serif; font-size: 60px; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="220" height="220" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- Dekoratív idézőjel a háttérben -->
+  <text x="18" y="58" class="quote-mark">“</text>
+
+  <!-- Idézet szövegtörzs (többsoros tördelt blokk) -->
+  <g transform="translate(24, 60)">
+    <text x="0" y="0" class="quote-text">He who has a why</text>
+    <text x="0" y="24" class="quote-text">to live can bear</text>
+    <text x="0" y="48" class="quote-text">almost any how.</text>
+  </g>
+
+  <!-- Szerző felirat jobb alul -->
+  <text x="196" y="194" text-anchor="end" class="author-text">— Friedrich Nietzsche</text>
+</svg>

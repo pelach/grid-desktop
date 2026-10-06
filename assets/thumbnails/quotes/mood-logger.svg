@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 160" width="380" height="160">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .greeting-text { font-family: system-ui, -apple-system, sans-serif; font-size: 18px; font-weight: 300; fill: #ffffff; }
+      .date-text { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; fill: #ffffff; opacity: 0.65; }
+      .history-text { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; fill: #ffffff; opacity: 0.65; }
+      .picker-bg { fill: rgba(255, 255, 255, 0.08); rx: 16px; }
+      .picker-active-btn { fill: rgba(255, 255, 255, 0.12); rx: 14px; }
+      .face-icon { fill: none; stroke: #ffffff; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+      
+      /* Hangulat pontok */
+      .dot-empty { fill: rgba(255, 255, 255, 0.15); }
+      .m-sad { fill: #F43F5E; }
+      .m-worried { fill: #F97316; }
+      .m-plain { fill: #EAB308; }
+      .m-smile { fill: #22C55E; }
+      .m-laugh { fill: #3B82F6; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="380" height="160" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- BAL OLDAL: Köszöntés, dátum és a hangulatválasztó sor -->
+  <g transform="translate(20, 20)">
+    <text x="0" y="16" class="greeting-text">Good Night</text>
+    <text x="0" y="38" class="date-text">Tue, Aug 25</text>
+
+    <!-- 5 ikonos hangulatválasztó kapszula -->
+    <g transform="translate(0, 72)">
+      <rect width="144" height="34" class="picker-bg" />
+
+      <!-- 1. Sad -->
+      <g transform="translate(4, 3)" opacity="0.45">
+        <circle cx="14" cy="14" r="10" class="face-icon" />
+        <circle cx="10" cy="11" r="1" fill="#ffffff" />
+        <circle cx="18" cy="11" r="1" fill="#ffffff" />
+        <path d="M 10 18 C 12 15 16 15 18 18" class="face-icon" />
+      </g>
+
+      <!-- 2. Worried -->
+      <g transform="translate(32, 3)" opacity="0.45">
+        <circle cx="14" cy="14" r="10" class="face-icon" />
+        <circle cx="10" cy="11" r="1" fill="#ffffff" />
+        <circle cx="18" cy="11" r="1" fill="#ffffff" />
+        <path d="M 10 18 Q 14 15 18 18" class="face-icon" />
+      </g>
+
+      <!-- 3. Plain -->
+      <g transform="translate(60, 3)" opacity="0.45">
+        <circle cx="14" cy="14" r="10" class="face-icon" />
+        <circle cx="10" cy="11" r="1" fill="#ffffff" />
+        <circle cx="18" cy="11" r="1" fill="#ffffff" />
+        <line x1="10" y1="17" x2="18" y2="17" class="face-icon" />
+      </g>
+
+      <!-- 4. Smile -->
+      <g transform="translate(88, 3)" opacity="0.45">
+        <circle cx="14" cy="14" r="10" class="face-icon" />
+        <circle cx="10" cy="11" r="1" fill="#ffffff" />
+        <circle cx="18" cy="11" r="1" fill="#ffffff" />
+        <path d="M 10 16 C 12 19 16 19 18 16" class="face-icon" />
+      </g>
+
+      <!-- 5. Laugh (Kiválasztott aktív gomb) -->
+      <g transform="translate(116, 3)">
+        <rect width="24" height="28" class="picker-active-btn" />
+        <circle cx="12" cy="14" r="10" class="face-icon" stroke="#3B82F6" stroke-width="1.8" />
+        <circle cx="8" cy="11" r="1" fill="#3B82F6" />
+        <circle cx="16" cy="11" r="1" fill="#3B82F6" />
+        <path d="M 7 15 Q 12 21 17 15 Z" fill="#3B82F6" stroke="#3B82F6" stroke-width="1" />
+      </g>
+    </g>
+  </g>
+
+  <!-- JOBB OLDAL: Past 28 Days rács (7 oszlop x 4 sor) -->
+  <g transform="translate(196, 22)">
+    <text x="75" y="10" text-anchor="middle" class="history-text">Past 28 days</text>
+
+    <g transform="translate(10, 26)">
+      <!-- 1. Hét -->
+      <circle cx="6" cy="6" r="6" class="dot-empty" />
+      <circle cx="26" cy="6" r="6" class="dot-empty" />
+      <circle cx="46" cy="6" r="6" class="dot-empty" />
+      <circle cx="66" cy="6" r="6" class="dot-empty" />
+      <circle cx="86" cy="6" r="6" class="dot-empty" />
+      <circle cx="106" cy="6" r="6" class="dot-empty" />
+      <circle cx="126" cy="6" r="6" class="dot-empty" />
+
+      <!-- 2. Hét -->
+      <circle cx="6" cy="26" r="6" class="dot-empty" />
+      <circle cx="26" cy="26" r="6" class="dot-empty" />
+      <circle cx="46" cy="26" r="6" class="dot-empty" />
+      <circle cx="66" cy="26" r="6" class="dot-empty" />
+      <circle cx="86" cy="26" r="6" class="dot-empty" />
+      <circle cx="106" cy="26" r="6" class="dot-empty" />
+      <circle cx="126" cy="26" r="6" class="dot-empty" />
+
+      <!-- 3. Hét -->
+      <circle cx="6" cy="46" r="6" class="dot-empty" />
+      <circle cx="26" cy="46" r="6" class="dot-empty" />
+      <circle cx="46" cy="46" r="6" class="dot-empty" />
+      <circle cx="66" cy="46" r="6" class="dot-empty" />
+      <circle cx="86" cy="46" r="6" class="dot-empty" />
+      <circle cx="106" cy="46" r="6" class="dot-empty" />
+      <circle cx="126" cy="46" r="6" class="dot-empty" />
+
+      <!-- 4. Hét (Színes bejegyzések és a mai nap) -->
+      <circle cx="6" cy="66" r="6" class="m-sad" />
+      <circle cx="26" cy="66" r="6" class="m-worried" />
+      <circle cx="46" cy="66" r="6" class="m-plain" />
+      <circle cx="66" cy="66" r="6" class="m-smile" />
+      <circle cx="86" cy="66" r="6" class="m-laugh" />
+      <circle cx="106" cy="66" r="6" class="m-smile" />
+      
+      <!-- Mai nap: kék kitöltés fehér hangsúlyos kerettel -->
+      <circle cx="126" cy="66" r="7" class="m-laugh" stroke="#ffffff" stroke-width="2" />
+    </g>
+  </g>
+</svg>

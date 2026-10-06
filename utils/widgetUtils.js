@@ -61,7 +61,8 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'ping-monitor': { minCols: 2, minRows: 2 },
     'storageBar': {minCols:8, minRows:4},
     'cryptoWidget': { minCols: 7, minRows: 4 },
-    'todayHistory': { minCols: 4, minRows: 4 }
+    'todayHistory': { minCols: 4, minRows: 4 },
+    'powerToggles': { minCols: 4, minRows: 4 },
 });
 
 /**
@@ -530,6 +531,7 @@ const SIZE_PRESETS = {
     'storageBar': [[8, 4], [10, 5], [12, 6]],
     'cryptoWidget':  [[7, 4], [9, 5], [11, 6]],
     'todayHistory': [[4, 4], [5, 5], [6, 6]],
+    'powerToggles': [[4, 4], [5, 5], [6, 6]],
 };
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];

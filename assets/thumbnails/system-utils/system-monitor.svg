@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" width="240" height="120">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .tile-bg { fill: rgba(255, 255, 255, 0.05); stroke: rgba(255, 255, 255, 0.07); stroke-width: 1; rx: 10px; }
+      .val-text { font-family: system-ui, -apple-system, sans-serif; font-size: 22px; font-weight: bold; fill: #ffffff; }
+      .unit-text { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 500; fill: #ffffff; opacity: 0.65; }
+      .label-text { font-family: system-ui, -apple-system, sans-serif; font-size: 10px; font-weight: 600; fill: #ffffff; opacity: 0.65; letter-spacing: 0.5px; }
+    </style>
+    <linearGradient id="cpuSparkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3584e4" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#3584e4" stop-opacity="0.0" />
+    </linearGradient>
+    <linearGradient id="memSparkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fő keret -->
+  <rect width="240" height="120" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- 1. TILE: CPU (Bal oldal) -->
+  <rect x="10" y="10" width="105" height="100" class="tile-bg" />
+  
+  <text x="20" y="34" class="val-text">26<tspan class="unit-text">%</tspan></text>
+  <text x="20" y="48" class="label-text">CPU</text>
+
+  <!-- CPU Sparkline -->
+  <path d="M 18 100 
+           L 18 92 
+           L 32 88 
+           L 44 94 
+           L 58 72 
+           L 70 82 
+           L 84 66 
+           L 96 78 
+           L 107 74 
+           L 107 100 Z" 
+        fill="url(#cpuSparkGrad)" />
+
+  <path d="M 18 92 
+           L 32 88 
+           L 44 94 
+           L 58 72 
+           L 70 82 
+           L 84 66 
+           L 96 78 
+           L 107 74" 
+        fill="none" stroke="#3584e4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- 2. TILE: Memory (Jobb oldal) -->
+  <rect x="125" y="10" width="105" height="100" class="tile-bg" />
+  
+  <text x="135" y="34" class="val-text">43<tspan class="unit-text">%</tspan></text>
+  <text x="135" y="48" class="label-text">MEMORY</text>
+
+  <!-- Memory Sparkline -->
+  <path d="M 133 100 
+           L 133 90 
+           L 146 88 
+           L 160 84 
+           L 174 86 
+           L 188 78 
+           L 202 80 
+           L 214 74 
+           L 222 76 
+           L 222 100 Z" 
+        fill="url(#memSparkGrad)" />
+
+  <path d="M 133 90 
+           L 146 88 
+           L 160 84 
+           L 174 86 
+           L 188 78 
+           L 202 80 
+           L 214 74 
+           L 222 76" 
+        fill="none" stroke="#ffffff" stroke-width="1.8" stroke-opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

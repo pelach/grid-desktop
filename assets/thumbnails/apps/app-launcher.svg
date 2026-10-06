@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
+  <defs>
+    <style>
+      .widget-bg { fill: #202b38; rx: 14px; }
+      .tile-bg { fill: rgba(255, 255, 255, 0.07); stroke: rgba(255, 255, 255, 0.08); stroke-width: 0.8; rx: 12px; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér -->
+  <rect width="240" height="160" class="widget-bg" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" />
+
+  <!-- 4 x 2 alkalmazás rács (12px margó, 8px közök) -->
+  <g transform="translate(14, 16)">
+    <!-- 1. SOR -->
+    <!-- 1. Firefox -->
+    <g transform="translate(0, 0)">
+      <rect width="48" height="58" class="tile-bg" />
+      <circle cx="24" cy="29" r="16" fill="#ff7139" />
+      <circle cx="24" cy="29" r="9" fill="#ffd13b" />
+    </g>
+
+    <!-- 2. GitHub -->
+    <g transform="translate(55, 0)">
+      <rect width="48" height="58" class="tile-bg" />
+      <circle cx="24" cy="29" r="15" fill="#24292e" stroke="#ffffff" stroke-width="1.2" />
+      <circle cx="24" cy="29" r="7" fill="#ffffff" />
+    </g>
+
+    <!-- 3. Settings / Cog -->
+    <g transform="translate(110, 0)">
+      <rect width="48" height="58" class="tile-bg" />
+      <circle cx="24" cy="29" r="15" fill="#3584e4" />
+      <circle cx="24" cy="29" r="7" fill="none" stroke="#ffffff" stroke-width="3" stroke-dasharray="5 3" />
+    </g>
+
+    <!-- 4. Weather / Cloud -->
+    <g transform="translate(165, 0)">
+      <rect width="48" height="58" class="tile-bg" />
+      <circle cx="24" cy="29" r="15" fill="#e5a50a" />
+      <circle cx="24" cy="25" r="7" fill="#ffffff" />
+      <path d="M 17 33 A 5 5 0 0 1 31 33 Z" fill="#ffffff" />
+    </g>
+
+    <!-- 2. SOR -->
+    <!-- 5. VS Code -->
+    <g transform="translate(0, 68)">
+      <rect width="48" height="58" class="tile-bg" />
+      <rect x="9" y="14" width="30" height="30" rx="6" fill="#007acc" />
+      <path d="M 18 22 L 29 29 L 18 36" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+
+    <!-- 6. YouTube -->
+    <g transform="translate(55, 68)">
+      <rect width="48" height="58" class="tile-bg" />
+      <rect x="9" y="17" width="30" height="24" rx="6" fill="#ff0000" />
+      <polygon points="21,24 29,29 21,34" fill="#ffffff" />
+    </g>
+
+    <!-- 7. Files / Camera -->
+    <g transform="translate(110, 68)">
+      <rect width="48" height="58" class="tile-bg" />
+      <circle cx="24" cy="29" r="15" fill="#9141ac" />
+      <circle cx="24" cy="29" r="6" fill="none" stroke="#ffffff" stroke-width="2.5" />
+    </g>
+
+    <!-- 8. Spotify -->
+    <g transform="translate(165, 68)">
+      <rect width="48" height="58" class="tile-bg" />
+      <circle cx="24" cy="29" r="15" fill="#1db954" />
+      <path d="M 16 26 C 21 24 27 25 31 27 M 18 30 C 22 28 26 29 29 31 M 20 34 C 23 33 26 33 28 35" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
+    </g>
+  </g>
+</svg>
