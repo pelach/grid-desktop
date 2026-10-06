@@ -121,7 +121,12 @@ export function createLiveCitySearchRow(grid, labelTitle, defaultCity, rowIdx) {
     updateStatusLabel(false);
 
     const selectCity = (cityItem) => {
-        selectedCityObj = { name: cityItem.name, timezone: cityItem.timezone || '', country: cityItem.country || '' };
+        const resolvedTz = resolveTimezoneForCity(cityItem);
+        selectedCityObj = { 
+            name: cityItem.name, 
+            timezone: resolvedTz, 
+            country: cityItem.country || '' 
+        };
         lastSelectedCityName = cityItem.name;
         updateStatusLabel(true);
         isInternalUpdate = true;
@@ -276,4 +281,92 @@ export function buildOpenMeteoCitySearchRow(grid, labelTitle, defaultLocation, r
     });
 
     return { getSelectedLocation: () => selectedLocation };
+}
+
+function resolveTimezoneForCity(cityItem) {
+    if (cityItem.timezone && cityItem.timezone.trim() !== '') {
+        return cityItem.timezone;
+    }
+
+    const country = (cityItem.country || '').toUpperCase();
+    const lng = parseFloat(cityItem.lng || 0);
+
+    // 1. Több időzónás nagy országok koordináta (hosszúsági fok) alapján
+    if (country === 'US' || country === 'CA') {
+        if (lng < -114) return country === 'CA' ? 'America/Vancouver' : 'America/Los_Angeles'; // Csendes-óceáni
+        if (lng < -102) return country === 'CA' ? 'America/Edmonton' : 'America/Denver';       // Hegyvidéki
+        if (lng < -85)  return country === 'CA' ? 'America/Winnipeg' : 'America/Chicago';      // Központi
+        return country === 'CA' ? 'America/Toronto' : 'America/New_York';                      // Keleti
+    }
+
+    if (country === 'RU') {
+        if (lng < 40) return 'Europe/Moscow';
+        if (lng < 55) return 'Europe/Samara';
+        if (lng < 70) return 'Asia/Yekaterinburg';
+        if (lng < 85) return 'Asia/Omsk';
+        if (lng < 100) return 'Asia/Krasnoyarsk';
+        if (lng < 115) return 'Asia/Irkutsk';
+        if (lng < 130) return 'Asia/Yakutsk';
+        return 'Asia/Vladivostok';
+    }
+
+    if (country === 'AU') {
+        if (lng < 129) return 'Australia/Perth';
+        if (lng < 138) return 'Australia/Adelaide';
+        return 'Australia/Sydney';
+    }
+
+    if (country === 'BR') {
+        if (lng < -54) return 'America/Manaus';
+        return 'America/Sao_Paulo';
+    }
+
+    // 2. Főbb egy-időzónás országok IANA zónái
+    const COUNTRY_TIMEZONES = {
+        'HU': 'Europe/Budapest',
+        'AE': 'Asia/Dubai',
+        'GB': 'Europe/London',
+        'UK': 'Europe/London',
+        'FR': 'Europe/Paris',
+        'DE': 'Europe/Berlin',
+        'IT': 'Europe/Rome',
+        'ES': 'Europe/Madrid',
+        'NL': 'Europe/Amsterdam',
+        'BE': 'Europe/Brussels',
+        'AT': 'Europe/Vienna',
+        'CH': 'Europe/Zurich',
+        'PL': 'Europe/Warsaw',
+        'CZ': 'Europe/Prague',
+        'SK': 'Europe/Bratislava',
+        'RO': 'Europe/Bucharest',
+        'RS': 'Europe/Belgrade',
+        'HR': 'Europe/Zagreb',
+        'GR': 'Europe/Athens',
+        'TR': 'Europe/Istanbul',
+        'UA': 'Europe/Kyiv',
+        'JP': 'Asia/Tokyo',
+        'CN': 'Asia/Shanghai',
+        'HK': 'Asia/Hong_Kong',
+        'SG': 'Asia/Singapore',
+        'KR': 'Asia/Seoul',
+        'IN': 'Asia/Kolkata',
+        'TH': 'Asia/Bangkok',
+        'QA': 'Asia/Qatar',
+        'SA': 'Asia/Riyadh',
+        'IL': 'Asia/Jerusalem',
+        'EG': 'Africa/Cairo',
+        'ZA': 'Africa/Johannesburg',
+        'NZ': 'Pacific/Auckland',
+        'MX': 'America/Mexico_City',
+        'AR': 'America/Argentina/Buenos_Aires',
+    };
+
+    if (COUNTRY_TIMEZONES[country]) {
+        return COUNTRY_TIMEZONES[country];
+    }
+
+    // 3. Fallback: Hosszúsági fok szerinti UTC eltolás közelítés
+    const roughOffsetHours = Math.round(lng / 15);
+    if (roughOffsetHours === 0) return 'UTC';
+    return roughOffsetHours > 0 ? `Etc/GMT-${roughOffsetHours}` : `Etc/GMT+${Math.abs(roughOffsetHours)}`;
 }

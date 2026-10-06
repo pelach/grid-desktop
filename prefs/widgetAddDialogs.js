@@ -11,6 +11,7 @@ import {
     addSunScheduleWidget,
     addAppLauncherWidget,
     addCountdownWidget,
+    addWorldAnalogWidget,
 } from './widgetAdders.js';
 import { createAppSelectionControls } from './appSelection.js';
 import { createLiveCitySearchRow, buildOpenMeteoCitySearchRow } from './citySearch.js';
@@ -277,6 +278,45 @@ export function openAddCountdownDialog(parentWindow, settings) {
             if (targetDate) {
                 // Átadjuk az addCountdownWidget-nek a paramétereket
                 addCountdownWidget(settings, eventName, `${targetDate}T00:00:00`, 4, 4);
+            }
+        }
+        dialogWindow.destroy();
+    });
+
+    dialog.present();
+}
+
+
+export function openAddWorldAnalogDialog(parentWindow, settings) {
+    const { dialog, grid } = createBaseWidgetAddDialog(parentWindow, 'Configure World Analog Clock Widget');
+
+    // Alapértelmezett 4 város tartalékkal (ha a DEFAULT_WORLD_CLOCK_CITIES csak 3 elemű lenne)
+    const [c1Default, c2Default, c3Default, c4Default] = DEFAULT_WORLD_CLOCK_CITIES || [];
+    const city1 = c1Default || { name: 'Toronto', timezone: 'America/Toronto', country: 'CA' };
+    const city2 = c2Default || { name: 'Vancouver', timezone: 'America/Vancouver', country: 'CA' };
+    const city3 = c3Default || { name: 'Calgary', timezone: 'America/Edmonton', country: 'CA' };
+    const city4 = c4Default || { name: 'Winnipeg', timezone: 'America/Winnipeg', country: 'CA' };
+
+    const picker1 = createLiveCitySearchRow(grid, 'City 1 (Top Left):', city1, 0);
+    const picker2 = createLiveCitySearchRow(grid, 'City 2 (Top Right):', city2, 1);
+    const picker3 = createLiveCitySearchRow(grid, 'City 3 (Bottom Left):', city3, 2);
+    const picker4 = createLiveCitySearchRow(grid, 'City 4 (Bottom Right):', city4, 3);
+
+    dialog.connect('response', (dialogWindow, responseId) => {
+        if (responseId === Gtk.ResponseType.OK) {
+            const cities = [
+                picker1.getSelectedCity(),
+                picker2.getSelectedCity(),
+                picker3.getSelectedCity(),
+                picker4.getSelectedCity(),
+            ];
+
+            // A konkrét analóg hozzáadó függvényt hívjuk a 'worldAnalog' típus létrehozásához
+            if (typeof addWorldAnalogWidget === 'function') {
+                addWorldAnalogWidget(settings, 4, 4, cities);
+            } else {
+                // Tartalék, ha közvetlenül addWidgettel mentenéd:
+                addTimeWidget(settings, 4, 4, 'worldAnalog', cities);
             }
         }
         dialogWindow.destroy();

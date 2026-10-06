@@ -330,12 +330,26 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system-utils/power.svg',
         fallbackIconName: 'system-shutdown-symbolic',
     },
+    powerToggles: {
+        title: 'Power Controls',
+        description: 'Quick power management buttons for suspend, reboot, shutdown, and logout.',
+        gridSize: '2x2',
+        thumbnail: 'system-utils/power.svg',
+        fallbackIconName: 'system-shutdown-symbolic',
+    },
+    worldAnalog: {
+        title: 'World Analog Clock',
+        description: 'Multi-city world clock displaying time across global timezones.',
+        gridSize: '4x4',
+        thumbnail: 'date-and-time/worldAnalog.svg',
+        fallbackIconName: 'preferences-system-time-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards'],
     music: ['musicPlayer', 'musicPlayerWide', 'musicVisualizer'],
-    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch'],
+    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
         'systemDashboard',
@@ -405,7 +419,12 @@ function getStoreWidgetKey(widget) {
             return 'weatherBars';    
         case 'music':
             return getMusicEntryKey(widget);
+        case 'worldAnalog':
+            return 'worldAnalog';
         case 'time':
+            if (widget.layout === 'worldAnalog' || widget.layout === 'worldClockAnalog') {
+                return 'worldAnalog';
+            }
             if (widget.layout === 'analog' || widget.type === 'analogClock') {
                 return 'analogClock';
             }

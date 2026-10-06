@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <!-- Számlap és mutató stílusok -->
+    <style>
+      .bg-card { fill: #24252a; rx: 16px; }
+      .face-dark { fill: #1a1c22; }
+      .face-light { fill: #ffffff; }
+      .text-dark-label { fill: #8a8d98; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 5.5px; font-weight: 700; text-anchor: middle; }
+      .text-light-label { fill: #65676e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 5.5px; font-weight: 700; text-anchor: middle; }
+      .text-dark-num { fill: #f0f1f4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 4.8px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+      .text-light-num { fill: #1c1d22; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 4.8px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+      .hand-dark { stroke: #ffffff; stroke-linecap: round; }
+      .hand-light { stroke: #18191d; stroke-linecap: round; }
+      .hand-sec { stroke: #ff9f0a; stroke-linecap: round; }
+      .center-dot { fill: #ff9f0a; }
+    </style>
+  </defs>
+
+  <!-- Fő widget háttér kártya -->
+  <rect class="bg-card" x="0" y="0" width="120" height="120" rx="18" />
+
+  <!-- ==================== 1. BAL FELSŐ: DEB (Sötét / Éjszaka) ==================== -->
+  <g transform="translate(32, 32)">
+    <circle class="face-dark" cx="0" cy="0" r="23" />
+    <text class="text-dark-label" x="0" y="-7">DEB</text>
+    
+    <!-- Számok -->
+    <text class="text-dark-num" x="0" y="-15.5">12</text>
+    <text class="text-dark-num" x="16" y="0">3</text>
+    <text class="text-dark-num" x="0" y="16">6</text>
+    <text class="text-dark-num" x="-16" y="0">9</text>
+
+    <!-- Mutatók: ~22:35 állás -->
+    <line class="hand-dark" x1="0" y1="0" x2="-8" y2="-8" stroke-width="2.1" /> <!-- Óramutató -->
+    <line class="hand-dark" x1="0" y1="0" x2="-11" y2="12" stroke-width="1.5" /> <!-- Percmutató -->
+    <line class="hand-sec" x1="2" y1="-1" x2="-16" y2="2" stroke-width="0.8" /> <!-- Másodpercmutató -->
+    <circle class="center-dot" cx="0" cy="0" r="1.4" />
+  </g>
+
+  <!-- ==================== 2. JOBB FELSŐ: NYC / EAS (Világos / Nappal) ==================== -->
+  <g transform="translate(88, 32)">
+    <circle class="face-light" cx="0" cy="0" r="23" />
+    <text class="text-light-label" x="0" y="-7">NYC</text>
+    
+    <!-- Számok -->
+    <text class="text-light-num" x="0" y="-15.5">12</text>
+    <text class="text-light-num" x="16" y="0">3</text>
+    <text class="text-light-num" x="0" y="16">6</text>
+    <text class="text-light-num" x="-16" y="0">9</text>
+
+    <!-- Mutatók: ~16:35 állás -->
+    <line class="hand-light" x1="0" y1="0" x2="8" y2="8" stroke-width="2.1" /> <!-- Óramutató -->
+    <line class="hand-light" x1="0" y1="0" x2="-11" y2="12" stroke-width="1.5" /> <!-- Percmutató -->
+    <line class="hand-sec" x1="2" y1="-1" x2="-16" y2="2" stroke-width="0.8" /> <!-- Másodpercmutató -->
+    <circle class="center-dot" cx="0" cy="0" r="1.4" />
+  </g>
+
+  <!-- ==================== 3. BAL ALSÓ: DUB / BUR (Sötét / Éjszaka) ==================== -->
+  <g transform="translate(32, 88)">
+    <circle class="face-dark" cx="0" cy="0" r="23" />
+    <text class="text-dark-label" x="0" y="-7">DXB</text>
+    
+    <!-- Számok -->
+    <text class="text-dark-num" x="0" y="-15.5">12</text>
+    <text class="text-dark-num" x="16" y="0">3</text>
+    <text class="text-dark-num" x="0" y="16">6</text>
+    <text class="text-dark-num" x="-16" y="0">9</text>
+
+    <!-- Mutatók: ~00:35 állás -->
+    <line class="hand-dark" x1="0" y1="0" x2="4" y2="-9" stroke-width="2.1" /> <!-- Óramutató -->
+    <line class="hand-dark" x1="0" y1="0" x2="-11" y2="12" stroke-width="1.5" /> <!-- Percmutató -->
+    <line class="hand-sec" x1="2" y1="-1" x2="-16" y2="2" stroke-width="0.8" /> <!-- Másodpercmutató -->
+    <circle class="center-dot" cx="0" cy="0" r="1.4" />
+  </g>
+
+  <!-- ==================== 4. JOBB ALSÓ: WIN (Világos / Nappal) ==================== -->
+  <g transform="translate(88, 88)">
+    <circle class="face-light" cx="0" cy="0" r="23" />
+    <text class="text-light-label" x="0" y="-7">WIN</text>
+    
+    <!-- Számok -->
+    <text class="text-light-num" x="0" y="-15.5">12</text>
+    <text class="text-light-num" x="16" y="0">3</text>
+    <text class="text-light-num" x="0" y="16">6</text>
+    <text class="text-light-num" x="-16" y="0">9</text>
+
+    <!-- Mutatók: ~15:35 állás -->
+    <line class="hand-light" x1="0" y1="0" x2="10" y2="3" stroke-width="2.1" /> <!-- Óramutató -->
+    <line class="hand-light" x1="0" y1="0" x2="-11" y2="12" stroke-width="1.5" /> <!-- Percmutató -->
+    <line class="hand-sec" x1="2" y1="-1" x2="-16" y2="2" stroke-width="0.8" /> <!-- Másodpercmutató -->
+    <circle class="center-dot" cx="0" cy="0" r="1.4" />
+  </g>
+</svg>

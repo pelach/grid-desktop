@@ -1,5 +1,8 @@
-import { createTimeNode } from '../widgets/time/index.js';
 import { createTimerNode } from '../widgets/time/timerWidget.js';
+import { 
+    createTimeNode, 
+    createWorldTimeAnalogNode 
+} from '../widgets/time/index.js';
 import { createCountdownNode } from '../widgets/time/countdownWidget.js';
 import { createStopwatchNode } from '../widgets/time/stopwatchWidget.js';
 import { createWeatherNode } from '../widgets/weather/index.js';
@@ -101,6 +104,7 @@ const WIDGET_CREATORS = {
     'cryptoWidget': (data, w, h, x, y) => createCryptoTrackerNode(data, w, h, x, y),
     'todayHistory': (data, w, h, x, y) => createTodayHistoryNode(data, w, h, x, y),
     'powerToggles': (data, w, h, x, y) => createPowerTogglesNode(data, w, h, x, y),
+    'worldAnalog': (data, w, h, x, y) => createWorldTimeAnalogNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

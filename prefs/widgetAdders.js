@@ -274,9 +274,21 @@ export function addTodayHistoryWidget(settings, width = 4, height = 4) {
         category: 'selected',
     }, width, height);
 }
+
 export function addPowerTogglesWidget(settings, width = 2, height = 2) {
     addWidget(settings, {
         id: nextWidgetId(settings, 'power-toggles'),
         type: 'powerToggles',
     }, width, height);
+}
+
+export function addWorldAnalogWidget(settings, width = 4, height = 4, cities = null) {
+    const config = {
+        id: nextWidgetId(settings, 'world-analog'),
+        type: 'worldAnalog',
+    };
+    if (cities && Array.isArray(cities)) {
+        config.cities = cities;
+    }
+    addWidget(settings, config, width, height);
 }

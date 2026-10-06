@@ -63,6 +63,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'cryptoWidget': { minCols: 7, minRows: 4 },
     'todayHistory': { minCols: 4, minRows: 4 },
     'powerToggles': { minCols: 4, minRows: 4 },
+    'worldAnalog': { minCols: 4, minRows: 4 },
 });
 
 /**
@@ -532,13 +533,19 @@ const SIZE_PRESETS = {
     'cryptoWidget':  [[7, 4], [9, 5], [11, 6]],
     'todayHistory': [[4, 4], [5, 5], [6, 6]],
     'powerToggles': [[4, 4], [5, 5], [6, 6]],
+    'worldAnalog': [[4, 4], [5, 5], [6, 6]],
 };
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];
 
 function resolveSizePresetTable(widgetData) {
     switch (widgetData.type) {
+        case 'worldAnalog':
+            return SIZE_PRESETS.worldAnalog;
         case 'time':
+            if (widgetData.layout === 'worldAnalog' || widgetData.layout === 'worldClockAnalog') {
+                return SIZE_PRESETS.worldAnalog;
+            }
             if (widgetData.layout === 'analog' || widgetData.type === 'analogClock') {
                 return SIZE_PRESETS.timeAnalog;
             }

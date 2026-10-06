@@ -76,6 +76,8 @@ export function createOpenMeteoCitySearch() {
                                 subtitle: `${item.admin1 ? item.admin1 + ', ' : ''}${item.country || ''}`,
                                 latitude: item.latitude,
                                 longitude: item.longitude,
+                                timezone: item.timezone, // <-- AZ OPEN-METEO EZT KAPÁSBÓL ADJA!
+                                country: item.country_code || item.country || '',
                             }));
                             renderResults(items);
                             return;
