@@ -7,6 +7,7 @@ import { buildGlobalSettingsPage } from './prefs/globalSettingsPage.js';
 import { buildIndividualSettingsPage } from './prefs/individualSettingsPage.js';
 import { buildInsightsPage } from './prefs/insightsPage.js';
 
+
 /** Returns a window size that always fits the primary monitor with margins. */
 function fitWindowToMonitor() {
     const DEFAULT_W = 800;
@@ -33,20 +34,12 @@ function fitWindowToMonitor() {
 export default class GridgetsPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const { width, height, smallScreen } = fitWindowToMonitor();
-        // AdwPreferencesWindow is a breakpoint window: it has NO minimum size
-        // of its own, and libadwaita requires width/height-request to be set
-        // explicitly (they define the smallest supported size). Without them,
-        // Adwaita logs "exceeds AdwBreakpointBin width" on every resize pass.
-        const reqWidth = Math.min(width, 800);
-        const reqHeight = Math.min(height, 600);
-        window.width_request = reqWidth;
-        window.height_request = reqHeight;
+
         window.set_default_size(width, height);
-        // On small screens (e.g. nested-shell testing) a fixed-size window is
-        // cramped or overflows; fill the monitor instead.
+        window.set_search_enabled(false);
+
         if (smallScreen)
             window.maximize();
-        window.set_search_enabled(false);
 
         const settings = this.getSettings();
         const extensionPath = this.path;

@@ -122,15 +122,24 @@ function createWidgetRow(window, settings, widget) {
 
     const icon = new Gtk.Image({
         icon_name: rowIconName,
-        pixel_size: 28,
+        pixel_size: 24, // 28 helyett a standard 24 Adwaita méret
         margin_end: 8,
+        valign: Gtk.Align.CENTER,
     });
     expanderRow.add_prefix(icon);
 
-    const deleteButton = new Gtk.Button({
+    // Külön ikon widget létrehozása a gombhoz explicit igazítással
+    const trashIcon = new Gtk.Image({
         icon_name: 'user-trash-symbolic',
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+    });
+
+    const deleteButton = new Gtk.Button({
+        child: trashIcon, // icon_name helyett közvetlen child!
         css_classes: ['destructive-action', 'flat'],
         valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
         tooltip_text: 'Remove Widget',
     });
 
@@ -147,7 +156,16 @@ function createWidgetRow(window, settings, widget) {
         saveWidgets(settings, remainingWidgets);
     });
 
-    expanderRow.add_suffix(deleteButton);
+    const suffixBox = new Gtk.Box({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+        baseline_position: Gtk.BaselinePosition.CENTER,
+    });
+    suffixBox.append(deleteButton);
+
+    expanderRow.add_suffix(suffixBox);
+    
 
     expanderRow.connect('notify::expanded', () => {
         if (!expanderRow.get_expanded() || expanderRow.editPanelLoaded) {

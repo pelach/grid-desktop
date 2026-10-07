@@ -46,6 +46,7 @@ export function buildAppearancePage(settings) {
         model,
         selected: currentIdx,
     });
+    themeRow.set_size_request(-1, 50);
 
     themeRow.connect('notify::selected', () => {
         const idx = themeRow.get_selected();
@@ -68,7 +69,11 @@ export function buildAppearancePage(settings) {
         title: 'Accent Color Override',
         subtitle: 'Manually set the accent color. Leave empty to use the system or theme default.',
     });
-    const accentBtn = new Gtk.ColorButton({ valign: Gtk.Align.CENTER });
+    const accentBtn = new Gtk.ColorButton({
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+    });
+
     const accentRgba = new Gdk.RGBA();
     const currentAccent = settings.get_string('accent-color-override');
     accentRgba.parse(currentAccent || '#3584e4');
@@ -76,7 +81,15 @@ export function buildAppearancePage(settings) {
     accentBtn.connect('color-set', () => {
         settings.set_string('accent-color-override', accentBtn.get_rgba().to_string());
     });
-    accentRow.add_suffix(accentBtn);
+
+    const accentBox = new Gtk.Box({
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+        baseline_position: Gtk.BaselinePosition.CENTER,
+    });
+    accentBox.append(accentBtn);
+
+    accentRow.add_suffix(accentBox);
     themeGroup.add(accentRow);
 
     page.add(themeGroup);

@@ -20,8 +20,16 @@ export function createNormalizedFontDescription(currentFont) {
 }
 
 function createColorRow(title, subtitle, settings, key, defaultVal = DEFAULT_FG_COLOR) {
-    const row = new Adw.ActionRow({ title, subtitle });
-    const btn = new Gtk.ColorButton({ valign: Gtk.Align.CENTER });
+    const row = new Adw.ActionRow({ 
+        title, 
+        subtitle,
+    });
+    
+    const btn = new Gtk.ColorButton({ 
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+    });
+    
     const rgba = new Gdk.RGBA();
     const parsed = rgba.parse(settings.get_string(key) || defaultVal);
     if (!parsed)
@@ -30,7 +38,15 @@ function createColorRow(title, subtitle, settings, key, defaultVal = DEFAULT_FG_
     btn.connect('color-set', () => {
         settings.set_string(key, btn.get_rgba().to_string());
     });
-    row.add_suffix(btn);
+
+    const box = new Gtk.Box({
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+        baseline_position: Gtk.BaselinePosition.CENTER,
+    });
+    box.append(btn);
+
+    row.add_suffix(box);
     return row;
 }
 
@@ -88,7 +104,12 @@ export function buildGlobalAestheticsGroup(settings) {
         title: 'Global Font Family',
         subtitle: 'Choose the default font used across all widgets.',
     });
-    const fontBtn = new Gtk.FontButton({ valign: Gtk.Align.CENTER });
+
+    const fontBtn = new Gtk.FontButton({ 
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+    });
+
     const currentFont = settings.get_string('global-font-family') || DEFAULT_FONT_FAMILY;
     fontBtn.set_font(createNormalizedFontDescription(currentFont).to_string());
     fontBtn.connect('font-set', () => {
@@ -98,7 +119,15 @@ export function buildGlobalAestheticsGroup(settings) {
             settings.set_string('global-font-family', `'${family}', sans-serif`);
         }
     });
-    fontRow.add_suffix(fontBtn);
+
+    const fontBox = new Gtk.Box({
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+        baseline_position: Gtk.BaselinePosition.CENTER,
+    });
+    fontBox.append(fontBtn);
+
+    fontRow.add_suffix(fontBox);
     group.add(fontRow);
 
     return group;

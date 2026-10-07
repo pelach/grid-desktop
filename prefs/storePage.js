@@ -127,6 +127,7 @@ function createDesktopWidgetCard(extensionPath, widgetEntry, onAddClick) {
         margin_bottom: 6,
         margin_start: 6,
         margin_end: 6,
+        baseline_position: Gtk.BaselinePosition.CENTER,
     });
     card.set_size_request(-1, DESKTOP_CARD_HEIGHT_PX);
 
@@ -161,6 +162,7 @@ function createDesktopWidgetCard(extensionPath, widgetEntry, onAddClick) {
         margin_end: 12,
         margin_bottom: 10,
         valign: Gtk.Align.END,
+        halign: Gtk.Align.FILL,
         vexpand: true,
     });
     addButton.connect('clicked', onAddClick);

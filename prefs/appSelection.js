@@ -137,6 +137,7 @@ export function createAppSelectionControls(grid, rowIdx, defaultApps = []) {
                 margin_bottom: 8,
                 margin_start: 10,
                 margin_end: 10,
+                baseline_position: Gtk.BaselinePosition.CENTER,
             });
 
             const icon = new Gtk.Image({

@@ -184,9 +184,13 @@ export function buildGlobalSettingsPage(settings) {
     desktopGroup.add(showMountsRow);
 
     // RENDRAKÁS GOMB
+    const organizeRow = new Adw.ActionRow({
+        title: 'Auto-Layout',
+        subtitle: 'Re-align and organize all desktop icons',
+    });
     const organizeButton = new Gtk.Button({
-        label: 'Refresh (Auto-Layout)',
-        margin_top: 12,
+        label: 'Refresh',
+        valign: Gtk.Align.CENTER,
         css_classes: ['suggested-action'],
     });
     organizeButton.connect('clicked', () => {
@@ -196,7 +200,8 @@ export function buildGlobalSettingsPage(settings) {
         settings.set_enum('desktop-icons-side', tempSide);
         settings.set_enum('desktop-icons-side', currentSide);
     });
-    desktopGroup.add(organizeButton);
+    organizeRow.add_suffix(organizeButton);
+    desktopGroup.add(organizeRow);
 
     page.add(desktopGroup);
 

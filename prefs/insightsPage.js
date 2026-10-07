@@ -169,10 +169,12 @@ function buildDayNavRow(title) {
     const prevBtn = new Gtk.Button({
         icon_name: 'go-previous-symbolic',
         valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
     });
     const nextBtn = new Gtk.Button({
         icon_name: 'go-next-symbolic',
         valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
     });
     row.add_suffix(prevBtn);
     row.add_suffix(nextBtn);
@@ -569,7 +571,11 @@ export function buildInsightsPage(settings) {
             const appInfo = resolveDesktopAppInfo(app.key);
             const gicon = appInfo ? appInfo.get_icon() : null;
             if (gicon) {
-                const img = new Gtk.Image({ gicon, pixel_size: 24 });
+                const img = new Gtk.Image({ 
+                    gicon, 
+                    pixel_size: 24,
+                    valign: Gtk.Align.CENTER
+                });
                 row.add_prefix(img);
             }
             stAppsBox.append(row);
