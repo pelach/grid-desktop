@@ -305,7 +305,7 @@ export const STORE_WIDGETS = Object.freeze({
     storageBar: {
         title: 'Storage Bar',
         description: 'Storge bar.',
-        gridSize: '8x4',
+        gridSize: '4x7',
         thumbnail: 'system-utils/storage-bar.svg',
         fallbackIconName: 'drive-harddisk-symbolic',
     },

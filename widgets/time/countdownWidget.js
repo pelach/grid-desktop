@@ -3,6 +3,9 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import { resolveWidgetForegroundColor, resolveExplicitFontFamily, cssColorToRgba } from '../../utils/widgetUtils.js';
 import { drawCircularArc, createWidgetContainer, connectTimerCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+import Gio from 'gi://Gio';
 
 const COUNTDOWN_ARC_LINE_WIDTH_RATIO = 0.06;
 const BASE_CONTAINER_SIZE = 220;
@@ -30,6 +33,7 @@ export function createCountdownNode(config, width, height, xPosition, yPosition)
         days: 0,
         subText: '',
         progress: 0,
+        hasNotified: false,
     };
 
     let scale = Math.min(width, height) / BASE_CONTAINER_SIZE;
@@ -70,7 +74,7 @@ export function createCountdownNode(config, width, height, xPosition, yPosition)
     });
 
     const mainLabel = new St.Label({
-        text: '0 nap',
+        text: '0 day',
         x_align: Clutter.ActorAlign.CENTER,
         style: `${fontCss}color: ${textColor}; font-size: ${mainFontSize}px; font-weight: 300;`,
     });
@@ -94,12 +98,19 @@ export function createCountdownNode(config, width, height, xPosition, yPosition)
     contentStack.add_child(labelsBox);
 
     container.set_child(contentStack);
+
+    const source = new MessageTray.Source({
+        title: 'Timer',
+        iconName: 'alarm-symbolic',
+    });
+    Main.messageTray.add(source);
     
     const calculateTimeRemaining = () => {
         if (!targetTimestamp) {
-            mainLabel.set_text('Nincs cél');
-            subLabel.set_text('Állítsd be a prefs-ben');
+            mainLabel.set_text('No goal');
+            subLabel.set_text('Set of preferences');
             state.progress = 0;
+            state.hasNotified = false;
             canvasActor.queue_repaint();
             return;
         }
@@ -108,10 +119,27 @@ export function createCountdownNode(config, width, height, xPosition, yPosition)
         const diffMs = targetTimestamp - now;
 
         if (diffMs <= 0) {
-            mainLabel.set_text('Lejárt!');
+            mainLabel.set_text('Ending!');
             subLabel.set_text('00:00:00');
             state.progress = 1;
             canvasActor.queue_repaint();
+
+            const notification = new MessageTray.Notification({
+                source: source,
+                title: 'Countdown',
+                body: '${eventTitle} has ended!',
+                gicon: new Gio.ThemedIcon({ name: 'alarm-symbolic' }),
+                isTransient: false, 
+            });
+
+            notification.urgency = MessageTray.Urgency.CRITICAL;
+            source.addNotification(notification);
+            
+            global.display.get_sound_player().play_from_theme(
+                'alarm-clock-elapsed',
+                'Countdown',
+                null
+            );
             return;
         }
 
@@ -121,7 +149,7 @@ export function createCountdownNode(config, width, height, xPosition, yPosition)
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
 
-        mainLabel.set_text(`${days} nap`);
+        mainLabel.set_text(`${days} day`);
         subLabel.set_text(
             `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
         );
@@ -142,10 +170,18 @@ export function createCountdownNode(config, width, height, xPosition, yPosition)
     // Másodpercenkénti frissítés a pontos számlálóhoz
     state.timerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
         calculateTimeRemaining();
+        if (targetTimestamp && Date.now() >= targetTimestamp) {
+            state.timerId = null;
+            return GLib.SOURCE_REMOVE;
+        }
         return GLib.SOURCE_CONTINUE;
     });
 
     connectTimerCleanup(container, state);
+
+    container.connect('destroy', () => {
+        source.destroy();
+    });
 
     function applyScale(newScale) {
         scale = newScale;

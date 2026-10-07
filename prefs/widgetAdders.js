@@ -254,7 +254,7 @@ export function addPingWidget(settings, width = 4, height = 4) {
     }, width, height);
 }
 
-export function addStorageBarWidget(settings, width = 8, height = 4) {
+export function addStorageBarWidget(settings, width = 7, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'storageBar'), type: 'storageBar' }, width, height);
 }
 

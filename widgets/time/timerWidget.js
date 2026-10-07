@@ -4,6 +4,10 @@ import GLib from 'gi://GLib';
 import { resolveWidgetForegroundColor, resolveExplicitFontFamily, cssColorToRgba } from '../../utils/widgetUtils.js';
 import { drawCircularArc, createWidgetContainer, connectTimerCleanup, attachButtonFeedback, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { BUTTON_PRIMARY } from '../../desktopGrid/constants.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+import Gio from 'gi://Gio';
+
 
 const TIMER_ARC_LINE_WIDTH_RATIO = 0.06;
 const BASE_CONTAINER_SIZE = 220;
@@ -127,6 +131,12 @@ export function createTimerNode(config, width, height, xPosition, yPosition) {
         canvasActor.queue_repaint();
     };
 
+    const source = new MessageTray.Source({
+        title: 'Timer',
+        iconName: 'alarm-symbolic',
+    });
+    Main.messageTray.add(source);
+
     const stopTimer = () => {
         if (state.timerId) {
             GLib.source_remove(state.timerId);
@@ -150,6 +160,25 @@ export function createTimerNode(config, width, height, xPosition, yPosition) {
                 updateDisplay();
                 if (state.secondsRemaining === 0) {
                     stopTimer();
+
+                    const notification = new MessageTray.Notification({
+                        source: source,
+                        title: 'Timer',
+                        body: 'The timer has expired!',
+                        gicon: new Gio.ThemedIcon({ name: 'alarm-symbolic' }),
+                        isTransient: false, 
+                    });
+
+                    notification.urgency = MessageTray.Urgency.CRITICAL;
+
+                    source.addNotification(notification);
+                    
+                    global.display.get_sound_player().play_from_theme(
+                        'alarm-clock-elapsed',
+                        'Timer',
+                        null
+                    );
+
                     return GLib.SOURCE_REMOVE;
                 }
                 return GLib.SOURCE_CONTINUE;
@@ -182,6 +211,11 @@ export function createTimerNode(config, width, height, xPosition, yPosition) {
 
     connectTimerCleanup(container, state);
     updateDisplay();
+
+    container.connect('destroy', () => {
+        stopTimer();
+        source.destroy();
+    });
 
     function applyScale(newScale) {
         scale = newScale;
