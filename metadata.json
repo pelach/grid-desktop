@@ -3,12 +3,13 @@
   "name": "Grid Desktop",
   "description": "Grid-based desktop widgets and icon management for GNOME.\n* Desktop icons support: place, organize, and manage files and launchers on the desktop.\n* Desktop widgets: clock, weather, notes, music, system monitor, clipboard, and image widgets on an aligned grid.\n* Local clipboard history with quick access.\n* Drag, resize, and customise each widget independently.",
   "shell-version": [
-    "45",
     "46",
     "47",
-    "48"
+    "48",
+    "49",
+    "50"
   ],
   "settings-schema": "org.gnome.shell.extensions.grid-desktop",
   "url": "https://github.com/pelach/grid-desktop",
-  "version": 5
+  "version": 6
 }
