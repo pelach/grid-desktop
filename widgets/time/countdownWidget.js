@@ -127,7 +127,7 @@ export function createCountdownNode(config, width, height, xPosition, yPosition)
             const notification = new MessageTray.Notification({
                 source: source,
                 title: 'Countdown',
-                body: '${eventTitle} has ended!',
+                body: eventTitle +' has ended!',
                 gicon: new Gio.ThemedIcon({ name: 'alarm-symbolic' }),
                 isTransient: false, 
             });
