@@ -118,31 +118,47 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
     // Forrás színek betöltése az Evolution konfigurációból
     const getCalendarSourcesMap = () => {
         const map = new Map();
-        try {
-            const homeDir = GLib.get_home_dir();
-            const sourcesDir = Gio.File.new_for_path(`${homeDir}/.config/evolution/sources`);
-            if (sourcesDir.query_exists(null)) {
-                const enumerator = sourcesDir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
-                let fileInfo;
-                while ((fileInfo = enumerator.next_file(null)) !== null) {
-                    const filename = fileInfo.get_name();
-                    if (!filename.endsWith('.source')) continue;
+        const homeDir = GLib.get_home_dir();
 
-                    const [ok, bytes] = GLib.file_get_contents(`${homeDir}/.config/evolution/sources/${filename}`);
-                    if (!ok || !bytes) continue;
-                    const content = new TextDecoder().decode(bytes);
+        const scanDir = (dirFile) => {
+            try {
+                if (!dirFile.query_exists(null)) return;
+                const enumerator = dirFile.enumerate_children('standard::name,standard::type', Gio.FileQueryInfoFlags.NONE, null);
+                let info;
+                while ((info = enumerator.next_file(null)) !== null) {
+                    const child = dirFile.get_child(info.get_name());
+                    if (info.get_file_type() === Gio.FileType.DIRECTORY) {
+                        scanDir(child); // bemegyünk az alkönyvtárakba (pl. 37e4b1e9...)
+                    } else if (info.get_name().endsWith('.source')) {
+                        const [ok, bytes] = child.load_contents(null);
+                        if (!ok || !bytes) continue;
+                        const content = new TextDecoder().decode(bytes);
 
-                    if (!content.includes('[Calendar]')) continue;
+                        if (!content.includes('[Calendar]')) continue;
 
-                    let color = '#4a90d9';
-                    const colorMatch = content.match(/Color=([^\r\n]+)/);
-                    if (colorMatch && colorMatch[1]) color = colorMatch[1].trim();
+                        let color = null;
+                        // Először a [Calendar] alatti Color-t keressük, ha nincs, a WebDAV alól
+                        const colorMatch = content.match(/Color=([^\r\n]+)/);
+                        if (colorMatch && colorMatch[1]) {
+                            color = colorMatch[1].trim();
+                        }
 
-                    const uid = filename.replace(/\.source$/, '');
-                    map.set(uid, color);
+                        if (color) {
+                            const uid = info.get_name().replace(/\.source$/, '');
+                            map.set(uid, color);
+                        }
+                    }
                 }
+            } catch (e) {
+                console.log('[CalendarTasks] Source scan error:', e.message);
             }
-        } catch (e) {}
+        };
+
+        // Mindkét lehetséges helyet bejárjuk mélységében
+        scanDir(Gio.File.new_for_path(`${homeDir}/.config/evolution/sources`));
+        scanDir(Gio.File.new_for_path(`${homeDir}/.cache/evolution/sources`));
+
+        console.log('[CalendarTasks] Betöltött naptár színek száma:', map.size);
         return map;
     };
 
@@ -185,15 +201,25 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
             return;
         }
 
+
+
         // Feldolgozás és idő szerinti rendezés
         const parsed = [];
         for (const ev of rawEvents) {
             let calColor = '#4a90d9';
-            if (ev.sourceUid) {
-                for (const [sUid, color] of calMap.entries()) {
-                    if (ev.sourceUid.includes(sUid)) {
-                        calColor = color;
-                        break;
+
+            // Az ev.id első sora a naptár UID-je!
+            if (ev.id) {
+                const sourceUid = ev.id.split('\n')[0].trim();
+                if (calMap.has(sourceUid)) {
+                    calColor = calMap.get(sourceUid);
+                } else {
+                    // Ha részleges egyezés kellene
+                    for (const [sUid, color] of calMap.entries()) {
+                        if (sourceUid.includes(sUid) || sUid.includes(sourceUid)) {
+                            calColor = color;
+                            break;
+                        }
                     }
                 }
             }
@@ -201,10 +227,19 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
             let timeStr = '';
             let sortTime = -1;
 
-            if (!ev.isAllDay && ev.date) {
-                const dt = GLib.DateTime.new_from_unix_local(Math.floor(ev.date.getTime() / 1000));
-                timeStr = dt.format('%H:%M');
-                sortTime = dt.get_hour() * 60 + dt.get_minute();
+            if (ev.date) {
+                const startJs = new Date(ev.date);
+                const endJs = ev.end ? new Date(ev.end) : null;
+                const durationMs = endJs ? (endJs.getTime() - startJs.getTime()) : 0;
+
+                // Ha pont 1 teljes nap (vagy annak többszöröse), akkor egész napos esemény (pl. Névnap)
+                const isAllDay = (durationMs > 0 && durationMs % (24 * 60 * 60 * 1000) === 0);
+
+                if (!isAllDay) {
+                    const dt = GLib.DateTime.new_from_unix_local(Math.floor(startJs.getTime() / 1000));
+                    timeStr = dt.format('%H:%M');
+                    sortTime = dt.get_hour() * 60 + dt.get_minute();
+                }
             }
 
             parsed.push({
@@ -288,8 +323,53 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
         applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX)));
     });
 
+    let hasLoaded = false;
+    let fallbackTimerId = null;
+    let mapSignalId = 0;
+
+    const triggerInitialLoad = () => {
+        if (hasLoaded || isDisposed || isActorDestroyed(container)) return;
+        hasLoaded = true;
+        loadDayEvents();
+    };
+
+    if (container.get_stage() && container.is_mapped()) {
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            triggerInitialLoad();
+            return GLib.SOURCE_REMOVE;
+        });
+    } else {
+        mapSignalId = container.connect('notify::mapped', () => {
+            if (container.is_mapped()) {
+                if (mapSignalId) {
+                    container.disconnect(mapSignalId);
+                    mapSignalId = 0;
+                }
+                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                    triggerInitialLoad();
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
+        });
+    }
+
+    fallbackTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+        triggerInitialLoad();
+        fallbackTimerId = null;
+        return GLib.SOURCE_REMOVE;
+    });
+
+    // ── Takarítás bezáráskor / törléskor ──
     registerWidgetCleanup(container, () => {
         isDisposed = true;
+        if (mapSignalId) {
+            container.disconnect(mapSignalId);
+            mapSignalId = 0;
+        }
+        if (fallbackTimerId) {
+            GLib.source_remove(fallbackTimerId);
+            fallbackTimerId = null;
+        }
     });
 
     return container;
