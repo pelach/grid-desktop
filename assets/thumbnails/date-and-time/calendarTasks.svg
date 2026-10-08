@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 200 200"
+   width="200"
+   height="200"
+   version="1.1"
+   id="svg13"
+   sodipodi:docname="gemini-svg.svg"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview13"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="4.02"
+     inkscape:cx="100"
+     inkscape:cy="100"
+     inkscape:window-width="1920"
+     inkscape:window-height="1015"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g13" />
+  <defs
+     id="defs1">
+    <!-- Widget sötét háttér -->
+    <rect
+       id="bg"
+       width="200"
+       height="200"
+       rx="16"
+       fill="#1e1e24" />
+  </defs>
+  <use
+     href="#bg"
+     id="use1" />
+  <!-- Fejléc: Ikon + Dátum + Nyilak -->
+  <g
+     transform="translate(14, 14)"
+     id="g4">
+    <!-- Naptár ikon -->
+    <path
+       d="M2 4h12v11H2V4zm2-2v2m8-2v2M2 7h12"
+       fill="none"
+       stroke="#ffffff"
+       stroke-width="1.5"
+       stroke-linecap="round"
+       stroke-linejoin="round"
+       opacity="0.85"
+       id="path1" />
+    <!-- Dátum felirat -->
+    <text
+       x="20"
+       y="11"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="11"
+       font-weight="bold"
+       opacity="0.9"
+       id="text1">OCT 10, SAT</text>
+    <!-- Léptető gombok -->
+    <g
+       transform="translate(140, 0)"
+       id="g3">
+      <rect
+         x="0"
+         y="0"
+         width="14"
+         height="14"
+         rx="3"
+         fill="#ffffff"
+         fill-opacity="0.08"
+         id="rect1" />
+      <text
+         x="4.5"
+         y="10.5"
+         fill="#ffffff"
+         font-family="Cantarell, Sans, Arial"
+         font-size="9"
+         font-weight="bold"
+         opacity="0.8"
+         id="text2">‹</text>
+      <rect
+         x="18"
+         y="0"
+         width="14"
+         height="14"
+         rx="3"
+         fill="#ffffff"
+         fill-opacity="0.08"
+         id="rect2" />
+      <text
+         x="22.5"
+         y="10.5"
+         fill="#ffffff"
+         font-family="Cantarell, Sans, Arial"
+         font-size="9"
+         font-weight="bold"
+         opacity="0.8"
+         id="text3">›</text>
+    </g>
+  </g>
+  <!-- Esemény kártyák listája -->
+  <g
+     transform="translate(14, 38)"
+     id="g13">
+    <!-- 1. Kártya (Kék - pl. Munka/Céges) -->
+    <rect
+       x="0"
+       y="0"
+       width="158"
+       height="23"
+       rx="5"
+       fill="#4a90d9"
+       id="rect4" />
+    <text
+       x="8"
+       y="15"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="9.5px"
+       font-weight="bold"
+       id="text4">Event1</text>
+    <text
+       x="126"
+       y="15"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="8.5"
+       opacity="0.9"
+       id="text5">15:00</text>
+    <!-- 2. Kártya (Lila - pl. Családi teendő) -->
+    <rect
+       x="0"
+       y="27"
+       width="158"
+       height="23"
+       rx="5"
+       fill="#8e5fe2"
+       id="rect5" />
+    <text
+       x="8"
+       y="42"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="9.5px"
+       font-weight="bold"
+       id="text6">Event2</text>
+    <text
+       x="126"
+       y="42"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="8.5"
+       opacity="0.9"
+       id="text7">18:00</text>
+    <!-- 3. Kártya (Piros/Korall - pl. Névnap) -->
+    <rect
+       x="0"
+       y="54"
+       width="158"
+       height="23"
+       rx="5"
+       fill="#e06a55"
+       id="rect7" />
+    <text
+       x="8"
+       y="69"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="9.5px"
+       font-weight="bold"
+       id="text8">Event3</text>
+    <text
+       x="114"
+       y="69"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="8.5"
+       opacity="0.9"
+       id="text9">All day</text>
+    <!-- 4. Kártya (Zöld - pl. Értesítő) -->
+    <rect
+       x="0"
+       y="81"
+       width="158"
+       height="23"
+       rx="5"
+       fill="#2ec971"
+       id="rect9" />
+    <text
+       x="8"
+       y="96"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="9.5px"
+       font-weight="bold"
+       id="text10">Event4</text>
+    <text
+       x="114"
+       y="96"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="8.5"
+       opacity="0.9"
+       id="text11">All day</text>
+    <!-- 5. Kártya (Kivágott / kilógó alj) -->
+    <rect
+       x="0"
+       y="108"
+       width="158"
+       height="23"
+       rx="5"
+       fill="#8e5fe2"
+       opacity="0.6"
+       id="rect11" />
+    <text
+       x="8"
+       y="123"
+       fill="#ffffff"
+       font-family="Cantarell, Sans, Arial"
+       font-size="9.5px"
+       font-weight="bold"
+       opacity="0.6"
+       id="text12">Event5</text>
+    <!-- Görgetősáv (jobb oldalon) -->
+    <rect
+       x="166"
+       y="0"
+       width="5"
+       height="131"
+       rx="2.5"
+       fill="#ffffff"
+       fill-opacity="0.06"
+       id="rect12" />
+    <rect
+       x="166"
+       y="4"
+       width="5"
+       height="54"
+       rx="2.5"
+       fill="#ffffff"
+       fill-opacity="0.32"
+       id="rect13" />
+  </g>
+</svg>

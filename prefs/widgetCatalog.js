@@ -344,6 +344,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'date-and-time/worldAnalog.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
     },
+    calendarTasks: {
+        title: 'Celandar Tasks',
+        description: 'Displays todays events from your synchronized calendars with their custom colors.',
+        gridSize: '4x4',
+        thumbnail: 'date-and-time/calendarTasks.svg',
+        fallbackIconName: 'x-office-calendar-symbolic',
+    },
 });
 
 export const STORE_CATEGORIES = Object.freeze({
@@ -379,7 +386,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'storageBar',
         'cryptoWidget',
         'todayHistory',
-        'powerToggles'
+        'powerToggles',
+        'calendarTasks'
     ],
 });
 
@@ -502,6 +510,8 @@ function getStoreWidgetKey(widget) {
             return 'cryptoWidget';
         case 'todayHistory':
             return 'todayHistory';
+        case 'calendarTasks':
+            return 'calendarTasks';
         default:
             return null;
     }

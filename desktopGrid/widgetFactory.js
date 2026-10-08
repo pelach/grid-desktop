@@ -11,6 +11,7 @@ import { createNotesNode } from '../widgets/notes.js';
 import { createClipboardNode } from '../widgets/clipboard.js';
 import { createCalendarNode } from '../widgets/calendar.js';
 import { createQuotesNode } from '../widgets/quotes.js';
+import { createCalendarTasksNode } from '../widgets/calendarTasks.js';
 import {
     createCpuRamNode,
     createNetworkSpeedNode,
@@ -105,6 +106,7 @@ const WIDGET_CREATORS = {
     'todayHistory': (data, w, h, x, y) => createTodayHistoryNode(data, w, h, x, y),
     'powerToggles': (data, w, h, x, y) => createPowerTogglesNode(data, w, h, x, y),
     'worldAnalog': (data, w, h, x, y) => createWorldTimeAnalogNode(data, w, h, x, y),
+    'calendarTasks': (data, w, h, x, y) => createCalendarTasksNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

@@ -40,6 +40,7 @@ import {
     addTodayHistoryWidget,
     addPowerTogglesWidget,
     addWorldAnalogWidget,
+    addCalendarTasksWidget,
 } from './widgetAdders.js';
 
 import {
@@ -219,6 +220,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.weather[0]], () => addWeather(3, 3, 'standard')),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.weather[1]], () => addWeather(3, 3, 'simple')),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.weather[2]], () => addWeather(6, 4, 'forecast')),
+        
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.weatherBars, () => addWeatherBarsWidget(settings, settings.get_string('weather-city'), 6, 6)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.weatherCards, () => addWeatherCardsWidget(settings, settings.get_string('weather-city'), 3, 3)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.sunScheduleWidget, () => openAddSunScheduleDialog(window, settings)),
@@ -229,6 +231,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.music[0]], () => addMusicWidget(settings, 4, 4)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.music[1]], () => addMusicWidget(settings, 8, 4)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.musicVisualizer, () => addMusicVisualizerWidget(settings, 4, 4)),
+        
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.media[0]], () => openAddImageDialog(window, settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.media[1]], () => openAddSlideshowDialog(window, settings)),
     ]));
@@ -244,18 +247,14 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.networkSpeed, () => addNetworkSpeedWidget(settings, 3, 2)),
         
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.pingMonitor, () => addPingWidget(settings)),
-
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.quickToggles, () => addQuickTogglesWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.powerToggles, () => addPowerTogglesWidget(settings)),
-        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.powerProfiles, () => addPowerProfilesWidget(settings)),
 
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.powerProfiles, () => addPowerProfilesWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.batteryStatus, () => addBatteryStatusWidget(settings, 4, 3)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.audioOutput, () => addAudioOutputWidget(settings)),
+
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.controlsSliders, () => addControlsSlidersWidget(settings)),
-        
-       
-        
-   
     ]));
 
     // ── Focus & Productivity ─────────────────────────────────
@@ -263,6 +262,7 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.pomodoroTimer, () => addPomodoroWidget(settings, 4, 4)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.pomodoroFocus, () => addPomodoroFocusWidget(settings, 4, 2)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.todoWidget, () => addTodoWidget(settings)),
+        
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.quickNotes, () => addNotesWidget(settings, 4, 4)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.clipboardHistory, () => addClipboardWidget(settings, 4, 4)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.appLauncher, () => openAddAppLauncherDialog(window, settings)),
@@ -273,9 +273,11 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS[STORE_CATEGORIES.time[0]], () => addTimeWidget(settings, 3, 2, 'digital')),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.analogClock, () => addAnalogClockWidget(settings, 'basic', 3, 3)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.worldClock, () => openAddWorldClockDialog(window, settings)),
+        
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.worldAnalog, () => openAddWorldAnalogDialog(window, settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.calendarWidget, () => addCalendarWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.calendarGrid, () => addCalendarGridWidget(settings)),
+       
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.timer, () => addTimerWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.countdown, () => openAddCountdownDialog(window, settings)), 
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.stopwatch, () => addStopWatchWidget(settings)),
@@ -294,6 +296,8 @@ export function buildStorePage(window, settings, extensionPath) {
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.todayHistory, () => addTodayHistoryWidget(settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.rssHeadlinesWidget, () => openAddRssHeadlinesDialog(window, settings)),
         createDesktopWidgetCard(extensionPath, STORE_WIDGETS.quotesWidget, () => addQuotesWidget(settings)),
+
+        createDesktopWidgetCard(extensionPath, STORE_WIDGETS.calendarTasks, () => addCalendarTasksWidget(settings)),
 
     ]));
 

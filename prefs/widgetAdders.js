@@ -292,3 +292,7 @@ export function addWorldAnalogWidget(settings, width = 4, height = 4, cities = n
     }
     addWidget(settings, config, width, height);
 }
+
+export function addCalendarTasksWidget(settings, width = 4, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'calendarTasks'), type: 'calendarTasks' }, width, height);
+}
