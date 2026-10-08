@@ -127,7 +127,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     let samples = [];
 
     if (!showChart) {
-        // --- NORMÁL NÉZET: Fent a badge ikon, legalul a nagy szám és felirat ---
         const topBox = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
             x_align: Clutter.ActorAlign.END,
@@ -159,7 +158,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         bottomBox.add_child(typeLabel);
         mainLayout.add_child(bottomBox);
     } else {
-        // --- CHART NÉZET: Kompakt fejléc felül (érték + címke balra, badge jobbra), alatta kártya ---
         const headerBox = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
             x_expand: true,
@@ -237,44 +235,68 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     let prevIdle = 0;
     let prevTotal = 0;
 
-    // --- GPU Szenzor felderítés ---
+    // --- GPU Szenzor felderítés (teljesen aszinkron) ---
     let gpuHwmonTempPath = null;
     let hasNvidiaSmi = false;
-    let gpuDetectionDone = false;
+    let gpuDetectionStarted = false;
 
     const detectGpuSource = () => {
-        if (gpuDetectionDone) return;
-        gpuDetectionDone = true;
+        if (gpuDetectionStarted) return;
+        gpuDetectionStarted = true;
 
         try {
             const hwmonDir = Gio.File.new_for_path('/sys/class/hwmon');
-            if (hwmonDir.query_exists(null)) {
-                const enumerator = hwmonDir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
-                let info;
-                const gpuNames = ['amdgpu', 'radeon', 'nouveau', 'i915', 'xe'];
+            hwmonDir.enumerate_children_async(
+                'standard::name',
+                Gio.FileQueryInfoFlags.NONE,
+                GLib.PRIORITY_LOW,
+                null,
+                (file, res) => {
+                    try {
+                        const enumerator = file.enumerate_children_finish(res);
+                        const gpuNames = ['amdgpu', 'radeon', 'nouveau', 'i915', 'xe'];
 
-                while ((info = enumerator.next_file(null)) !== null) {
-                    const dirName = info.get_name();
-                    const nameFilePath = `/sys/class/hwmon/${dirName}/name`;
-                    const nameFile = Gio.File.new_for_path(nameFilePath);
-                    if (nameFile.query_exists(null)) {
-                        const [, nameBytes] = nameFile.load_contents(null);
-                        const devName = new TextDecoder().decode(nameBytes).trim().toLowerCase();
-                        if (gpuNames.includes(devName)) {
-                            // Találtunk dGPU hwmon szenzort!
-                            const tempPath = `/sys/class/hwmon/${dirName}/temp1_input`;
-                            if (Gio.File.new_for_path(tempPath).query_exists(null)) {
-                                gpuHwmonTempPath = tempPath;
-                                break;
-                            }
-                        }
+                        const checkNextFile = () => {
+                            if (isDisposed) return;
+                            enumerator.next_files_async(1, GLib.PRIORITY_LOW, null, (e, nRes) => {
+                                try {
+                                    const files = e.next_files_finish(nRes);
+                                    if (!files || files.length === 0) {
+                                        if (!gpuHwmonTempPath) {
+                                            hasNvidiaSmi = GLib.find_program_in_path('nvidia-smi') !== null;
+                                        }
+                                        return;
+                                    }
+
+                                    const info = files[0];
+                                    const dirName = info.get_name();
+                                    const nameFile = Gio.File.new_for_path(`/sys/class/hwmon/${dirName}/name`);
+
+                                    nameFile.load_contents_async(null, (nf, cRes) => {
+                                        try {
+                                            const [, nameBytes] = nf.load_contents_finish(cRes);
+                                            const devName = new TextDecoder().decode(nameBytes).trim().toLowerCase();
+                                            if (gpuNames.includes(devName)) {
+                                                const tempPath = `/sys/class/hwmon/${dirName}/temp1_input`;
+                                                if (GLib.file_test(tempPath, GLib.FileTest.EXISTS)) {
+                                                    gpuHwmonTempPath = tempPath;
+                                                    return;
+                                                }
+                                            }
+                                        } catch (_) {}
+                                        checkNextFile();
+                                    });
+                                } catch (_) {}
+                            });
+                        };
+
+                        checkNextFile();
+                    } catch (_) {
+                        hasNvidiaSmi = GLib.find_program_in_path('nvidia-smi') !== null;
                     }
                 }
-            }
-        } catch (e) {}
-
-        // Ha nincs szabványos sysfs GPU szenzor, megnézzük van-e nvidia-smi
-        if (!gpuHwmonTempPath) {
+            );
+        } catch (_) {
             hasNvidiaSmi = GLib.find_program_in_path('nvidia-smi') !== null;
         }
     };
@@ -387,7 +409,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     const readGpu = () => {
         detectGpuSource();
 
-        // 1. AMD / Intel dGPU hwmon közvetlen olvasás
         if (gpuHwmonTempPath) {
             try {
                 const file = Gio.File.new_for_path(gpuHwmonTempPath);
@@ -407,7 +428,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
             return;
         }
 
-        // 2. Nvidia SMI segédprogram
         if (hasNvidiaSmi) {
             try {
                 const proc = new Gio.Subprocess({
@@ -430,7 +450,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
             return;
         }
 
-        // 3. Fallback integrált grafikára (SoC / CPU csomag hőmérséklet)
         readThermal();
     };
 

@@ -16,7 +16,8 @@ import {
 import { 
     createWidgetContainer, 
     attachResponsiveScaler, 
-    attachButtonFeedback 
+    attachButtonFeedback,
+    registerWidgetCleanup
 } from '../../shell/widgetUIUtils.js';
 
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
@@ -32,6 +33,7 @@ class CapsuleSlider {
         this.activeColor = parseCssColor(activeColorHex);
         this.trackColor = { r: 1, g: 1, b: 1, a: 0.12 };
         this.onChangeCallback = onChangeCallback;
+        this._signalIds = [];
 
         this.actor = new St.DrawingArea({
             reactive: true,
@@ -41,22 +43,22 @@ class CapsuleSlider {
             y_align: Clutter.ActorAlign.CENTER,
         });
 
-        this.actor.connect('repaint', (area) => this._draw(area));
+        this._signalIds.push(this.actor.connect('repaint', (area) => this._draw(area)));
 
-        this.actor.connect('button-press-event', (actor, event) => {
+        this._signalIds.push(this.actor.connect('button-press-event', (actor, event) => {
             this._handlePointer(event);
             return Clutter.EVENT_STOP;
-        });
+        }));
 
-        this.actor.connect('motion-event', (actor, event) => {
+        this._signalIds.push(this.actor.connect('motion-event', (actor, event) => {
             if (event.get_state() & Clutter.ModifierType.BUTTON1_MASK) {
                 this._handlePointer(event);
                 return Clutter.EVENT_STOP;
             }
             return Clutter.EVENT_PROPAGATE;
-        });
+        }));
 
-        this.actor.connect('scroll-event', (actor, event) => {
+        this._signalIds.push(this.actor.connect('scroll-event', (actor, event) => {
             const dir = event.get_scroll_direction();
             const step = 0.05;
             if (dir === Clutter.ScrollDirection.UP) {
@@ -66,10 +68,11 @@ class CapsuleSlider {
             }
             if (this.onChangeCallback) this.onChangeCallback(this.value);
             return Clutter.EVENT_STOP;
-        });
+        }));
     }
 
     _handlePointer(event) {
+        if (!this.actor) return;
         const [x] = event.get_coords();
         const [actorX] = this.actor.get_transformed_position();
         const width = this.actor.get_width();
@@ -84,10 +87,13 @@ class CapsuleSlider {
 
     setValue(val) {
         this.value = Math.max(0.0, Math.min(1.0, val));
-        this.actor.queue_repaint();
+        if (this.actor) {
+            this.actor.queue_repaint();
+        }
     }
 
     updateStyle(height, trackColorRgba) {
+        if (!this.actor) return;
         this.actor.height = height;
         this.trackColor = parseCssColor(trackColorRgba);
         this.actor.queue_repaint();
@@ -96,7 +102,6 @@ class CapsuleSlider {
     _drawRoundedRect(cr, x, y, width, height, radius) {
         const r = Math.min(radius, height / 2, width / 2);
         
-        // GJS Cairo kompatibilis új rész-útvonal
         if (typeof cr.newSubPath === 'function') {
             cr.newSubPath();
         } else if (typeof cr.new_sub_path === 'function') {
@@ -118,7 +123,6 @@ class CapsuleSlider {
 
         const radius = height / 2;
 
-        // 1. Háttér sáv kirajzolása (teljes szélesség)
         this._drawRoundedRect(cr, 0, 0, width, height, radius);
         const trR = this.trackColor.r ?? 1;
         const trG = this.trackColor.g ?? 1;
@@ -132,7 +136,6 @@ class CapsuleSlider {
         }
         cr.fill();
 
-        // 2. Aktív csík kirajzolása (balról jobbra)
         if (this.value > 0.01) {
             const fillWidth = Math.max(height, width * this.value);
             const effectiveWidth = Math.min(width, fillWidth);
@@ -151,6 +154,20 @@ class CapsuleSlider {
         }
 
         cr.$dispose();
+    }
+
+    destroy() {
+        if (this.actor) {
+            for (const sigId of this._signalIds) {
+                if (sigId) {
+                    try { this.actor.disconnect(sigId); } catch (_) {}
+                }
+            }
+            this._signalIds = [];
+            this.actor.destroy();
+            this.actor = null;
+        }
+        this.onChangeCallback = null;
     }
 }
 
@@ -226,7 +243,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     });
     volBtn.set_child(volIcon);
 
-    const volSlider = new CapsuleSlider(volActiveColor, (val) => {
+    let volSlider = new CapsuleSlider(volActiveColor, (val) => {
         const stream = volIndicator?._stream || volIndicator?._control?.get_default_sink();
         if (stream) {
             const maxVol = volIndicator?._control?.get_vol_max_norm() || 65536;
@@ -250,7 +267,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     volRow.add_child(volPercentLabel);
     contentBox.add_child(volRow);
 
-    volBtn.connect('clicked', () => {
+    const sigVolBtn = volBtn.connect('clicked', () => {
         const stream = volIndicator?._stream || volIndicator?._control?.get_default_sink();
         if (stream) {
             stream.change_is_muted(!stream.is_muted);
@@ -273,7 +290,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     });
     brightBtn.set_child(brightIcon);
 
-    const brightSlider = new CapsuleSlider(brightActiveColor, (val) => {
+    let brightSlider = new CapsuleSlider(brightActiveColor, (val) => {
         const target = Math.round(val * 100);
         if (brightnessProxy) {
             try {
@@ -310,7 +327,8 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     brightRow.add_child(brightPercentLabel);
     contentBox.add_child(brightRow);
 
-    brightBtn.connect('clicked', () => {
+    const sigBrightBtn = brightBtn.connect('clicked', () => {
+        if (!brightSlider) return;
         let current = brightSlider.value;
         let target = current > 0.1 ? 0.05 : 0.50;
         brightSlider.setValue(target);
@@ -320,6 +338,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     });
 
     function updatePercentLabels() {
+        if (!volSlider || !brightSlider) return;
         const v = Math.round(volSlider.value * 100);
         const b = Math.round(brightSlider.value * 100);
         volPercentLabel.text = `${v}%`;
@@ -327,7 +346,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     }
 
     function syncVolume() {
-        if (isActorDestroyed(container)) return;
+        if (isActorDestroyed(container) || !volSlider) return;
         const stream = volIndicator?._stream || volIndicator?._control?.get_default_sink();
         if (!stream) return;
 
@@ -347,7 +366,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     }
 
     function syncBrightness() {
-        if (isActorDestroyed(container)) return;
+        if (isActorDestroyed(container) || !brightSlider) return;
         let bVal = -1;
 
         if (brightnessProxy) {
@@ -367,6 +386,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     }
 
     function applyScale(newScale) {
+        if (!volSlider || !brightSlider) return;
         scale = newScale;
 
         const pad = Math.max(6, Math.round(8 * scale));
@@ -428,22 +448,43 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
         sigBrightProp = brightnessProxy.connect('g-properties-changed', syncBrightness);
     }
 
-    container.connect('destroy', () => {
+    const cleanup = () => {
         const stream = volIndicator?._stream || mixerControl?.get_default_sink();
         if (stream && sigVolChanged) {
             try { stream.disconnect(sigVolChanged); } catch (e) {}
+            sigVolChanged = 0;
         }
         if (mixerControl && sigDefaultSink) {
             try { mixerControl.disconnect(sigDefaultSink); } catch (e) {}
+            sigDefaultSink = 0;
         }
         if (brightnessProxy && sigBrightProp) {
             try { brightnessProxy.disconnect(sigBrightProp); } catch (e) {}
+            sigBrightProp = 0;
         }
-    });
+        if (volBtn && sigVolBtn) {
+            try { volBtn.disconnect(sigVolBtn); } catch (e) {}
+        }
+        if (brightBtn && sigBrightBtn) {
+            try { brightBtn.disconnect(sigBrightBtn); } catch (e) {}
+        }
+
+        if (volSlider) {
+            volSlider.destroy();
+            volSlider = null;
+        }
+        if (brightSlider) {
+            brightSlider.destroy();
+            brightSlider = null;
+        }
+    };
+
+    container.connect('destroy', cleanup);
+    registerWidgetCleanup(container, cleanup);
 
     applyScale(scale);
 
-    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+    const initTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
         if (!isActorDestroyed(container)) {
             syncVolume();
             syncBrightness();
