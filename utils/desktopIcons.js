@@ -6,6 +6,8 @@ let _monitor = null;
 let _monitorTimeoutId = null;
 let _trashMonitor = null;
 let _trashSignalId = 0;
+let _loginManager = null;
+let _sleepSignalId = 0;
 
 export function syncDesktopIcons(settings, forceOrganize = false) {
     if (!settings) return false;
@@ -100,6 +102,7 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
                         uri: root.get_uri(),
                         icon: mount.get_icon() ? mount.get_icon().to_string() : 'drive-harddisk',
                         isSpecial: true,
+                        isMount: true,
                     });
                 }
             });
@@ -169,6 +172,12 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
     const countBefore = widgets.length;
     widgets = widgets.filter(w => {
         if (!w.isDesktopIcon) return true;
+        
+        if (w.isMount) {
+            // Csak akkor maradhat, ha még mindig ott van a jelenlegi aktív mountok között!
+            return currentFiles.some(f => f.isMount && (f.uri === w.uri || f.name === w.name));
+        }
+        
         return currentFiles.some(f => {
             if (f.uri === w.uri) return true;
             try {
@@ -272,6 +281,7 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
                 id: newId,
                 type: 'desktop-icon',
                 isDesktopIcon: true,
+                isMount: Boolean(file.isMount),
                 uri: file.uri,
                 name: file.name,
                 icon: file.icon,
@@ -451,7 +461,39 @@ export function monitorDesktop(settings, callback) {
         _mountSignals.push(_volumeMonitor.connect('mount-added', onMountChange));
         _mountSignals.push(_volumeMonitor.connect('mount-removed', onMountChange));
         _mountSignals.push(_volumeMonitor.connect('mount-changed', onMountChange));
+        _mountSignals.push(_volumeMonitor.connect('volume-changed', onMountChange));
+        _mountSignals.push(_volumeMonitor.connect('volume-removed', onMountChange));
     } catch (e) {}
+
+    try {
+        _loginManager = Gio.DBusProxy.new_for_bus_sync(
+            Gio.BusType.SYSTEM,
+            Gio.DBusProxyFlags.NONE,
+            null,
+            'org.freedesktop.login1',
+            '/org/freedesktop/login1',
+            'org.freedesktop.login1.Manager',
+            null
+        );
+
+        _sleepSignalId = _loginManager.connect('g-signal', (proxy, sender, [signalName, params]) => {
+            if (signalName === 'PrepareForSleep') {
+                const isSleeping = params.get_child_value(0).get_boolean();
+                // Ha isSleeping === false, akkor most ébredtünk fel!
+                if (!isSleeping) {
+                    // Várunk 1 másodpercet, hogy a GVfs és a DBus stabilizálódjon
+                    GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
+                        const modified = syncDesktopIcons(settings, false);
+                        if (modified && callback) callback();
+                        return GLib.SOURCE_REMOVE;
+                    });
+                }
+            }
+        });
+    } catch (e) {
+        console.warn('Gridgets: Nem sikerült a login1 alvásfigyelő bekötése:', e);
+    }
+
 }
 
 export function stopMonitor() {
@@ -475,5 +517,10 @@ export function stopMonitor() {
         _mountSignals.forEach(id => _volumeMonitor.disconnect(id));
         _mountSignals = [];
         _volumeMonitor = null;
+    }
+    if (_loginManager && _sleepSignalId) {
+        _loginManager.disconnect(_sleepSignalId);
+        _sleepSignalId = 0;
+        _loginManager = null;
     }
 }
