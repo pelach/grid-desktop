@@ -709,10 +709,18 @@ export function buildCurrencyTrackerSettings(grid, rowIdx, widget, saveHandlers)
     grid.attach(targetCombo, 1, rowIdx, 1, 1);
     rowIdx++;
 
+    const invertColorsLabel = new Gtk.Label({ label: 'Invert trend colors:', xalign: 0, hexpand: true });
+    const invertColorsSwitch = new Gtk.Switch({ valign: Gtk.Align.CENTER, halign: Gtk.Align.END });
+    invertColorsSwitch.set_active(widget.invertColors === true);
+    grid.attach(invertColorsLabel, 0, rowIdx, 1, 1);
+    grid.attach(invertColorsSwitch, 1, rowIdx, 1, 1);
+    rowIdx++;
+
     // Mentéskor biztosan a tömbből választott, garantáltan létező devizakód kerül elmentésre
     saveHandlers.push((target) => {
         target.baseCurrency = SUPPORTED_CURRENCIES[baseCombo.get_selected()] || 'EUR';
         target.targetCurrency = SUPPORTED_CURRENCIES[targetCombo.get_selected()] || 'HUF';
+        target.invertColors = invertColorsSwitch.get_active();
     });
 
     return rowIdx;

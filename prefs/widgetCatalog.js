@@ -10,7 +10,7 @@ export const STORE_WIDGETS = Object.freeze({
     },
     weatherMinimal: {
         title: 'Weather Minimal',
-        description: 'A compact weather widget focused on the current condition and temperature.',
+        description: 'A compact weather widget focused on current conditions and temperature.',
         gridSize: '3x3',
         thumbnail: 'weathers/weatherMinimal.svg',
         fallbackIconName: 'weather-few-clouds-symbolic',
@@ -47,7 +47,7 @@ export const STORE_WIDGETS = Object.freeze({
         title: 'Music Visualizer',
         description: 'Audio visualizer displaying animated frequency spectrum or waveforms.',
         gridSize: '4x4',
-        thumbnail: 'music/musicVisualizer.svg', 
+        thumbnail: 'music/musicVisualizer.svg',
         fallbackIconName: 'audio-x-generic-symbolic',
     },
     timeAndDate: {
@@ -59,14 +59,14 @@ export const STORE_WIDGETS = Object.freeze({
     },
     analogClock: {
         title: 'Analog Clock',
-        description: 'A skinnable vector analog clock with smooth second hand.',
+        description: 'A customizable vector analog clock with a smooth second hand.',
         gridSize: '3x3',
         thumbnail: 'date-and-time/analog-clock.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
     },
     worldClock: {
         title: 'World Clock',
-        description: 'Multi-city world clock displaying time across global timezones.',
+        description: 'Multi-city digital clock displaying time across global timezones.',
         gridSize: '4x4',
         thumbnail: 'date-and-time/worldClock.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
@@ -115,9 +115,9 @@ export const STORE_WIDGETS = Object.freeze({
     },
     batteryStatus: {
         title: 'Battery Status',
-        description: 'Monitor your laptop and connected Bluetooth devices battery levels.',
+        description: 'Monitor your laptop and connected Bluetooth devices\' battery levels.',
         gridSize: '4x4',
-        thumbnail: 'system-utils/battery-status.svg', 
+        thumbnail: 'system-utils/battery-status.svg',
         fallbackIconName: 'battery-level-100-charged-symbolic',
     },
     networkSpeed: {
@@ -157,7 +157,7 @@ export const STORE_WIDGETS = Object.freeze({
     },
     quotesWidget: {
         title: 'Quotes',
-        description: 'Daily quotes from philosophers, programmers, and thinkers that refresh every 30 seconds.',
+        description: 'Daily quotes from philosophers, programmers, and thinkers, updated automatically.',
         gridSize: '3x3',
         thumbnail: 'quotes/quotes.svg',
         fallbackIconName: 'help-about-symbolic',
@@ -178,7 +178,7 @@ export const STORE_WIDGETS = Object.freeze({
     },
     todoWidget: {
         title: 'Tasks',
-        description: 'A todo list with a pending counter, checkable tasks, and quick add.',
+        description: 'A to-do list with a pending counter, checkable tasks, and quick add.',
         gridSize: '5x3',
         thumbnail: 'tasks/tasks.svg',
         fallbackIconName: 'view-list-symbolic',
@@ -215,7 +215,7 @@ export const STORE_WIDGETS = Object.freeze({
         title: 'System Info',
         description: 'Compact tile showing real-time CPU, RAM, or Disk utilization.',
         gridSize: '2x2',
-        thumbnail: 'system-utils/system-info.svg', 
+        thumbnail: 'system-utils/system-info.svg',
         fallbackIconName: 'utilities-system-monitor-symbolic',
     },
     resourceWheel: {
@@ -227,7 +227,7 @@ export const STORE_WIDGETS = Object.freeze({
     },
     currencyTracker: {
         title: 'Currency Tracker',
-        description: 'Track exchange rates with 7-day trend chart via Frankfurter.',
+        description: 'Track exchange rates with history trend chart via Frankfurter.',
         gridSize: '4x7',
         thumbnail: 'currency-tracker/currencytracker.svg',
         fallbackIconName: 'bank-symbolic',
@@ -241,28 +241,28 @@ export const STORE_WIDGETS = Object.freeze({
     },
     quickToggles: {
         title: 'Quick Toggles',
-        description: 'Switch from Dark mode, Night Light, DND and Lockscreen',
+        description: 'Quickly toggle Dark Mode, Night Light, DND, and lock screen.',
         gridSize: '4x4',
         thumbnail: 'system-utils/quick-toggles.svg',
         fallbackIconName: 'preferences-system-symbolic',
     },
     audioOutput: {
-        title: 'Audio output',
-        description: 'Switch sound output',
+        title: 'Audio Output',
+        description: 'Switch between audio output devices.',
         gridSize: '4x4',
         thumbnail: 'system-utils/audio-output.svg',
         fallbackIconName: 'preferences-system-symbolic',
     },
     controlsSliders: {
-        title: 'Controls sliders',
-        description: 'Bright and volume sliders',
+        title: 'Control Sliders',
+        description: 'Quick brightness and volume sliders.',
         gridSize: '5x3',
         thumbnail: 'system-utils/controls-sliders.svg',
         fallbackIconName: 'preferences-system-symbolic',
     },
     powerProfiles: {
-        title: 'Power profiles',
-        description: 'Switch power profiles',
+        title: 'Power Profiles',
+        description: 'Switch between system power profiles.',
         gridSize: '4x4',
         thumbnail: 'system-utils/energy_management.svg',
         fallbackIconName: 'preferences-system-symbolic',
@@ -276,7 +276,7 @@ export const STORE_WIDGETS = Object.freeze({
     },
     timer: {
         title: 'Timer',
-        description: 'Simple timer widgets.',
+        description: 'Simple timer widget.',
         gridSize: '4x4',
         thumbnail: 'date-and-time/timer.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
@@ -304,7 +304,7 @@ export const STORE_WIDGETS = Object.freeze({
     },
     storageBar: {
         title: 'Storage Bar',
-        description: 'Storge bar.',
+        description: 'Visual storage space and disk usage bar.',
         gridSize: '4x7',
         thumbnail: 'system-utils/storage-bar.svg',
         fallbackIconName: 'drive-harddisk-symbolic',
@@ -330,13 +330,6 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system-utils/power.svg',
         fallbackIconName: 'system-shutdown-symbolic',
     },
-    powerToggles: {
-        title: 'Power Controls',
-        description: 'Quick power management buttons for suspend, reboot, shutdown, and logout.',
-        gridSize: '2x2',
-        thumbnail: 'system-utils/power.svg',
-        fallbackIconName: 'system-shutdown-symbolic',
-    },
     worldAnalog: {
         title: 'World Analog Clock',
         description: 'Multi-city world clock displaying time across global timezones.',
@@ -345,8 +338,8 @@ export const STORE_WIDGETS = Object.freeze({
         fallbackIconName: 'preferences-system-time-symbolic',
     },
     calendarTasks: {
-        title: 'Celandar Tasks',
-        description: 'Displays todays events from your synchronized calendars with their custom colors.',
+        title: 'Calendar Tasks',
+        description: 'Displays today\'s events from your synchronized calendars with their custom colors.',
         gridSize: '4x4',
         thumbnail: 'date-and-time/calendarTasks.svg',
         fallbackIconName: 'x-office-calendar-symbolic',

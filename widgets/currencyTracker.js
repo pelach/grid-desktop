@@ -28,6 +28,8 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
     const baseCurrency = (config.baseCurrency || 'EUR').toUpperCase();
     const targetCurrency = (config.targetCurrency || 'HUF').toUpperCase();
 
+    const invertColors = Boolean(config.invertColors);
+
     const scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
     const padding = Math.max(10, Math.round(14 * scale));
 
@@ -221,7 +223,7 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
                     const decimals = currentRate < 10 ? 4 : 2;
                     rateLabel.set_text(currentRate.toFixed(decimals));
 
-                    isPositiveTrend = diffPct >= 0;
+                    isPositiveTrend = invertColors ? diffPct < 0 : diffPct >= 0;
                     const sign = isPositiveTrend ? '+' : '';
                     changePill.set_text(`${sign}${diffPct.toFixed(2)}%`);
 
