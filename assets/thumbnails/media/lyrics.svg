@@ -1,0 +1,36 @@
+<svg width="240" height="160" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Háttér kártya -->
+  <rect width="240" height="160" rx="16" fill="#212126" />
+
+  <!-- Finom fejléces hangjegy ikon a bal felső sarokban -->
+  <g opacity="0.35" transform="translate(24, 20)">
+    <path d="M12 3V13.55C11.41 13.21 10.73 13 10 13C7.79 13 6 14.79 6 17C6 19.21 7.79 21 10 21C12.21 21 14 19.21 14 17V7H18V3H12Z" fill="#FFFFFF" />
+  </g>
+
+  <!-- Korábbi sorok (halvány, elúszó szövegcsíkok) -->
+  <g opacity="0.25">
+    <rect x="24" y="44" width="120" height="7" rx="3.5" fill="#FFFFFF" />
+    <rect x="24" y="60" width="165" height="7" rx="3.5" fill="#FFFFFF" />
+  </g>
+
+  <!-- AKTUÁLIS, KIEMELT SOR (fényes, aktív fókusz) -->
+  <g>
+    <!-- Kiemelő kis kapszula indikátor a sor előtt -->
+    <rect x="18" y="77" width="3" height="16" rx="1.5" fill="#3584E4" />
+    <!-- Erős, aktív szövegsor reprezentáció -->
+    <rect x="26" y="80" width="180" height="10" rx="5" fill="#FFFFFF" />
+  </g>
+
+  <!-- Következő sorok (fokozatosan sötétedő sorok) -->
+  <g opacity="0.4">
+    <rect x="24" y="103" width="145" height="7" rx="3.5" fill="#FFFFFF" />
+  </g>
+  <g opacity="0.2">
+    <rect x="24" y="119" width="110" height="7" rx="3.5" fill="#FFFFFF" />
+    <rect x="24" y="135" width="130" height="7" rx="3.5" fill="#FFFFFF" />
+  </g>
+
+  <!-- Vékony stílusos scrollbar a jobb szélen -->
+  <rect x="224" y="32" width="3" height="96" rx="1.5" fill="#FFFFFF" fill-opacity="0.08" />
+  <rect x="224" y="68" width="3" height="28" rx="1.5" fill="#FFFFFF" fill-opacity="0.45" />
+</svg>

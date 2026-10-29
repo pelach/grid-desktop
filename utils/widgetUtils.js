@@ -78,6 +78,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'uptime': { minCols: 3, minRows: 2 },
     'updates': { minCols: 2, minRows: 2 },
     'hardwerinfo': { minCols: 6, minRows: 4 },
+    'lyrics': { minCols: 6, minRows: 4 },
 });
 
 /**
@@ -554,6 +555,7 @@ const SIZE_PRESETS = {
     'uptime': [[3, 2], [4, 3], [6, 4]],
     'updates': [[2, 2], [3, 3], [4, 4]],
     'hardwerinfo': [[6, 5], [7, 6], [8, 7]],
+    'lyrics': [[6, 4], [8, 5], [10, 6]],
 };
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];

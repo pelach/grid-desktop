@@ -342,3 +342,7 @@ export function addUpdatesWidget(settings, width = 2, height = 2) {
 export function addHardwerInfoWidget(settings, width = 6, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'hardwerinfo'), type: 'hardwerinfo' }, width, height);
 }
+
+export function addLyricsWidget(settings, width = 6, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'lyrics'), type: 'lyrics' }, width, height);
+}

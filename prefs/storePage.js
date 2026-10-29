@@ -10,6 +10,7 @@ import {
 
     // Media
     addMusicWidget,
+    addLyricsWidget,
 
     // System Monitor
     addAudioOutputWidget,
@@ -211,6 +212,7 @@ export function buildStorePage(window, settings, extensionPath) {
             items: [
                 def(STORE_WIDGETS[STORE_CATEGORIES.music[0]], () => addMusicWidget(settings, 4, 4)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.music[1]], () => addMusicWidget(settings, 8, 4)),
+                def(STORE_WIDGETS.lyricsWidget, () => addLyricsWidget(settings, 6, 4)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.media[0]], () => openAddImageDialog(window, settings)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.media[1]], () => openAddSlideshowDialog(window, settings)),
             ]

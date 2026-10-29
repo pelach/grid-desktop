@@ -69,6 +69,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'media/musicLarge.svg',
         fallbackIconName: 'audio-x-generic-symbolic',
     },
+    lyricsWidget: {
+        title: 'Lyrics',
+        description: 'Synchronized real-time song lyrics for currently playing media.',
+        gridSize: '6x4',
+        thumbnail: 'media/lyrics.svg', 
+        fallbackIconName: 'text-editor-symbolic',
+    },
     imageGif: {
         title: 'Image / GIF',
         description: 'Display an image or animated GIF directly on your desktop.',
@@ -426,7 +433,7 @@ export const STORE_WIDGETS = Object.freeze({
 
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards', 'moonWidget'],
-    music: ['musicPlayer', 'musicPlayerWide'],
+    music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget'],
     time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
@@ -612,6 +619,8 @@ function getStoreWidgetKey(widget) {
             return 'updates';
         case 'hardwerinfo':
             return 'hardwerinfo';
+        case 'lyrics':
+            return 'lyricsWidget';
         default:
             return null;
     }

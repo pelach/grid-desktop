@@ -18,6 +18,9 @@ import {
 import { 
     createMusicNode 
 } from '../widgets/music/index.js';
+import { 
+    createLyricsNode 
+} from '../widgets/music/lyrics.js';
 
 // System
 import {
@@ -148,6 +151,7 @@ const WIDGET_CREATORS = {
     'uptime': (data, w, h, x, y) => createUptimeNode(data, w, h, x, y),
     'updates': (data, w, h, x, y) => createUpdatesNode(data, w, h, x, y),
     'hardwerinfo': (data, w, h, x, y) => createHardwareInfoNode(data, w, h, x, y),
+    'lyrics': (data, w, h, x, y) => createLyricsNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {
