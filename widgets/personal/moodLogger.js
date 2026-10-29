@@ -1,31 +1,29 @@
 import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
+import Pango from 'gi://Pango';
 import { SECONDARY_OPACITY, parseCssColor, resolveExplicitFontFamily, resolveWidgetForegroundColor } from '../../utils/widgetUtils.js';
 import { createWidgetContainer, attachResponsiveScaler, attachButtonFeedback, connectTimerCleanup, startPollingTimer } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 import { todayDateString, toDateString, loadDatesAsync, getMood, saveMood } from '../../utils/moodStore.js';
 
 const REF_WIDTH_PX = 380;
-const REF_HEIGHT_PX = 160;
-const CONTAINER_PADDING_PX = 20;
-const PANEL_GAP_PX = 24;
-const LEFT_COLUMN_WIDTH_PX = 140;
+const REF_HEIGHT_PX = 190;
+const CONTAINER_PADDING_PX = 14;
+const PANEL_GAP_PX = 16;
+const LEFT_COLUMN_WIDTH_PX = 145;
 
-const GREETING_FONT_SIZE_PX = 18;
-const DATE_FONT_SIZE_PX = 14;
-const HISTORY_LABEL_FONT_SIZE_PX = 12;
-const PICKER_ROW_PADDING_PX = 6;
-const PICKER_ROW_RADIUS_PX = 16;
-const FACE_ICON_SIZE_PX = 22;
-const DOT_SIZE_PX = 12;
-const DOT_GRID_GAP_PX = 8;
+const GREETING_FONT_SIZE_PX = 15;
+const DATE_FONT_SIZE_PX = 12;
+const HISTORY_LABEL_FONT_SIZE_PX = 11.5;
+const PICKER_ROW_PADDING_PX = 5;
+const PICKER_ROW_RADIUS_PX = 14;
+const FACE_ICON_SIZE_PX = 20;
+const DOT_SIZE_PX = 11;
+const DOT_GRID_GAP_PX = 6;
 const GRID_COLUMNS = 7;
-const TOTAL_DAYS = 28;
 const TODAY_DOT_BORDER_PX = 2;
 
-
-// Mood ramp; Adwaita face icons double as pickers, colors drive the history grid.
 const MOOD_LEVELS = [
     { level: 1, iconName: 'face-sad-symbolic', color: '#F43F5E' },
     { level: 2, iconName: 'face-worried-symbolic', color: '#F97316' },
@@ -34,13 +32,40 @@ const MOOD_LEVELS = [
     { level: 5, iconName: 'face-laugh-symbolic', color: '#3B82F6' },
 ];
 
-function buildTrailingDateKeys() {
+// Az aktuális hónap naptár celláinak felépítése (hétfői kezdéssel)
+function buildCurrentMonthCalendar() {
     const now = GLib.DateTime.new_now_local();
-    const keys = [];
-    for (let daysAgo = TOTAL_DAYS - 1; daysAgo >= 0; daysAgo--) {
-        keys.push(toDateString(now.add_days(-daysAgo)));
+    const year = now.get_year();
+    const month = now.get_month();
+
+    // Hónap első napja
+    const firstDay = GLib.DateTime.new_local(year, month, 1, 0, 0, 0);
+    // Hétfő = 0 ... Vasárnap = 6
+    const startOffset = (firstDay.get_day_of_week() + 6) % 7;
+
+    // Hónap napjainak száma (következő hónap 1. napja mínusz 1 nap)
+    const nextMonth = month === 12 
+        ? GLib.DateTime.new_local(year + 1, 1, 1, 0, 0, 0)
+        : GLib.DateTime.new_local(year, month + 1, 1, 0, 0, 0);
+    const daysInMonth = nextMonth.add_days(-1).get_day_of_month();
+
+    const cells = [];
+    // 1. Üres helyek a hónap elején
+    for (let i = 0; i < startOffset; i++) {
+        cells.push(null);
     }
-    return keys;
+
+    // 2. A hónap valódi napjai
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dt = GLib.DateTime.new_local(year, month, day, 0, 0, 0);
+        cells.push(toDateString(dt));
+    }
+
+    return {
+        monthName: now.format('%B'),
+        cells: cells,
+        dateKeys: cells.filter(c => c !== null)
+    };
 }
 
 function greetingForHour(hour) {
@@ -63,23 +88,59 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
     const textBytes = parseCssColor(textColor);
     const textRgb = () => `${Math.round(textBytes.r * 255)},${Math.round(textBytes.g * 255)},${Math.round(textBytes.b * 255)}`;
 
-
     let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
 
-    const state = { dateKeys: buildTrailingDateKeys(), moodButtons: [] };
+    const calData = buildCurrentMonthCalendar();
+    const state = { 
+        monthName: calData.monthName,
+        cells: calData.cells,
+        dateKeys: calData.dateKeys,
+        moodButtons: [] 
+    };
 
     const mainBox = new St.BoxLayout({
-        orientation: Clutter.Orientation.HORIZONTAL,
+        orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
     });
     container.add_child(mainBox);
 
+    // ── FEJLÉC ──
+    const headerRow = new St.BoxLayout({
+        orientation: Clutter.Orientation.HORIZONTAL,
+        y_align: Clutter.ActorAlign.CENTER,
+        x_expand: true,
+    });
+    mainBox.add_child(headerRow);
+
+    const headerIcon = new St.Icon({
+        icon_name: 'face-smile-symbolic',
+        style: `color: ${textColor};`,
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+    headerRow.add_child(headerIcon);
+
+    const titleLabel = new St.Label({
+        text: 'Mood',
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+    titleLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+    headerRow.add_child(titleLabel);
+
+    // ── TARTALOM ──
+    const contentBox = new St.BoxLayout({
+        orientation: Clutter.Orientation.HORIZONTAL,
+        x_expand: true,
+        y_expand: true,
+    });
+    mainBox.add_child(contentBox);
+
+    // Bal oszlop
     const actionPanel = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
-        style_class: 'spacing',
+        x_expand: false,
     });
-    mainBox.add_child(actionPanel);
+    contentBox.add_child(actionPanel);
 
     const greetingLabel = new St.Label({
         text: greetingForHour(GLib.DateTime.new_now_local().get_hour()),
@@ -113,16 +174,17 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
         state.moodButtons.push(button);
     }
 
+    // Jobb oszlop
     const historyPanel = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
         x_align: Clutter.ActorAlign.CENTER,
-        y_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.START,
     });
-    mainBox.add_child(historyPanel);
+    contentBox.add_child(historyPanel);
 
-    const historyLabel = new St.Label({ text: 'Past 28 Days' });
+    const historyLabel = new St.Label({ text: state.monthName });
     historyPanel.add_child(historyLabel);
 
     const dotGrid = new St.Widget({
@@ -137,15 +199,22 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
         scale = newScale;
         const px = (v) => Math.max(1, Math.round(v * scale));
 
-        mainBox.style = `padding: ${px(CONTAINER_PADDING_PX)}px; spacing: ${px(PANEL_GAP_PX)}px;`;
-        actionPanel.style = `width: ${px(LEFT_COLUMN_WIDTH_PX)}px; spacing: 4px;`;
-        greetingLabel.style = `${fontCss}font-size: ${px(GREETING_FONT_SIZE_PX)}px; `
-            + `font-weight: 300; color: ${textColor};`;
-        dateLabel.style = `${fontCss}font-size: ${px(DATE_FONT_SIZE_PX)}px; `
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+        mainBox.style = `padding: ${px(CONTAINER_PADDING_PX)}px; spacing: ${px(8)}px;`;
 
-        faceRow.style = `background-color: rgba(${textRgb()}, 0.08);`
-            + `padding: ${px(PICKER_ROW_PADDING_PX)}px; border-radius: ${px(PICKER_ROW_RADIUS_PX)}px;`;
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
+        headerRow.style = `margin-bottom: ${px(4)}px;`;
+        headerIcon.icon_size = px(16);
+        headerIcon.style = `color: ${textColor}; margin-right: ${px(6)}px;`;
+        titleLabel.style = `${fontCss}font-size: ${titleFontSize}px; font-weight: bold; color: ${textColor}; opacity: 0.9;`;
+
+        contentBox.style = `spacing: ${px(PANEL_GAP_PX)}px;`;
+        actionPanel.style = `width: ${px(LEFT_COLUMN_WIDTH_PX)}px; spacing: 3px;`;
+        historyPanel.style = `margin-top: ${px(2)}px;`;
+
+        greetingLabel.style = `${fontCss}font-size: ${px(GREETING_FONT_SIZE_PX)}px; font-weight: 400; color: ${textColor};`;
+        dateLabel.style = `${fontCss}font-size: ${px(DATE_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+
+        faceRow.style = `background-color: rgba(${textRgb()}, 0.08); padding: ${px(PICKER_ROW_PADDING_PX)}px; border-radius: ${px(PICKER_ROW_RADIUS_PX)}px;`;
 
         for (const button of state.moodButtons) {
             const level = MOOD_LEVELS.find(mood => mood.level === button.moodLevel);
@@ -153,34 +222,45 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
             applyButtonStyle(button, level, isActive, px(FACE_ICON_SIZE_PX));
         }
 
-        historyLabel.style = `${fontCss}font-size: ${px(HISTORY_LABEL_FONT_SIZE_PX)}px;`
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`
-            + `margin-bottom: ${px(12)}px;`;
+        historyLabel.style = `${fontCss}font-size: ${px(HISTORY_LABEL_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-bottom: ${px(6)}px;`;
 
         renderDotGrid();
     }
 
     function applyButtonStyle(button, level, isActive, iconSizePx) {
         button.child.icon_size = iconSizePx;
-        button.child.opacity = isActive ? 255 : 115;
+        button.child.opacity = isActive ? 255 : 120;
         button.style = isActive
-            ? `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.1);`
+            ? `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.14);`
             : 'border-radius: 9999px;';
     }
 
-    function buildDot(dateKey, isToday) {
+    function buildDot(dateKey) {
         const px = (v) => Math.max(1, Math.round(v * scale));
+        const size = px(DOT_SIZE_PX);
+
+        // Üres naptári cella (a hónap előtti napok)
+        if (!dateKey) {
+            return new St.Widget({
+                width: size,
+                height: size,
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+        }
+
+        const isToday = dateKey === todayDateString();
         const level = getMood(dateKey);
-        const size = isToday ? px(DOT_SIZE_PX + TODAY_DOT_BORDER_PX) : px(DOT_SIZE_PX);
+        const finalSize = isToday ? px(DOT_SIZE_PX + TODAY_DOT_BORDER_PX) : size;
 
         const dot = new St.Widget({
-            width: size,
-            height: size,
+            width: finalSize,
+            height: finalSize,
             x_align: Clutter.ActorAlign.CENTER,
             y_align: Clutter.ActorAlign.CENTER,
         });
 
-        let dotStyle = `border-radius: 9999px; width: ${size}px; height: ${size}px;`;
+        let dotStyle = `border-radius: 9999px; width: ${finalSize}px; height: ${finalSize}px;`;
         if (level > 0) {
             const mood = MOOD_LEVELS.find(entry => entry.level === level);
             dotStyle += `background-color: ${mood.color};`;
@@ -198,23 +278,26 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
         const layout = dotGrid.layout_manager;
         dotGrid.destroy_all_children();
 
-        state.dateKeys.forEach((dateKey, index) => {
+        state.cells.forEach((dateKey, index) => {
             const column = index % GRID_COLUMNS;
             const row = Math.floor(index / GRID_COLUMNS);
-            layout.attach(buildDot(dateKey, index === state.dateKeys.length - 1), column, row, 1, 1);
+            layout.attach(buildDot(dateKey), column, row, 1, 1);
         });
     }
 
-    // Re-renders dynamic parts when the day or hour rolls over.
     function refreshClockDependents() {
         const now = GLib.DateTime.new_now_local();
         greetingLabel.text = greetingForHour(now.get_hour());
         dateLabel.text = formatDisplayDate(now);
 
-        const todayKey = todayDateString();
-        const lastKey = state.dateKeys[state.dateKeys.length - 1];
-        if (todayKey !== lastKey) {
-            state.dateKeys = buildTrailingDateKeys();
+        const currentMonthName = now.format('%B');
+        if (state.monthName !== currentMonthName) {
+            const updated = buildCurrentMonthCalendar();
+            state.monthName = updated.monthName;
+            state.cells = updated.cells;
+            state.dateKeys = updated.dateKeys;
+            historyLabel.text = state.monthName;
+
             loadDatesAsync(state.dateKeys, () => {
                 if (isActorDestroyed(container)) return;
                 renderDotGrid();
@@ -223,7 +306,6 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
         }
     }
 
-    // Reflects today's stored mood on the face picker buttons.
     function applyTodayButtonStates() {
         const todayLevel = getMood(todayDateString());
         for (const button of state.moodButtons) {

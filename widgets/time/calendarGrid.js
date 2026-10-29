@@ -14,7 +14,7 @@ const DAY_FONT_SIZE_PX = 11;
 const DATE_POLL_INTERVAL_MS = 60000;
 const ROW_GAP_PX = 4;
 
-const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const WEEKS_IN_GRID = 6;
 
@@ -126,7 +126,7 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
 
         headerLabel.text = `${MONTH_NAMES[month - 1]} ${year}`;
 
-        const firstDayCol = GLib.DateTime.new_local(year, month, 1, 12, 0, 0).get_day_of_week() % 7;
+        const firstDayCol = (GLib.DateTime.new_local(year, month, 1, 12, 0, 0).get_day_of_week() +6) % 7;
         const daysInMonth = getDaysInMonth(year, month);
         const fontSize = Math.round(DAY_FONT_SIZE_PX * state.scale);
 
@@ -154,7 +154,7 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
                 continue;
             }
 
-            const isWeekend = cell % 7 === 0 || cell % 7 === 6;
+            const isWeekend = cell % 7 === 5 || cell % 7 === 6;
             label.text = String(dayNumber);
             if (isWeekend) {
                 // A globális accent színt használja, így témaváltáskor is tökéletes
