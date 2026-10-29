@@ -66,8 +66,12 @@ function createHandIcon(skinName, fileName, size, isRotatable = false) {
     const icon = new St.Icon({
         gicon: new Gio.FileIcon({ file: gfile }),
         icon_size: size,
+        width: size,
+        height: size,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
+        x_expand: false,
+        y_expand: false,
     });
     if (isRotatable) {
         icon.set_pivot_point(0.5, 0.5);
@@ -126,12 +130,11 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
 
     // Felesleges StBin eltávolítva: a widgetNode (BinLayout) közvetlenül kezeli a konténert
     const clockContainer = new St.Widget({
+        layout_manager: new Clutter.BinLayout(),
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        x_expand: true,
-        y_expand: true,
     });
-    widgetNode.add_child(clockContainer);
+    widgetNode.add_child(clockContainer)
 
     let hands = null;
     let dateLabel = null;

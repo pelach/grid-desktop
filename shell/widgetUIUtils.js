@@ -109,9 +109,9 @@ export function resolveWidgetGlassHighlight(config) {
 
     if (isDark) {
         // Körben egyenletes, stabil 1px-es vonal (0.10), a tetején finom élfénnyel (0.20)
-        return 'border: 1px solid rgba(255, 255, 255, 0.10); border-top: 1px solid rgba(255, 255, 255, 0.20);';
+        return 'border: 1px solid rgba(255, 255, 255, 0.12);';
     } else {
-        return 'border: 1px solid rgba(0, 0, 0, 0.08); border-bottom: 1px solid rgba(0, 0, 0, 0.14);';
+        return 'border: 1px solid rgba(0, 0, 0, 0.14);';
     }
 }
 
