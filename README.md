@@ -25,7 +25,7 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 #### Media & Imagery
 *Dynamic desktop media playback controls, turntable animations, and visual display tiles.*
 
-| Music Player (Wide) | Music Player (Vinyl Turntable) |
+| Music Player (Wide) | Music Player (Vinyl Turntable) | Lyrics |
 | :---: | :---: | :---: |
 | ![Music Player Wide](assets/screenshot/music_wide.png) | ![Music Player Vinyl](assets/screenshot/music_vinyl.png) | ![Lyrics](assets/screenshot/lyrics.png) |
 
