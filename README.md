@@ -26,14 +26,14 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 *Dynamic desktop media playback controls, turntable animations, and visual display tiles.*
 
 | Music Player (Wide) | Music Player (Vinyl Turntable) |
-| :---: | :---: |
-| ![Music Player Wide](assets/screenshot/music_wide.png) | ![Music Player Vinyl](assets/screenshot/music_vinyl.png) |
+| :---: | :---: | :---: |
+| ![Music Player Wide](assets/screenshot/music_wide.png) | ![Music Player Vinyl](assets/screenshot/music_vinyl.png) | ![Lyrics](assets/screenshot/lyrics.png)
 
 - **Music Player**: Compact media player featuring album artwork, track details, and playback controls. Features a vintage vinyl turntable view with an animated tonearm synchronized to track playback and seeking, alongside a real-time fluid audio spectrum visualizer (CAVA / 16-Bar Equalizer).
 - **Music Player (Wide)**: Expanded horizontal layout displaying album artwork alongside track info, artist details, and playback controls. Automatically adapts its background accent to match the active album artwork palette.
 - **Image / GIF**: Displays static images or animated GIFs directly on the desktop grid, with support for custom image captions.
 - **Image Slideshow**: Cycles smoothly through local images from a selected folder using crossfade transitions, with support for captions.
-
+- **Lyrics**: Synchronized real-time song lyrics for currently playing media.
 ---
 
 #### Weather & Sun
