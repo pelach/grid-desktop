@@ -1,7 +1,7 @@
 {
   "uuid": "grid-desktop@pelach.github.com",
   "name": "Grid Desktop",
-  "description": "Grid-based desktop widgets and icon management for GNOME.\n* Desktop icons support: place, organize, and manage files and launchers on the desktop.\n* Desktop widgets: clock, weather, notes, music, system monitor, clipboard, and image widgets on an aligned grid.\n* Local clipboard history with quick access.\n* Drag, resize, and customise each widget independently.",
+  "description": "A comprehensive desktop widget and icon manager for GNOME on an aligned grid.\nFeatures desktop icons, system and hardware monitoring, audio switcher, interactive music player, weather, calendar, productivity tools, and local clipboard history.\nSupports full visual customization including corner radius, opacity, custom fonts, and colors.",
   "shell-version": [
     "48",
     "49",
