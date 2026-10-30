@@ -135,13 +135,18 @@ export function resolveWidgetOverrides(widgetData, globalSettings) {
         globalFgColor,
         globalBgOpacity,
         globalFontFamily,
+        globalBorderRadius,
     } = globalSettings;
 
+    const borderRadius = widgetData.borderRadius !== undefined 
+        ? widgetData.borderRadius 
+        : (globalBorderRadius !== undefined ? globalBorderRadius : DEFAULT_CORNER_RADIUS_PX); 
+
     return Object.assign({}, widgetData, {
-        appliedBorderRadius: DEFAULT_CORNER_RADIUS_PX,
+        appliedBorderRadius: borderRadius,
         globalBackgroundColor: globalBgColor,
         globalForegroundColor: globalFgColor,
-        globalBackgroundOpacity: globalBgOpacity !== undefined ? globalBgOpacity : 100, // ÚJ
+        globalBackgroundOpacity: globalBgOpacity !== undefined ? globalBgOpacity : 100, 
         globalFontFamily: globalFontFamily,
     });
 }
@@ -191,7 +196,8 @@ export function readGlobalSettings(settings, interfaceSettings = null) {
         globalBgColor,
         globalFgColor,
         globalAccentColor,
-        globalBgOpacity: settings.get_int('global-background-opacity'), // ÚJ
+        globalBgOpacity: settings.get_int('global-background-opacity'), 
+        globalBorderRadius: settings.get_int('global-border-radius'),
         globalFontFamily: settings.get_string('global-font-family'),
         globalAnimateGif: settings.get_boolean('image-animate-gif'),
         globalImageShowCaption: settings.get_boolean('image-show-caption'),
@@ -471,7 +477,7 @@ export function resolveWidgetBackgroundColor(config) {
 }
 
 export function buildBaseWidgetStyle(config) {
-    const borderRadius = config.appliedBorderRadius || DEFAULT_CORNER_RADIUS_PX;
+    const borderRadius = config.appliedBorderRadius ?? DEFAULT_CORNER_RADIUS_PX;
     return `border-radius: ${borderRadius}px;`;
 }
 

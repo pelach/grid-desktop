@@ -154,6 +154,12 @@
       <summary>Default city longitude</summary>
       <description>Longitude coordinate for default city.</description>
     </key>
+    <key name="global-border-radius" type="i">
+        <default>12</default>
+        <summary>Global widget corner radius</summary>
+        <description>Corner radius for desktop widgets in pixels.</description>
+        <range min="0" max="32"/>
+    </key>
   </schema>
 
 </schemalist>

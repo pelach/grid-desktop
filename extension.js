@@ -45,6 +45,9 @@ export default class GridgetsExtension extends Extension {
         this._settingSignalIds.push(
             this._settings.connect('changed::global-foreground-color', () => this._rebuildGrids())
         );
+        this._settingSignalIds.push(
+            this._settings.connect('changed::global-border-radius', () => this._rebuildGrids())
+        );
         
         this._screenTimeRelease = screenTimeEngine.acquire();
 

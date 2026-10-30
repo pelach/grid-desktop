@@ -91,7 +91,40 @@ export function createOpacityRow(title, subtitle, settings, key) {
         upper: 100,
         step_increment: 5,
         page_increment: 10,
-        value: settings.get_int(key) || 100,
+        value: settings.get_int(key) ?? 100,
+    });
+
+    const scale = new Gtk.Scale({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        adjustment: adjustment,
+        draw_value: true,
+        value_pos: Gtk.PositionType.RIGHT,
+        hexpand: true,
+        width_request: 160,
+        valign: Gtk.Align.CENTER,
+    });
+    scale.set_digits(0);
+
+    adjustment.connect('value-changed', () => {
+        const val = Math.round(adjustment.get_value());
+        if (settings.get_int(key) !== val) {
+            settings.set_int(key, val);
+        }
+    });
+
+    row.add_suffix(scale);
+    return row;
+}
+
+export function createRadiusRow(title, subtitle, settings, key) {
+    const row = new Adw.ActionRow({ title, subtitle });
+
+    const adjustment = new Gtk.Adjustment({
+        lower: 0,
+        upper: 32,
+        step_increment: 1,
+        page_increment: 4,
+        value: settings.get_int(key) ?? 12,
     });
 
     const scale = new Gtk.Scale({
@@ -130,6 +163,9 @@ export function buildGlobalAestheticsGroup(settings) {
 
     group.add(createColorRow('Global Background Color', 'Global default background color.', settings, 'global-background-color', DEFAULT_BG_COLOR));
     group.add(createOpacityRow('Global Background Opacity', 'Opacity level of the widget background (0–100%).', settings, 'global-background-opacity'));
+
+    group.add(createRadiusRow('Global Corner Radius', 'Corner rounding for all widgets in pixels (0–32px).', settings, 'global-border-radius'));
+ 
     group.add(createColorRow('Global Foreground/Text Color', 'Global default text color.', settings, 'global-foreground-color', DEFAULT_FG_COLOR));
 
     const fontRow = new Adw.ActionRow({
