@@ -134,7 +134,7 @@ export function addAppLauncherWidget(settings, apps) {
     }, 4, 3);
 }
 
-export function addSlideshowWidget(settings, folderPath, intervalSeconds = 10, width = 4, height = 3, caption = 'My Slideshow', showCaption = true) {
+export function addSlideshowWidget(settings, folderPath, intervalSeconds = 10, width = 4, height = 3, caption = 'My Slideshow', showCaption = true, transitionType = 'crossfade') {
     const finalCaption = caption && caption.trim() !== '' ? caption.trim() : 'My Slideshow';
     const widgetConfig = {
         id: nextWidgetId(settings, 'slideshow'),
@@ -143,6 +143,7 @@ export function addSlideshowWidget(settings, folderPath, intervalSeconds = 10, w
         intervalSeconds,
         caption: finalCaption,
         showCaption: showCaption !== false,
+        transitionType,
     };
 
     addWidget(settings, widgetConfig, width, height);

@@ -103,6 +103,8 @@ export function createSlideshowNode(widgetData, width, height, xPosition, yPosit
         let currentLayer = watchActorLifecycle(createImageLayer(images[0], borderRadius, width, height, shouldAnimateGif));
         imageContainer.add_child(currentLayer);
 
+        const transitionType = widgetData.transitionType || 'crossfade';
+
         const advanceSlide = () => {
             if (isActorDestroyed(container) || images.length <= 1) return;
 
@@ -110,27 +112,99 @@ export function createSlideshowNode(widgetData, width, height, xPosition, yPosit
             const nextImage = images[currentIndex];
 
             const incomingLayer = watchActorLifecycle(createImageLayer(nextImage, borderRadius, width, height, shouldAnimateGif));
-            incomingLayer.set_opacity(CLUTTER_OPACITY_TRANSPARENT);
-            imageContainer.add_child(incomingLayer);
-
             const outgoingLayer = currentLayer;
             currentLayer = incomingLayer;
 
-            incomingLayer.ease({
-                opacity: CLUTTER_OPACITY_OPAQUE,
-                duration: CROSSFADE_DURATION_MS,
-                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
-            });
+            imageContainer.add_child(incomingLayer);
 
-            outgoingLayer.ease({
-                opacity: CLUTTER_OPACITY_TRANSPARENT,
-                duration: CROSSFADE_DURATION_MS,
-                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
-                onComplete: () => {
-                    if (outgoingLayer && !isActorDestroyed(outgoingLayer))
-                        outgoingLayer.destroy();
-                }
-            });
+            switch (transitionType) {
+                case 'slide_horizontal':
+                    incomingLayer.set_translation(width, 0, 0);
+                    incomingLayer.set_opacity(CLUTTER_OPACITY_OPAQUE);
+
+                    incomingLayer.ease({
+                        translation_x: 0,
+                        duration: CROSSFADE_DURATION_MS,
+                        mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+                    });
+
+                    outgoingLayer.ease({
+                        translation_x: -width,
+                        duration: CROSSFADE_DURATION_MS,
+                        mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+                        onComplete: () => {
+                            if (outgoingLayer && !isActorDestroyed(outgoingLayer))
+                                outgoingLayer.destroy();
+                        }
+                    });
+                    break;
+
+                case 'slide_vertical':
+                    incomingLayer.set_translation(0, height, 0);
+                    incomingLayer.set_opacity(CLUTTER_OPACITY_OPAQUE);
+
+                    incomingLayer.ease({
+                        translation_y: 0,
+                        duration: CROSSFADE_DURATION_MS,
+                        mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+                    });
+
+                    outgoingLayer.ease({
+                        translation_y: -height,
+                        duration: CROSSFADE_DURATION_MS,
+                        mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+                        onComplete: () => {
+                            if (outgoingLayer && !isActorDestroyed(outgoingLayer))
+                                outgoingLayer.destroy();
+                        }
+                    });
+                    break;
+
+                case 'zoom_in':
+                    incomingLayer.set_pivot_point(0.5, 0.5);
+                    incomingLayer.set_scale(1.15, 1.15);
+                    incomingLayer.set_opacity(CLUTTER_OPACITY_TRANSPARENT);
+
+                    incomingLayer.ease({
+                        scale_x: 1.0,
+                        scale_y: 1.0,
+                        opacity: CLUTTER_OPACITY_OPAQUE,
+                        duration: CROSSFADE_DURATION_MS,
+                        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    });
+
+                    outgoingLayer.ease({
+                        opacity: CLUTTER_OPACITY_TRANSPARENT,
+                        duration: CROSSFADE_DURATION_MS,
+                        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                        onComplete: () => {
+                            if (outgoingLayer && !isActorDestroyed(outgoingLayer))
+                                outgoingLayer.destroy();
+                        }
+                    });
+                    break;
+
+                case 'crossfade':
+                default:
+                    incomingLayer.set_opacity(CLUTTER_OPACITY_TRANSPARENT);
+
+                    incomingLayer.ease({
+                        opacity: CLUTTER_OPACITY_OPAQUE,
+                        duration: CROSSFADE_DURATION_MS,
+                        mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    });
+
+                    outgoingLayer.ease({
+                        opacity: CLUTTER_OPACITY_TRANSPARENT,
+                        duration: CROSSFADE_DURATION_MS,
+                        mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                        onComplete: () => {
+                            if (outgoingLayer && !isActorDestroyed(outgoingLayer))
+                                outgoingLayer.destroy();
+                        }
+                    });
+                    break;
+            }
         };
 
         const validInterval = Math.max(1000, Math.floor(slideInterval));

@@ -189,18 +189,28 @@ export function openAddImageDialog(parentWindow, settings) {
 }
 
 export function openAddSlideshowDialog(parentWindow, settings) {
-    let folderRow, intervalRow, captionRow, showCaptionRow;
+    let folderRow, intervalRow, transitionRow, captionRow, showCaptionRow;
+
+    const transitionKeys = ['crossfade', 'slide_horizontal', 'slide_vertical', 'zoom_in'];
+    const transitionLabels = [
+        'Crossfade (Default)',
+        'Slide Horizontal',
+        'Slide Vertical',
+        'Zoom In',
+    ];
 
     const { window, group } = createModernWidgetAddDialog(parentWindow, 'Configure Slideshow Widget', () => {
         const folderPath = folderRow.get_text().trim();
         if (folderPath) {
+            const selectedTransition = transitionKeys[transitionRow.get_selected()] || 'crossfade';
             addSlideshowWidget(
                 settings,
                 folderPath,
                 Math.round(intervalRow.get_value()),
                 4, 3,
                 captionRow.get_text().trim(),
-                showCaptionRow.get_active()
+                showCaptionRow.get_active(),
+                selectedTransition
             );
             return true;
         }
@@ -236,6 +246,12 @@ export function openAddSlideshowDialog(parentWindow, settings) {
         }),
     });
 
+    transitionRow = new Adw.ComboRow({
+        title: 'Transition Effect',
+        model: new Gtk.StringList({ strings: transitionLabels }),
+    });
+    transitionRow.set_selected(0);
+
     captionRow = new Adw.EntryRow({
         title: 'Caption',
         text: 'My Slideshow',
@@ -248,6 +264,7 @@ export function openAddSlideshowDialog(parentWindow, settings) {
 
     group.add(folderRow);
     group.add(intervalRow);
+    group.add(transitionRow);
     group.add(captionRow);
     group.add(showCaptionRow);
 

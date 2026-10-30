@@ -655,10 +655,28 @@ export function buildSlideshowSettings(container, widget, settings, saveHandlers
     });
     container.add(intervalRow);
 
+    const transitionKeys = ['crossfade', 'slide_horizontal', 'slide_vertical', 'zoom_in'];
+    const transitionLabels = [
+        'Crossfade (Default)',
+        'Slide Horizontal',
+        'Slide Vertical',
+        'Zoom In',
+    ];
+
+    const transitionRow = new Adw.ComboRow({
+        title: 'Transition Effect',
+        model: new Gtk.StringList({ strings: transitionLabels }),
+    });
+    const currentTransition = widget.transitionType || 'crossfade';
+    const transitionIdx = transitionKeys.indexOf(currentTransition);
+    transitionRow.set_selected(transitionIdx >= 0 ? transitionIdx : 0);
+    container.add(transitionRow);
+
     const { captionEntry, showCaptionSwitch, fgColorBtn } = buildCaptionControls(container, widget, settings, 'My Slideshow');
 
     saveHandlers.push((target) => {
         target.intervalSeconds = Math.round(intervalRow.get_value());
+        target.transitionType = transitionKeys[transitionRow.get_selected()] || 'crossfade';
         target.caption = captionEntry.get_text().trim() || 'My Slideshow';
         target.showCaption = showCaptionSwitch.get_active();
         target.fgColor = fgColorBtn.get_rgba ? fgColorBtn.get_rgba().to_string() : widget.fgColor;
