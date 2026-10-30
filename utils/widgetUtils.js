@@ -116,7 +116,6 @@ export function calculateGridDimensions(width, height, preferredCols = COLUMNS_C
     };
 }
 
-/** Corner rounding applied to every widget; not user-configurable. */
 export const DEFAULT_CORNER_RADIUS_PX = 12;
 
 /** Returns whether a CSS color reads as a dark surface (luminance below 0.5). */
