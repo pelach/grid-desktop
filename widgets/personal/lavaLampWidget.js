@@ -48,35 +48,11 @@ export function createLavaLampNode(config, width, height, xPosition, yPosition) 
     container.add_child(drawingArea);
 
     // Assetek előre betöltése (egyszer, inicializáláskor)
-    // 1. Üveg (ebből vesszük a vágómaszkot)
+    // 1. Üveg 
     // 2. Fém váz
     // 3. Fénycsillanás
-    let glassPathData = 'M 72,70 C 90,66 110,66 128,70 C 144,145 158,205 158,225 C 158,242 144,250 136,268 C 112,272 85,272 60,268 C 52,250 42,242 42,225 C 42,205 56,145 72,70 Z';
-    try {
-        const glassPath = getAssetPath('glass.svg');
-        if (glassPath && GLib.file_test(glassPath, GLib.FileTest.EXISTS)) {
-            const glassFile = Gio.File.new_for_path(glassPath);
-            glassFile.load_contents_async(null, (file, res) => {
-                try {
-                    const [ok, contents] = file.load_contents_finish(res);
-                    if (ok && contents) {
-                        const text = new TextDecoder().decode(contents);
-                        const match = text.match(/d="([^"]+)"/);
-                        if (match && match[1]) {
-                            glassPathData = match[1];
-                            if (!isActorDestroyed(drawingArea)) {
-                                drawingArea.queue_repaint();
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.warn(`[LavaLamp] Hiba a glass.svg beolvasásakor: ${err.message}`);
-                }
-            });
-        }
-    } catch (e) {
-        console.warn(`[LavaLamp] Nem sikerült kezdeményezni a glass.svg betöltését: ${e.message}`);
-    }
+    const glassPathData = 'M 72,70 C 90,66 110,66 128,70 C 144,145 158,205 158,225 C 158,242 144,250 136,268 C 112,272 85,272 60,268 C 52,250 42,242 42,225 C 42,205 56,145 72,70 Z';
+    
 
     // 2. Fém váz és Csillanás betöltése
     let lampHandle = null;
