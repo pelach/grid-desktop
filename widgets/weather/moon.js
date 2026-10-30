@@ -44,7 +44,7 @@ let moonImagePath = null;
 try {
     const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
     const currentDir = GLib.path_get_dirname(currentFilePath);
-    const p = GLib.build_filenamev([currentDir, '..', '..', 'assets', 'moon', 'moon.png']);
+    const p = GLib.build_filenamev([currentDir, 'moon', 'moon.png']);
     if (GLib.file_test(p, GLib.FileTest.EXISTS)) {
         moonImagePath = p;
     }

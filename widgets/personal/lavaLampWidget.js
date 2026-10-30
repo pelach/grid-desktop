@@ -23,7 +23,7 @@ function getAssetPath(filename) {
     try {
         const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
         const currentDir = GLib.path_get_dirname(currentFilePath);
-        return GLib.build_filenamev([currentDir, '..', '..', 'assets', 'lavalamp', filename]);
+        return GLib.build_filenamev([currentDir, 'lavalamp', filename]);
     } catch (e) {
         console.warn('LavaLamp: Hiba az útvonal lekérésekor:', e.message);
         return null;

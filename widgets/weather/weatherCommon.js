@@ -17,6 +17,8 @@ export const DEFAULT_WEATHER_BORDER_RADIUS_PX = 24;
 export const FORECAST_MIN_GRID_WIDTH = 6;
 export const SIMPLE_MIN_GRID_WIDTH = 4;
 
+const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
+const weatherBaseDir = GLib.path_get_dirname(currentFilePath);
 
 const WEATHER_CACHE = new Map();
 const WEATHER_PROMISES = new Map();
@@ -139,15 +141,16 @@ export function getWeatherAssets(extensionPath, code, isDay, folderName = '3x3',
     const effectiveCode = resolveConditionCode(code, text);
     const timeOfDay = isDay ? 'day' : 'night';
 
+    const getImgPath = (name) => GLib.build_filenamev([weatherBaseDir, folderName, `${name}.png`]);
+    const getIconPath = (name) => GLib.build_filenamev([weatherBaseDir, 'icons', `wi_${name}.svg`]);
+
     const assets = {
-        iconPath: `${extensionPath}/assets/weather/icons/wi_clear-${timeOfDay}.svg`,
+        iconPath: GLib.build_filenamev([weatherBaseDir, 'icons', `wi_clear-${timeOfDay}.svg`]),
         bgStart: DEFAULT_BG_COLOR,
         bgEnd: DEFAULT_BG_COLOR,
         bgImagePath: '',
     };
 
-    const getImgPath = (name) => `${extensionPath}/assets/weather/${folderName}/${name}.png`;
-    const getIconPath = (name) => `${extensionPath}/assets/weather/icons/wi_${name}.svg`;
 
     if (effectiveCode === WEATHER_CODE_CLEAR) {
         assets.iconPath = isDay ? getIconPath('clear-day') : getIconPath('clear-night');
@@ -212,7 +215,7 @@ export function getWeatherAssets(extensionPath, code, isDay, folderName = '3x3',
     }
 
     if (!GLib.file_test(assets.iconPath, GLib.FileTest.EXISTS)) {
-        assets.iconPath = `${extensionPath}/assets/weather/icons/wi_clear-${timeOfDay}.svg`;
+        assets.iconPath = GLib.build_filenamev([weatherBaseDir, 'icons', `wi_clear-${timeOfDay}.svg`]);
     }
 
     if (assets.bgImagePath && !GLib.file_test(assets.bgImagePath, GLib.FileTest.EXISTS))
@@ -244,7 +247,7 @@ export function createMainLayout(widgetNode) {
 
 export function createFallbackIcon(extensionPath) {
     return new Gio.FileIcon({
-        file: Gio.File.new_for_path(`${extensionPath}/assets/weather/icons/wi_clear-day.svg`),
+        file: Gio.File.new_for_path(GLib.build_filenamev([weatherBaseDir, 'icons', 'wi_clear-day.svg'])),
     });
 }
 
