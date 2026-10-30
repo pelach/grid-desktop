@@ -51,10 +51,13 @@ function extractItemLink(block) {
     const atomLinkPattern = /<link\b[^>]*\brel=["']?alternate["']?[^>]*\bhref=["']([^"']+)["'][^>]*\/?>/i;
     const atomMatch = block.match(atomLinkPattern);
     if (atomMatch) {
-        return decodeXmlEntities(atomMatch[1]);
+        const atomHref = decodeXmlEntities(atomMatch[1]);
+        return /^https?:\/\//i.test(atomHref) ? atomHref : '';
     }
     const anyHrefMatch = block.match(/<link\b[^>]*\bhref=["']([^"']+)["'][^>]*\/?>/i);
-    return anyHrefMatch ? decodeXmlEntities(anyHrefMatch[1]) : '';
+    if (!anyHrefMatch) return '';
+    const anyHref = decodeXmlEntities(anyHrefMatch[1]);
+    return /^https?:\/\//i.test(anyHref) ? anyHref : '';
 }
 
 /** Normalizes a single RSS or Atom entry into { id, title, link, summary, date }. */
