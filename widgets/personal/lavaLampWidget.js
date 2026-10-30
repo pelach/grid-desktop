@@ -51,7 +51,7 @@ export function createLavaLampNode(config, width, height, xPosition, yPosition) 
     // 1. Üveg (ebből vesszük a vágómaszkot)
     // 2. Fém váz
     // 3. Fénycsillanás
-    const glassPathData = 'M 72,70 C 90,66 110,66 128,70 C 144,145 158,205 158,225 C 158,242 144,250 136,268 C 112,272 85,272 60,268 C 52,250 42,242 42,225 C 42,205 56,145 72,70 Z';
+    let glassPathData = 'M 72,70 C 90,66 110,66 128,70 C 144,145 158,205 158,225 C 158,242 144,250 136,268 C 112,272 85,272 60,268 C 52,250 42,242 42,225 C 42,205 56,145 72,70 Z';
     try {
         const glassPath = getAssetPath('glass.svg');
         if (glassPath && GLib.file_test(glassPath, GLib.FileTest.EXISTS)) {

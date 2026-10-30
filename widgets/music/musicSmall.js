@@ -25,7 +25,7 @@ const BASE_ARM_HEIGHT = 120;
 function getAssetPath(filename) {
     const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
     const currentDir = GLib.path_get_dirname(currentFilePath);
-    return GLib.build_filenamev([currentDir, '..', '..', 'assets', filename]);
+    return GLib.build_filenamev([currentDir, filename]);
 }
 
 function findCava() {

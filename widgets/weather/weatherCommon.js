@@ -141,11 +141,11 @@ export function getWeatherAssets(extensionPath, code, isDay, folderName = '3x3',
     const effectiveCode = resolveConditionCode(code, text);
     const timeOfDay = isDay ? 'day' : 'night';
 
-    const getImgPath = (name) => GLib.build_filenamev([weatherBaseDir, folderName, `${name}.png`]);
-    const getIconPath = (name) => GLib.build_filenamev([weatherBaseDir, 'icons', `wi_${name}.svg`]);
+    const getImgPath = (name) => GLib.build_filenamev([weatherBaseDir, 'weather', folderName, `${name}.png`]);
+    const getIconPath = (name) => GLib.build_filenamev([weatherBaseDir, 'weather', 'icons', `wi_${name}.svg`]);
 
     const assets = {
-        iconPath: GLib.build_filenamev([weatherBaseDir, 'icons', `wi_clear-${timeOfDay}.svg`]),
+        iconPath: GLib.build_filenamev([weatherBaseDir, 'weather', 'icons', `wi_clear-${timeOfDay}.svg`]),
         bgStart: DEFAULT_BG_COLOR,
         bgEnd: DEFAULT_BG_COLOR,
         bgImagePath: '',
@@ -215,7 +215,7 @@ export function getWeatherAssets(extensionPath, code, isDay, folderName = '3x3',
     }
 
     if (!GLib.file_test(assets.iconPath, GLib.FileTest.EXISTS)) {
-        assets.iconPath = GLib.build_filenamev([weatherBaseDir, 'icons', `wi_clear-${timeOfDay}.svg`]);
+        assets.iconPath = GLib.build_filenamev([weatherBaseDir, 'weather', 'icons', `wi_clear-${timeOfDay}.svg`]);
     }
 
     if (assets.bgImagePath && !GLib.file_test(assets.bgImagePath, GLib.FileTest.EXISTS))
@@ -247,7 +247,7 @@ export function createMainLayout(widgetNode) {
 
 export function createFallbackIcon(extensionPath) {
     return new Gio.FileIcon({
-        file: Gio.File.new_for_path(GLib.build_filenamev([weatherBaseDir, 'icons', 'wi_clear-day.svg'])),
+        file: Gio.File.new_for_path(GLib.build_filenamev([weatherBaseDir, 'weather', 'icons', 'wi_clear-day.svg'])),
     });
 }
 
