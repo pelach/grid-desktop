@@ -108,12 +108,13 @@ export function resolveWidgetGlassHighlight(config) {
     const bgColor = resolveWidgetBackgroundColor(config);
     const isDark = isDarkBackgroundColor(bgColor);
 
-    // Ha sötét a widget (fekete üveg), látható, finom világosabb perem kell, mint a Dockon
     if (isDark) {
-        return 'border: 1.5px solid rgba(255, 255, 255, 0.22);';
+        // Pontosan mint a macOS Dockon: mély, határozott sötét kontúr
+        // A widget 0.8-as feketéje mellett ez egy tömör, éles sötét peremet ad
+        return 'border: 1.5px solid rgba(0, 0, 0, 0.75);';
     }
 
-    // Ha világos/színes (pl. a sárga Sticky Note vagy fehér óra), kinyerjük az alapszínt:
+    // Világos/színes (pl. sárga jegyzet)
     const match = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (match) {
         const r = Math.max(0, Math.round(parseInt(match[1], 10) * 0.70));
@@ -122,8 +123,7 @@ export function resolveWidgetGlassHighlight(config) {
         return `border: 1.5px solid rgba(${r}, ${g}, ${b}, 0.85);`;
     }
 
-    // Alapértelmezett világos fallback
-    return 'border: 1.5px solid rgba(0, 0, 0, 0.18);';
+    return 'border: 1.5px solid rgba(0, 0, 0, 0.25);';
 }
 
 
