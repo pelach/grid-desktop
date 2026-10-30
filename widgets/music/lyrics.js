@@ -36,17 +36,24 @@ function getLyricsCacheFile(artist, title) {
     return Gio.File.new_for_path(GLib.build_filenamev([LYRICS_CACHE_DIR, filename]));
 }
 
-function loadCachedLyrics(artist, title) {
-    try {
-        const file = getLyricsCacheFile(artist, title);
-        if (file.query_exists(null)) {
-            const [ok, contents] = file.load_contents(null);
-            if (ok) {
-                return JSON.parse(new TextDecoder('utf-8').decode(contents));
-            }
+async function loadCachedLyrics(artist, title) {
+    return new Promise((resolve) => {
+        try {
+            const file = getLyricsCacheFile(artist, title);
+            file.load_contents_async(null, (source, res) => {
+                try {
+                    const [ok, contents] = source.load_contents_finish(res);
+                    if (ok && contents) {
+                        resolve(JSON.parse(new TextDecoder('utf-8').decode(contents)));
+                        return;
+                    }
+                } catch (_e) {}
+                resolve(null);
+            });
+        } catch (_e) {
+            resolve(null);
         }
-    } catch (_e) {}
-    return null;
+    });
 }
 
 function saveCachedLyrics(artist, title, data) {
@@ -352,7 +359,7 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
 
         clearLyricsUI('Retrieving lyrics...');
 
-        let data = loadCachedLyrics(artist, title);
+        let data = await loadCachedLyrics(artist, title);
         if (!data) {
             data = await fetchLrclibLyrics(artist, title, album, durationSec);
             if (data) saveCachedLyrics(artist, title, data);
