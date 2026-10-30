@@ -186,7 +186,6 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
     };
 
     const smoothScrollTo = (targetVal, durationMs = 280) => {
-        log(`[LYRICS SCROLL] targetVal: ${targetVal}`);
         const adj = state.scrollView.vscroll?.adjustment || state.scrollView.vadjustment;
         if (!adj) return;
 
@@ -225,7 +224,6 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
     };
 
     const clearLyricsUI = (message = '') => {
-        log(`[LYRICS RESET] clearLyricsUI hívva! Üzenet: ${message}`);
         if (state.scrollTimerId) {
             GLib.source_remove(state.scrollTimerId);
             state.scrollTimerId = null;
@@ -245,7 +243,6 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
     };
 
     const buildLyricsUI = (lyricsList, isSynced) => {
-        log(`[LYRICS REBUILD] buildLyricsUI hívva! Sorok: ${lyricsList.length}`);
         state.lyricsBox.remove_all_children();
         state.lineActors = [];
         state.lyricsData = lyricsList;
@@ -337,8 +334,6 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
 
             // 3. Cél: az adott sor közepe essen a látható ablak közepére
             const targetScrollVal = Math.round(actorTop - (viewHeight / 2) + (actorHeight / 2));
-
-            log(`[LYRICS CALC FIX] index: ${index}, actorTop: ${actorTop}, viewHeight: ${viewHeight}, target: ${targetScrollVal}`);
 
             if (!isNaN(targetScrollVal)) {
                 smoothScrollTo(Math.max(0, targetScrollVal), 280);

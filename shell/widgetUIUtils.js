@@ -15,7 +15,8 @@ import {
     isDarkBackgroundColor,
     CAIRO_OPERATOR_CLEAR,
     CAIRO_OPERATOR_OVER,
-    CAIRO_LINE_CAP_ROUND
+    CAIRO_LINE_CAP_ROUND,
+    cssColorToRgba
 } from '../utils/widgetUtils.js';
 
 const CAPTION_PADDING_PIXELS = 12;
@@ -107,12 +108,22 @@ export function resolveWidgetGlassHighlight(config) {
     const bgColor = resolveWidgetBackgroundColor(config);
     const isDark = isDarkBackgroundColor(bgColor);
 
+    // Ha sötét a widget (fekete üveg), látható, finom világosabb perem kell, mint a Dockon
     if (isDark) {
-        // Körben egyenletes, stabil 1px-es vonal (0.10), a tetején finom élfénnyel (0.20)
-        return 'border: 1px solid rgba(255, 255, 255, 0.12);';
-    } else {
-        return 'border: 1px solid rgba(0, 0, 0, 0.14);';
+        return 'border: 1.5px solid rgba(255, 255, 255, 0.22);';
     }
+
+    // Ha világos/színes (pl. a sárga Sticky Note vagy fehér óra), kinyerjük az alapszínt:
+    const match = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = Math.max(0, Math.round(parseInt(match[1], 10) * 0.70));
+        const g = Math.max(0, Math.round(parseInt(match[2], 10) * 0.70));
+        const b = Math.max(0, Math.round(parseInt(match[3], 10) * 0.70));
+        return `border: 1.5px solid rgba(${r}, ${g}, ${b}, 0.85);`;
+    }
+
+    // Alapértelmezett világos fallback
+    return 'border: 1.5px solid rgba(0, 0, 0, 0.18);';
 }
 
 
