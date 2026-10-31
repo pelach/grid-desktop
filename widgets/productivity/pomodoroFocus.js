@@ -17,14 +17,15 @@ import {
 
 const PHASE_CONFIG = buildPomodoroPhaseConfig('Work', 'Break');
 
-const REF_WIDTH_PX = 360;
-const REF_HEIGHT_PX = 180;
-const CONTAINER_PADDING_V_PX = 16;
-const CONTAINER_PADDING_H_PX = 20;
-const GAUGE_SIZE_PX = 130;
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
+
+const CONTAINER_PADDING_V_PX = 10;
+const CONTAINER_PADDING_H_PX = 12;
+const GAUGE_SIZE_PX = 135;
 const ARC_LINE_WIDTH_RATIO = 0.065;
-const TIMER_FONT_SIZE_PX = 26;
-const CAPTION_FONT_SIZE_PX = 9;
+const TIMER_FONT_SIZE_PX = 24;
+const CAPTION_FONT_SIZE_PX = 9.5;
 const MODE_FONT_SIZE_PX = 11;
 const BUTTON_FONT_SIZE_PX = 12;
 const COUNTER_FONT_SIZE_PX = 11;
@@ -40,7 +41,7 @@ export function createPomodoroFocusNode(config, width, height, xPosition, yPosit
     const textRgba = (alpha) => cssColorToRgba(textColor, alpha);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
 
     const timer = createPomodoroTimer(config, PHASE_CONFIG, () => {
         updateDisplay();
@@ -52,7 +53,7 @@ export function createPomodoroFocusNode(config, width, height, xPosition, yPosit
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
         y_expand: true,
-        style: 'spacing: 14px;',
+        style: 'spacing: 12px;',
     });
     container.add_child(mainBox);
 
@@ -185,15 +186,15 @@ export function createPomodoroFocusNode(config, width, height, xPosition, yPosit
         const px = (v) => Math.max(1, Math.round(v * scale));
         const activeBg = cssColorToRgba(accentHex, 0.22);
         const inactiveText = `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
-        const activeText = `color: ${textColor};`;
+        const activeText = `color: ${textColor}; font-weight: bold;`;
 
         modeSelector.style = `background-color: ${textRgba(0.06)};`
-            + `padding: ${px(3)}px; border-radius: ${px(10)}px;`;
+            + `padding: ${px(3)}px; border-radius: ${px(8)}px;`;
 
         for (const [phase, btn] of modeButtons.entries()) {
             const isActive = state.phase === phase;
             btn.style = `${fontCss}font-size: ${px(MODE_FONT_SIZE_PX)}px;`
-                + `padding: ${px(6)}px 0; border-radius: ${px(7)}px;`
+                + `padding: ${px(5)}px 0; border-radius: ${px(6)}px;`
                 + `background-color: ${isActive ? activeBg : 'transparent'};`
                 + `${isActive ? activeText : inactiveText}`;
         }
@@ -201,17 +202,17 @@ export function createPomodoroFocusNode(config, width, height, xPosition, yPosit
         counterPrefixLabel.style = `${fontCss}font-size: ${px(COUNTER_FONT_SIZE_PX)}px;`
             + `color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-right: ${px(4)}px;`;
         counterValueLabel.style = `${fontCss}font-size: ${px(COUNTER_FONT_SIZE_PX)}px;`
-            + `color: ${textColor}; margin-right: ${px(2)}px;`;
+            + `color: ${textColor}; margin-right: ${px(2)}px; font-weight: bold;`;
         counterTotalLabel.style = `${fontCss}font-size: ${px(COUNTER_FONT_SIZE_PX)}px;`
             + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
 
         startBtn.style = `${fontCss}font-size: ${px(BUTTON_FONT_SIZE_PX)}px;`
-            + `padding: ${px(10)}px 0; border-radius: ${px(10)}px;`
+            + `padding: ${px(8)}px 0; border-radius: ${px(8)}px;`
             + `background-color: ${cssColorToRgba(accentHex, 1)};`
-            + `color: ${textOnAccent};`;
+            + `color: ${textOnAccent}; font-weight: bold;`;
         resetBtn.style = `${fontCss}font-size: ${px(BUTTON_FONT_SIZE_PX)}px;`
-            + `padding: ${px(10)}px 0; border-radius: ${px(10)}px;`
-            + `background-color: transparent;`
+            + `padding: ${px(8)}px 0; border-radius: ${px(8)}px;`
+            + `background-color: rgba(255,255,255,0.06);`
             + `color: ${textColor};`;
 
         timerLabel.style = `${fontCss}font-size: ${px(TIMER_FONT_SIZE_PX)}px;`
@@ -245,24 +246,26 @@ export function createPomodoroFocusNode(config, width, height, xPosition, yPosit
 
     function applyLayout(currentWidth, currentHeight) {
         if (!currentWidth || !currentHeight) return;
-        scale = Math.min(currentWidth / REF_WIDTH_PX, currentHeight / REF_HEIGHT_PX);
+        scale = Math.max(0.65, Math.min(currentWidth / BASE_CONTAINER_WIDTH_PX, currentHeight / BASE_CONTAINER_HEIGHT_PX));
         const px = (v) => Math.max(1, Math.round(v * scale));
 
-        mainBox.style = `padding: ${px(CONTAINER_PADDING_V_PX)}px ${px(CONTAINER_PADDING_H_PX)}px; spacing: ${px(14)}px;`;
+        const padV = Math.max(8, Math.round(CONTAINER_PADDING_V_PX * scale));
+        const padH = Math.max(10, Math.round(CONTAINER_PADDING_H_PX * scale));
+        mainBox.style = `padding: ${padV}px ${padH}px; spacing: ${px(12)}px;`;
 
-        const gaugeSize = Math.min(currentHeight - px(CONTAINER_PADDING_V_PX) * 2, px(GAUGE_SIZE_PX));
+        const gaugeSize = Math.min(currentHeight - padV * 2, px(GAUGE_SIZE_PX));
         gaugeWrap.set_size(gaugeSize, gaugeSize);
         canvasActor.set_size(gaugeSize, gaugeSize);
 
-        actionButtons.style = `spacing: ${px(8)}px; margin-top: ${px(6)}px;`;
-        counterRow.style = `margin-top: ${px(10)}px;`;
+        actionButtons.style = `spacing: ${px(6)}px; margin-top: ${px(4)}px;`;
+        counterRow.style = `margin-top: ${px(6)}px;`;
 
         updateDisplay();
         refreshControlStyles();
     }
 
     applyLayout(width, height);
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
         applyLayout(w, h);
     });

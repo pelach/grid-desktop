@@ -20,10 +20,15 @@ import {
 
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_WIDTH = 220;
-const BASE_HEIGHT = 220;
+const BASE_CONTAINER_WIDTH = 400;
+const BASE_CONTAINER_HEIGHT = 400;
 
-// Segédfüggvény fájl tartalmának aszinkron, nem blokkoló kiolvasásához
+const CARD_BG_DARK_ALPHA = 0.05;
+const CARD_BG_LIGHT_ALPHA = 0.04;
+const CARD_BORDER_DARK_ALPHA = 0.06;
+const CARD_BORDER_LIGHT_ALPHA = 0.10;
+
+// Segédfüggvény fájl tartalmának aszinkron kiolvasásához
 async function readFileContent(path) {
     return new Promise((resolve) => {
         try {
@@ -274,11 +279,11 @@ export function createHardwareInfoNode(config, width, height, xPosition, yPositi
     const textColor = resolveWidgetForegroundColor(config);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    const isDark = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
-    const cardBg = cssColorToRgba(textColor, isDark ? 0.05 : 0.04);
-    const cardBorder = cssColorToRgba(textColor, isDark ? 0.08 : 0.12);
+    const isDarkSurface = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
+    const cardBgAlpha = isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA;
+    const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
 
-    let scale = Math.min(width / BASE_WIDTH, height / BASE_HEIGHT);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
 
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -287,18 +292,19 @@ export function createHardwareInfoNode(config, width, height, xPosition, yPositi
     });
     container.add_child(mainLayout);
 
-    // ── Fejléc ──
+    // ── 1. Egységes Fejléc ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
-        y_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.START,
     });
     const headerIcon = new St.Icon({
         icon_name: 'preferences-system-symbolic',
+        style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerLabel = new St.Label({
-        text: 'Hardwerinfo',
+        text: 'Hardware Info',
         y_align: Clutter.ActorAlign.CENTER,
     });
     headerLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
@@ -306,11 +312,11 @@ export function createHardwareInfoNode(config, width, height, xPosition, yPositi
     headerBox.add_child(headerLabel);
     mainLayout.add_child(headerBox);
 
-    // ── Görgethető törzs ──
+    // ── 2. Görgethető konténer ──
     const scrollView = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
-        overlay_scrollbars: true,
+        overlay_scrollbars: false,
         x_expand: true,
         y_expand: true,
     });
@@ -355,7 +361,6 @@ export function createHardwareInfoNode(config, width, height, xPosition, yPositi
         return { box, icon, label, isActive };
     }
 
-    // Fix kártyák inicializálása alapértelmezett szöveggel
     const cardHost = createCard('computer-symbolic', 'Computer', true);
     const cardGpu = createCard('video-display-symbolic', 'Graphics Controller', true);
     const cardCpu = createCard('cpu-symbolic', 'Processor', true);
@@ -376,7 +381,6 @@ export function createHardwareInfoNode(config, width, height, xPosition, yPositi
 
     let dynamicCardActors = [];
 
-    // Statikus hardveradatok aszinkron betöltése a háttérben
     async function loadStaticSpecs() {
         if (isActorDestroyed(container)) return;
 
@@ -439,33 +443,45 @@ export function createHardwareInfoNode(config, width, height, xPosition, yPositi
 
     function applyScale(newScale) {
         scale = newScale;
-        const pad = Math.max(10, Math.round(14 * scale));
-        const fontSize = Math.max(10, Math.round(11.5 * scale));
-        const iconSize = Math.max(13, Math.round(15 * scale));
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const iconSize = Math.round(16 * scale);
+
+        // Kártya méretezési etalon (audioOutput mintára):
+        const cardPadding = Math.max(4, Math.round(6 * scale));
+        const cardRadius = Math.max(5, Math.round(8 * scale));
         const rowGap = Math.max(3, Math.round(5 * scale));
+        const rightScrollGap = Math.max(6, Math.round(8 * scale));
+        const itemFontSize = Math.max(10, Math.round(12 * scale));
+        const itemIconSize = Math.max(14, Math.round(16 * scale));
 
-        mainLayout.style = `padding: ${pad}px;`;
-        headerBox.style = `margin-bottom: ${Math.round(8 * scale)}px;`;
-        headerIcon.icon_size = Math.round(15 * scale);
+        mainLayout.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
         headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
-        headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(12 * scale)}px; font-weight: bold;`;
+        headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
 
-        contentBox.style = `spacing: ${rowGap}px; padding: 0px 2px;`;
-        specsContainer.style = `spacing: ${rowGap}px;`;
-        devicesContainer.style = `spacing: ${rowGap}px;`;
+        contentBox.style = `padding: 0px;`;
+        specsContainer.style = `spacing: 0px;`;
+        devicesContainer.style = `spacing: 0px;`;
 
-        separator.style = `height: 1px; background-color: ${cardBorder}; margin: ${Math.round(3 * scale)}px 0px;`;
+        separator.style = `height: 1px; background-color: ${cssColorToRgba(textColor, cardBorderAlpha)}; margin: ${Math.round(4 * scale)}px ${rightScrollGap}px ${Math.round(4 * scale)}px 0px;`;
 
         const allCards = [...staticCardActors, ...dynamicCardActors];
         allCards.forEach(c => {
-            const bg = c.isActive ? cardBg : 'transparent';
-            const border = c.isActive ? cardBorder : 'transparent';
+            const bg = c.isActive ? cssColorToRgba(textColor, cardBgAlpha) : 'transparent';
+            const border = c.isActive ? cssColorToRgba(textColor, cardBorderAlpha) : 'transparent';
             const opacity = c.isActive ? '0.9' : '0.5';
 
-            c.box.style = `background-color: ${bg}; border: 1px solid ${border}; border-radius: 5px; padding: 4px 6px;`;
-            c.icon.icon_size = iconSize;
-            c.icon.style = `color: ${textColor}; opacity: ${opacity}; margin-right: 7px;`;
-            c.label.style = `${fontCss}color: ${textColor}; font-size: ${fontSize}px; opacity: ${opacity};`;
+            c.box.style = `background-color: ${bg}; `
+                + `border: 1px solid ${border}; `
+                + `border-radius: ${cardRadius}px; `
+                + `padding: ${cardPadding}px; `
+                + `margin-bottom: ${rowGap}px; `
+                + `margin-right: ${rightScrollGap}px;`;
+
+            c.icon.icon_size = itemIconSize;
+            c.icon.style = `color: ${textColor}; opacity: ${opacity}; margin-right: ${Math.round(6 * scale)}px;`;
+            c.label.style = `${fontCss}color: ${textColor}; font-size: ${itemFontSize}px; font-weight: 500; opacity: ${opacity};`;
         });
     }
 
@@ -473,9 +489,9 @@ export function createHardwareInfoNode(config, width, height, xPosition, yPositi
     refreshPeripherals();
     applyScale(scale);
 
-    attachResponsiveScaler(container, BASE_WIDTH, BASE_HEIGHT, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        applyScale(Math.min(w / BASE_WIDTH, h / BASE_HEIGHT));
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
     });
 
     const timerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 5, () => {

@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GioUnix from 'gi://GioUnix';
+import Gdk from 'gi://Gdk';
 
 /** Empty string means no font-family override; widgets inherit the system theme font. */
 export const DEFAULT_FONT_FAMILY = '';
@@ -20,65 +21,89 @@ export const CAIRO_LINE_CAP_ROUND = 1;
 export const BASE_CELL_SIZE = 34; 
 export const GRID_GAP_PX = 4;
 export const GRID_MARGIN_PX = 4;
-export const COLUMNS_COUNT = 50;
-export const ROWS_COUNT = 28;
+export const COLUMNS_COUNT = 100;
+export const ROWS_COUNT = 40;
 
 export const MIN_WIDGET_SIZES = Object.freeze({
-    'pomodoro': { minCols: 4, minRows: 4 },
-    'pomodoro-focus': { minCols: 8, minRows: 4 },
+    // --- 1. IDŐ ÉS DÁTUM ---
+    'time': { minCols: 4, minRows: 4 },
+    'timeAnalog': { minCols: 4, minRows: 4 },
     'countdown': { minCols: 4, minRows: 4 },
     'stopwatch': { minCols: 4, minRows: 4 },
     'timer': { minCols: 4, minRows: 4 },
-    'network-speed': { minCols: 4, minRows: 2 },
-    'cpu-ram': { minCols: 4, minRows: 2 },
-    'time': { minCols: 4, minRows: 3 },
-    'system-dashboard': { minCols: 4, minRows: 4 },
-    'system-info': { minCols: 2, minRows: 2 },
-    'resource-wheel': { minCols: 5, minRows: 4 },
-    'weather': { minCols: 4, minRows: 4 },
-    'weather_cards': { minCols: 3, minRows: 3 },
-    'weather_bars': { minCols: 6, minRows: 6 },
-    'music': { minCols: 4, minRows: 4 },
-    'notes': { minCols: 4, minRows: 4 },
-    'clipboard': { minCols: 4, minRows: 4 },
-    'app-launcher': { minCols: 4, minRows: 3 },
-    'slideshow': { minCols: 4, minRows: 3 },
-    'image': { minCols: 4, minRows: 3 },
+    'worldClock': { minCols: 4, minRows: 4 },
+    'worldAnalog': { minCols: 4, minRows: 4 },
     'calendar': { minCols: 4, minRows: 4 },
-    'calendar-grid': { minCols: 5, minRows: 4 },
+    'calendar-grid': { minCols: 4, minRows: 4 },
     'calendarTasks': { minCols: 4, minRows: 4 },
-    'quotes': { minCols: 4, minRows: 4 },
-    'screen-time': { minCols: 8, minRows: 4 },
-    'todo': { minCols: 6, minRows: 4 },
-    'github': { minCols: 8, minRows: 4 },
-    'mood': { minCols: 8, minRows: 4 },
-    'rss-headlines': { minCols: 4, minRows: 4 },
-    'rss-feed': { minCols: 4, minRows: 4 },
-    'battery-status': { minCols: 4, minRows: 4 },
-    'currency-tracker': { minCols: 7, minRows: 4 },
-    'habitTracker': { minCols: 7, minRows: 4 },
-    'quickToggles': { minCols: 4, minRows: 4 },
+    'todayHistory': { minCols: 4, minRows: 4 },
+
+    // --- 2. IDŐJÁRÁS ÉS KÖRNYEZET ---
+    'weather': { minCols: 4, minRows: 4 },
+    'weatherStandard': { minCols: 4, minRows: 4 },
+    'weatherSimple': { minCols: 4, minRows: 4 },
+    'weather_cards': { minCols: 4, minRows: 4 },
+    'weatherCards': { minCols: 4, minRows: 4 },
+    'weather_bars': { minCols: 8, minRows: 8 },
+    'weatherBars': { minCols: 8, minRows: 8 },
+    'weatherForecast': { minCols: 8, minRows: 4 },
+    'sun-schedule': { minCols: 4, minRows: 4 },
+    'moon': { minCols: 8, minRows: 4 },
+
+    // --- 3. HARDVER ÉS MONITORING ---
+    'system-info': { minCols: 4, minRows: 4 },
+    'ping-monitor': { minCols: 4, minRows: 4 },
+    'updates': { minCols: 4, minRows: 4 },
+    'mailGoa': { minCols: 4, minRows: 4 },
+
+    'cpu-ram': { minCols: 8, minRows: 4 },
+    'network-speed': { minCols: 8, minRows: 4 },
+    'binary': { minCols: 8, minRows: 4 },
+    'uptime': { minCols: 8, minRows: 4 },
+
+    'system-dashboard': { minCols: 4, minRows: 4 },
+    'resource-wheel': { minCols: 4, minRows: 4 },
+    'storageBar': { minCols: 8, minRows: 4 },
+    'hardwerinfo': { minCols: 8, minRows: 8 },
+
+    // --- 4. MÉDIA ÉS HANG ---
+    'music': { minCols: 4, minRows: 4 },
+    'musicSmall': { minCols: 4, minRows: 4 },
+    'musicWide': { minCols: 8, minRows: 4 },
     'audioOutput': { minCols: 4, minRows: 4 },
-    'controlsSliders': { minCols: 5, minRows: 3 },
+    'lyrics': { minCols: 8, minRows: 4 },
+
+    // --- 5. KAPCSOLÓK ÉS VEZÉRLÉS ---
+    'battery-status': { minCols: 4, minRows: 4 },
     'powerProfiles': { minCols: 4, minRows: 4 },
     'powerToggles': { minCols: 4, minRows: 4 },
-    'ping-monitor': { minCols: 2, minRows: 2 },
-    'storageBar': { minCols: 7, minRows: 4 },
-    'cryptoWidget': { minCols: 7, minRows: 4 },
-    'todayHistory': { minCols: 4, minRows: 4 },
-    'worldAnalog': { minCols: 4, minRows: 4 },
-    'watermind': { minCols: 4, minRows: 4 },
+    'quickToggles': { minCols: 4, minRows: 4 },
+    'controlsSliders': { minCols: 8, minRows: 4 },
     'bluetoothDevices': { minCols: 4, minRows: 4 },
-    'mailGoa': { minCols: 2, minRows: 2 },
-    'lavaLamp': { minCols: 4, minRows: 8 },
-    'moon': { minCols: 6, minRows: 3 },
-    'binary': { minCols: 4, minRows: 2 },
-    'sun-schedule': { minCols: 4, minRows: 4 },
-    'downloads': { minCols: 5, minRows: 4 },
-    'uptime': { minCols: 3, minRows: 2 },
-    'updates': { minCols: 2, minRows: 2 },
-    'hardwerinfo': { minCols: 6, minRows: 4 },
-    'lyrics': { minCols: 6, minRows: 4 },
+    'lavaLamp': { minCols: 4, minRows: 6 },
+
+    // --- 6. PRODUKTIVITÁS, PÉNZÜGY ÉS SZABAD TARTALOM ---
+    'notes': { minCols: 4, minRows: 4 },
+    'clipboard': { minCols: 4, minRows: 4 },
+    'quotes': { minCols: 4, minRows: 4 },
+    'pomodoro': { minCols: 4, minRows: 4 },
+    'watermind': { minCols: 4, minRows: 4 },
+    'downloads': { minCols: 8, minRows: 4 },
+    'pomodoro-focus': { minCols: 8, minRows: 4 },
+    'todo': { minCols: 4, minRows: 4 },
+    'github': { minCols: 8, minRows: 4 },
+    'mood': { minCols: 8, minRows: 4 },
+    'currency-tracker': { minCols: 8, minRows: 4 },
+    'cryptoWidget': { minCols: 8, minRows: 4 },
+    'habitTracker': { minCols: 8, minRows: 4 },
+    'screen-time': { minCols: 8, minRows: 4 },
+    'rss-headlines': { minCols: 4, minRows: 4 },
+    'rss-feed': { minCols: 4, minRows: 4 },
+
+    // Szabadon méretezhető média
+    'app-launcher': { minCols: 4, minRows: 4 },
+    'slideshow': { minCols: 4, minRows: 4 },
+    'image': { minCols: 4, minRows: 4 },
 });
 
 /**
@@ -505,63 +530,68 @@ export function resolveExplicitFontFamily(config) {
  */
 export const SIZE_PRESET_TIERS = ['Small', 'Medium', 'Large'];
 const SIZE_PRESETS = {
-    'time': [[4, 3], [5, 4], [6, 5]],
+    'time': [[4, 4], [5, 5], [6, 6]],
     'timeAnalog': [[4, 4], [5, 5], [6, 6]],
     'countdown': [[4, 4], [5, 5], [6, 6]],
     'stopwatch': [[4, 4], [5, 5], [6, 6]],
     'timer': [[4, 4], [5, 5], [6, 6]],
     'worldClock': [[4, 4], [5, 5], [6, 6]],
+    'worldAnalog': [[4, 4], [5, 5], [6, 6]],
+    'calendar': [[4, 4], [5, 5], [6, 6]],
+    'calendar-grid': [[4, 4], [6, 5], [8, 6]],
+    'calendarTasks': [[4, 4], [6, 5], [8, 6]],
+    'todayHistory': [[4, 4], [6, 5], [8, 6]],
+    // --- 2. IDŐJÁRÁS ÉS KÖRNYEZET ---
     'weatherStandard': [[4, 4], [5, 5], [6, 6]],
     'weatherSimple': [[4, 4], [5, 5], [6, 6]],
-    'weatherCards': [[3, 3], [4, 4], [5, 5]],
-    'weatherForecast': [[6, 4], [8, 5], [10, 6]],
-    'weatherBars': [[6, 6], [8, 8], [10, 10]],
+    'weatherCards': [[4, 4], [5, 5], [6, 6]],
+    'weatherForecast': [[8, 4], [10, 5], [12, 6]],
+    'weatherBars': [[8, 8], [10, 10], [12, 12]],
     'sun-schedule': [[4, 4], [5, 5], [6, 6]],
+    'moon': [[8, 4], [10, 5], [12, 6]],
+    // --- 3. HARDVER ÉS MONITORING ---
+    'system-info': [[4, 4], [5, 5], [6, 6]],
+    'ping-monitor':[[4, 4], [5, 5], [6, 6]],
+    'updates': [[4, 4], [5, 5], [6, 6]],
+    'mailGoa': [[4, 4], [5, 5], [6, 6]],
+    'cpu-ram': [[8, 4], [10, 5], [12, 6]],
+    'network-speed': [[8, 4], [10, 5], [12, 6]],
+    'binary': [[8, 4], [10, 5], [12, 6]],
+    'uptime': [[8, 4], [10, 5], [12, 6]],
+    'system-dashboard': [[4, 4], [6, 5], [8, 6]],
+    'resource-wheel': [[4, 4], [5, 5], [6, 6]],
+    'storageBar': [[8, 4], [10, 5], [12, 6]],
+    'hardwerinfo': [[8, 8], [10, 10], [12, 12]],
+    // --- 4. MÉDIA ÉS HANG ---
     'musicSmall': [[4, 4], [5, 5], [6, 6]],
     'musicWide': [[8, 4], [10, 5], [12, 6]],
-    'calendar': [[4, 4], [5, 5], [6, 6]],
-    'calendar-grid': [[5, 4], [6, 5], [8, 7]],
-    'system-dashboard': [[4, 4], [5, 5], [6, 6]],
-    'system-info': [[2, 2], [3, 3], [4, 4]],
-    'resource-wheel': [[5, 4], [6, 5], [8, 7]],
+    'audioOutput': [[4, 4], [5, 5], [6, 6]],
+    'lyrics': [[8, 4], [10, 5], [12, 6]],
+    // --- 5. KAPCSOLÓK ÉS VEZÉRLÉS ---
     'battery-status': [[4, 4], [5, 5], [6, 6]],
-    'pomodoro': [[4, 4], [5, 5], [6, 6]],
-    'pomodoro-focus': [[8, 4], [10, 5], [12, 6]],
-    'cpu-ram': [[4, 2], [6, 3], [8, 4]],
-    'network-speed': [[4, 2], [6, 3], [8, 4]],
+    'powerProfiles': [[4, 4], [5, 5], [6, 6]],
+    'powerToggles': [[4, 4], [5, 5], [6, 6]],
+    'quickToggles': [[4, 4], [5, 5], [6, 6]],
+    'controlsSliders': [[8, 4], [10, 5], [12, 6]],
+    'bluetoothDevices': [[4, 4], [5, 5], [6, 6]],
+    'lavaLamp': [[4, 6], [5, 8], [6, 10]],
+    // --- 6. PRODUKTIVITÁS ÉS PÉNZÜGY ---
     'notes': [[4, 4], [5, 5], [6, 6]],
     'clipboard': [[4, 4], [5, 5], [6, 6]],
     'quotes': [[4, 4], [5, 5], [6, 6]],
-    'screen-time': [[8, 4], [10, 5], [12, 6]],
-    'todo': [[6, 4], [7, 5], [8, 6]],
+    'pomodoro': [[4, 4], [5, 5], [6, 6]],
+    'watermind': [[4, 4], [5, 5], [6, 6]],
+    'downloads': [[8, 4], [10, 5], [12, 6]],
+    'pomodoro-focus': [[8, 4], [10, 5], [12, 6]],
+    'todo': [[4, 4], [5, 5], [6, 6]],
     'github': [[8, 4], [10, 5], [12, 6]],
     'mood': [[8, 4], [10, 5], [12, 6]],
+    'currency-tracker': [[8, 4], [10, 5], [12, 6]],
+    'cryptoWidget': [[8, 4], [10, 5], [12, 6]],
+    'habitTracker': [[8, 4], [10, 5], [12, 6]],
+    'screen-time': [[8, 4], [10, 5], [12, 6]],
     'rss-headlines': [[4, 4], [5, 5], [6, 6]],
-    'currency-tracker':  [[7, 4], [9, 5], [11, 6]],
-    'habitTracker': [[7, 4], [9, 5], [11, 6]],
-    'quickToggles': [[4, 4], [5, 5], [6, 6]],
-    'audioOutput': [[4, 4], [5, 5], [6, 6]],
-    'controlsSliders': [[5, 3], [6, 3], [7, 4]],
-    'powerProfiles': [[4, 4], [5, 5], [6, 6]],
-    'ping-monitor': [[2, 2], [3, 3], [4, 4]],
-    'storageBar': [[7, 4], [9, 5], [11, 6]],
-    'cryptoWidget':  [[7, 4], [9, 5], [11, 6]],
-    'todayHistory': [[4, 4], [5, 5], [6, 6]],
-    'powerToggles': [[4, 4], [5, 5], [6, 6]],
-    'worldAnalog': [[4, 4], [5, 5], [6, 6]],
-    'calendarTasks': [[4, 4], [5, 5], [6, 6]],
-    'watermind': [[4, 4], [5, 5], [6, 6]],
-    'bluetoothDevices': [[4, 4], [5, 5], [6, 6]],
-    'mailGoa': [[2, 2], [3, 3], [4, 4]],
-    'lavaLamp': [[4, 8], [5, 10], [6, 12]],
-    'moon': [[6, 3], [8, 4], [10, 5]],
-    'binary': [[4, 2], [6, 3], [8, 4]],
-    'downloads': [[5, 4], [6, 5], [8, 7]],
-    'uptime': [[3, 2], [4, 3], [6, 4]],
-    'updates': [[2, 2], [3, 3], [4, 4]],
-    'hardwerinfo': [[6, 5], [7, 6], [8, 7]],
-    'lyrics': [[6, 4], [8, 5], [10, 6]],
-};
+}; 
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];
 
@@ -601,13 +631,21 @@ function resolveSizePresetTable(widgetData) {
 /** App launcher tiles grow with the app count; frames scale one step per preset tier. */
 function resolveAppLauncherPreset(widgetData, sizeIndex) {
     const appCount = Array.isArray(widgetData.apps) ? widgetData.apps.length : 0;
-    let tileCols = 1;
-    let tileRows = 1;
-    if (appCount > 6) { tileCols = 4; tileRows = 2; }
-    else if (appCount > 4) { tileCols = 3; tileRows = 2; }
-    else if (appCount > 2) { tileCols = 2; tileRows = 2; }
-    else if (appCount === 2) { tileCols = 2; tileRows = 1; }
-    return { width: tileCols + 2 + sizeIndex, height: tileRows + 1 + sizeIndex };
+    
+    // Alapértelmezett indító méretek az appok száma szerint:
+    // Legfeljebb 4 appnál kényelmes a 4x4, 4 felett (max 8-ig) kell a 8x4-es sáv
+    if (appCount > 4) {
+        // [Small (8x4), Medium (10x5), Large (12x6)]
+        const presets = [[8, 4], [10, 5], [12, 6]];
+        const [width, height] = presets[sizeIndex] || presets[0];
+        return { width, height };
+    } else {
+        // 1-4 app esetén:
+        // [Small (4x4), Medium (5x5), Large (6x6)]
+        const presets = [[4, 4], [5, 5], [6, 6]];
+        const [width, height] = presets[sizeIndex] || presets[0];
+        return { width, height };
+    }
 }
 
 /** Returns whether the widget's context menu should offer S/M/L sizing. */
@@ -702,15 +740,12 @@ export function toDateString(dateTime) {
 
 const DEFAULT_SCREEN_ASPECT_RATIO = 16 / 9;
 
-export function findEmptySpot(widgets, reqWidth, reqHeight, maxCols = COLUMNS_COUNT, maxRows = null) {
-    if (maxRows === null) {
-        maxRows = Math.max(1, Math.round(maxCols / DEFAULT_SCREEN_ASPECT_RATIO));
-    }
-
+export function findEmptySpot(widgets, reqWidth, reqHeight, maxCols = COLUMNS_COUNT, maxRows = ROWS_COUNT) {
     const effectiveReqW = Math.max(1, Math.min(reqWidth, maxCols));
-    const effectiveReqH = Math.max(1, Math.min(reqHeight, maxRows));
+    const effectiveReqH = Math.max(1, reqHeight);
+    const limitRows = Math.max(maxRows || ROWS_COUNT, 50);
 
-    for (let row = 0; row <= maxRows - effectiveReqH; row++) {
+    for (let row = 0; row <= limitRows - effectiveReqH; row++) {
         for (let col = 0; col <= maxCols - effectiveReqW; col++) {
             if (!checkOverlap(col, row, effectiveReqW, effectiveReqH, widgets)) {
                 return { x: col, y: row };
@@ -760,15 +795,45 @@ export function nextWidgetId(settings, prefix) {
 /** Finds an empty grid spot, assigns position/size, and persists the widget. */
 export function addWidget(settings, widgetData, defaultWidth, defaultHeight) {
     const widgets = getWidgets(settings);
-    // preset widgets spawn at Medium so every type enters the grid at a
-    // footprint that matches its S/M/L table; free-flow media keeps its own
     const defaultPreset = supportsSizePresets(widgetData)
         ? resolveWidgetSizePreset(widgetData, 0)
         : null;
     const spawnWidth = defaultPreset ? defaultPreset.width : defaultWidth;
     const spawnHeight = defaultPreset ? defaultPreset.height : defaultHeight;
-    const gridCols = COLUMNS_COUNT;
-    const emptySpot = findEmptySpot(widgets, spawnWidth, spawnHeight, gridCols);
+
+    const cellSize = settings ? (settings.get_int('grid-cell-size') || 34) : 34;
+    const step = cellSize + GRID_GAP_PX;
+
+    let screenWidth = 2560; // Biztonságos fallback a korábbi 1920 helyett!
+
+    try {
+        if (typeof global !== 'undefined' && global.stage && global.stage.width) {
+            screenWidth = global.stage.width;
+        } else if (typeof Gdk !== 'undefined') {
+            const display = Gdk.Display.get_default();
+            const monitors = display ? display.get_monitors() : null;
+            if (monitors) {
+                // GTK4 GListModel kompatibilitás:
+                const n = typeof monitors.get_n_items === 'function' ? monitors.get_n_items() : 0;
+                if (n > 0) {
+                    const mon = monitors.get_item(0);
+                    if (mon && typeof mon.get_geometry === 'function') {
+                        const geom = mon.get_geometry();
+                        if (geom && geom.width > 0) {
+                            screenWidth = geom.width;
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        screenWidth = 2560;
+    }
+
+    const availableWidth = Math.max(step, screenWidth - (GRID_MARGIN_PX * 2));
+    const actualGridCols = Math.max(1, Math.floor((availableWidth + GRID_GAP_PX) / step));
+
+    const emptySpot = findEmptySpot(widgets, spawnWidth, spawnHeight, actualGridCols);
     widgetData.x = emptySpot ? emptySpot.x : 0;
     widgetData.y = emptySpot ? emptySpot.y : 0;
     widgetData.width = spawnWidth;
@@ -798,7 +863,7 @@ export function calculateDesktopIconPositions(files, settings, gridCols, gridRow
     const side = settings.get_string('desktop-icons-side') || 'left';
     const direction = settings.get_string('desktop-icons-direction') || 'vertical';
     
-    const size = showLabels ? 3 : 2;
+    const size = 2;
     const icons = [];
 
     // Kezdőpozíciók

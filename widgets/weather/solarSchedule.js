@@ -8,24 +8,23 @@ import { CAIRO_OPERATOR_CLEAR, CAIRO_OPERATOR_OVER, SECONDARY_OPACITY, cssColorT
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler, startPollingTimer, connectTimerCleanup } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const REF_WIDTH_PX = 240;
-const REF_HEIGHT_PX = 240;
-const CONTAINER_PADDING_V_PX = 18;
-const CONTAINER_PADDING_H_PX = 20;
-const HEADER_FONT_SIZE_PX = 14;
-const TIME_FONT_SIZE_PX = 15;
-const STATUS_FONT_SIZE_PX = 11;
+const BASE_CONTAINER_WIDTH_PX = 200;
+const BASE_CONTAINER_HEIGHT_PX = 200;
+const CONTAINER_PADDING_V_PX = 12;
+const CONTAINER_PADDING_H_PX = 12;
+const HEADER_FONT_SIZE_PX = 14;       // 12.5 helyett
+const TIME_FONT_SIZE_PX = 15;         // 13.5 helyett
+const STATUS_FONT_SIZE_PX = 11;       // 9.5 helyett
 const METRIC_ICON_SIZE_PX = 18;
-const ARC_MARGIN_X_RATIO = 0.1;
-const ARC_BASE_PADDING_RATIO = 0.18;
+const ARC_MARGIN_X_RATIO = 0.08;
+const ARC_BASE_PADDING_RATIO = 0.16;
 const ARC_SEGMENT_COUNT = 64;
-const ORB_RADIUS_PX = 5;
+const ORB_RADIUS_PX = 4.5;
 const REFERENCE_DAY_MINUTES = 720;
 const MIN_ARCH_HEIGHT_FACTOR = 0.3;
 const GAUSS_EDGE_FALLOFF = 0.07;
 const ARCH_SIGMA_SPAN_FRACTION = 0.5 / Math.sqrt(2 * Math.log(1 / GAUSS_EDGE_FALLOFF));
 const ARC_TRACK_ALPHA = 0.15;
-
 
 const SUNRISE_ICON_NAME = 'daytime-sunrise-symbolic';
 const SUNSET_ICON_NAME = 'daytime-sunset-symbolic';
@@ -75,7 +74,6 @@ function formatCountdown(deltaMinutes) {
     return deltaMinutes > 0 ? `In ${time}` : `${time} ago`;
 }
 
-// Extracts minutes-since-midnight from an Open-Meteo ISO local string.
 function isoToMinutes(isoString) {
     if (typeof isoString !== 'string') return null;
     const timePart = isoString.slice(11, 16);
@@ -84,9 +82,6 @@ function isoToMinutes(isoString) {
     return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
 }
 
-// Current time expressed in the forecast location's wall-clock minutes,
-// computed by shifting the system's local minutes by the timezone offset
-// difference between the location and the system.
 function nowInLocationMinutes(locationOffsetShiftMinutes) {
     const systemMinutes = nowMinutesOfDay();
     let locMinutes = systemMinutes + locationOffsetShiftMinutes;
@@ -98,22 +93,20 @@ function systemUtcOffsetSeconds() {
 }
 
 export function createSunScheduleNode(config, width, height, xPosition, yPosition) {
-    const bgColor = resolveWidgetBackgroundColor(config);
     const textColor = resolveWidgetForegroundColor(config);
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
-    const borderRadius = config.appliedBorderRadius || 0;
     const accentHex = config.globalAccentColor || '#3584e4';
     const accent = parseCssColor(accentHex);
     const textRgb = parseCssColor(textColor);
     const textRgba = (alpha) => cssColorToRgba(textColor, alpha);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
-    let sunriseEvent = null; // {dateStr, minutes} or null — nearest sunrise for display
-    let sunsetEvent = null;  // {dateStr, minutes} or null — nearest sunset for display
-    let arcSunriseMinutes = null; // today's sunrise minutes for arc rendering
-    let arcSunsetMinutes = null;  // today's sunset minutes for arc rendering
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
+    let sunriseEvent = null;
+    let sunsetEvent = null;
+    let arcSunriseMinutes = null;
+    let arcSunsetMinutes = null;
     let offsetShiftMinutes = 0;
 
     const state = { timerId: null, refreshTimerId: null, cancellable: new Gio.Cancellable() };
@@ -149,7 +142,7 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
     const buildMetricItem = (iconName) => {
         const itemBox = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
-            style: 'spacing: 8px;',
+            style: 'spacing: 6px;',
         });
         const icon = new St.Icon({
             icon_name: iconName,
@@ -209,11 +202,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
         return (now - arcSunriseMinutes) / (arcSunsetMinutes - arcSunriseMinutes);
     }
 
-    /**
-     * The arch always spans the same fixed, centered base. The city's day
-     * length only sets the height: 12h of daylight is the full-height
-     * baseline, shorter days render lower, longer days cap at full height.
-     */
     function archHeightFactor() {
         const { dayLength } = daylightWindow();
         return Math.max(MIN_ARCH_HEIGHT_FACTOR, Math.min(1, dayLength / REFERENCE_DAY_MINUTES));
@@ -236,7 +224,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
     function daylightWindow() {
         if (arcSunriseMinutes !== null && arcSunsetMinutes !== null && arcSunsetMinutes > arcSunriseMinutes)
             return { dayLength: arcSunsetMinutes - arcSunriseMinutes };
-        // placeholder full-height arch until a real schedule arrives
         return { dayLength: REFERENCE_DAY_MINUTES };
     }
 
@@ -266,7 +253,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
         const radiusY = Math.max(1, availableHeight * archHeightFactor());
         const baseY = canvasHeight - basePadding;
 
-        // after sundown the arch switches from muted text to the accent color
         const bellColor = isNight() ? accent : textRgb;
 
         ctx.setLineCap(Cairo.LineCap.ROUND);
@@ -293,8 +279,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
         ctx.$dispose();
     }
 
-    // Defer first repaint until the DrawingArea is mapped to the stage,
-    // avoiding Clutter "needs an allocation" warnings.
     if (container.mapped) {
         renderDynamic();
     } else {
@@ -327,7 +311,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
                 const now = nowInLocationMinutes(offsetShiftMinutes);
                 const todayStr = todayLocationDateStr(offsetShiftMinutes);
 
-                // Find most recent passed sunrise
                 let lastSunrise = null;
                 for (let i = daily.sunrise ? daily.sunrise.length - 1 : -1; i >= 0; i--) {
                     const riseMin = isoToMinutes(daily.sunrise[i]);
@@ -339,7 +322,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
                     }
                 }
 
-                // Find next future sunset
                 let nextSunset = null;
                 for (let i = 0; i < (daily.sunset ? daily.sunset.length : 0); i++) {
                     const setMin = isoToMinutes(daily.sunset[i]);
@@ -351,7 +333,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
                     }
                 }
 
-                // Find next future sunrise
                 let nextSunrise = null;
                 for (let i = 0; i < (daily.sunrise ? daily.sunrise.length : 0); i++) {
                     const riseMin = isoToMinutes(daily.sunrise[i]);
@@ -363,7 +344,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
                     }
                 }
 
-                // Find most recent passed sunset
                 let lastSunset = null;
                 for (let i = daily.sunset ? daily.sunset.length - 1 : -1; i >= 0; i--) {
                     const setMin = isoToMinutes(daily.sunset[i]);
@@ -375,7 +355,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
                     }
                 }
 
-                // Daylight = now falls between a past sunrise and a future sunset.
                 const isDaylight = lastSunrise !== null && nextSunset !== null
                     && now >= lastSunrise.minutes && now < nextSunset.minutes;
 
@@ -387,7 +366,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
                     sunriseEvent = nextSunrise;
                 }
 
-                // Arc always uses today's sunrise/sunset (same day for correct progress calc).
                 if (isDaylight) {
                     arcSunriseMinutes = lastSunrise ? lastSunrise.minutes : null;
                     arcSunsetMinutes = nextSunset ? nextSunset.minutes : null;
@@ -396,8 +374,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
                     arcSunsetMinutes = nextSunset ? nextSunset.minutes : null;
                 }
 
-                // Fallback: if a directional search returned null, use any
-                // available value from the API so the display never shows --:--.
                 if (sunriseEvent === null) {
                     const first = daily.sunrise && daily.sunrise[0];
                     const m = isoToMinutes(first);
@@ -410,9 +386,7 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
                 }
 
                 renderDynamic();
-            } catch (_err) {
-                /* keep previous schedule until the next refresh */
-            }
+            } catch (_err) {}
         });
     }
 
@@ -428,31 +402,26 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
 
     function applyLayout(currentWidth, currentHeight) {
         if (!currentWidth || !currentHeight) return;
-        scale = Math.min(currentWidth / REF_WIDTH_PX, currentHeight / REF_HEIGHT_PX);
+        scale = Math.max(0.65, Math.min(currentWidth / BASE_CONTAINER_WIDTH_PX, currentHeight / BASE_CONTAINER_HEIGHT_PX));
         const px = (v) => Math.max(1, Math.round(v * scale));
 
-        container.set_style(`${container.style || ''} padding: ${px(CONTAINER_PADDING_V_PX)}px ${px(CONTAINER_PADDING_H_PX)}px;`);
+        mainBox.style = `padding: ${px(CONTAINER_PADDING_V_PX)}px ${px(CONTAINER_PADDING_H_PX)}px; spacing: ${px(4)}px;`;
 
-        cityLabel.style = `${fontCss}font-size: ${px(HEADER_FONT_SIZE_PX)}px;`
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
-        separator.style = `height: 1px; background-color: ${textRgba(0.12)}; margin: ${px(6)}px 0;`;
+        cityLabel.style = `${fontCss}font-size: ${px(HEADER_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; font-weight: 500;`;
+        separator.style = `height: 1px; background-color: ${textRgba(0.12)}; margin: ${px(4)}px 0;`;
 
         for (const item of [sunriseItem, sunsetItem]) {
             item.icon.style = `color: ${textColor}; opacity: 0.7;`;
             item.icon.set_icon_size(px(METRIC_ICON_SIZE_PX));
-            item.timeLabel.style = `${fontCss}font-size: ${px(TIME_FONT_SIZE_PX)}px;`
-                + `color: ${textColor};`;
-            item.statusLabel.style = `${fontCss}font-size: ${px(STATUS_FONT_SIZE_PX)}px;`
-                + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+            item.timeLabel.style = `${fontCss}font-size: ${px(TIME_FONT_SIZE_PX)}px; color: ${textColor}; font-weight: bold;`;
+            item.statusLabel.style = `${fontCss}font-size: ${px(STATUS_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
         }
-
-        mainBox.style = `spacing: ${px(6)}px;`;
 
         renderDynamic();
     }
 
     applyLayout(width, height);
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
         applyLayout(w, h);
     });

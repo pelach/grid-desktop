@@ -24,8 +24,8 @@ import {
 } from '../../shell/widgetUIUtils.js';
 
 const WATERMIND_ARC_LINE_WIDTH_RATIO = 0.06;
-const BASE_CONTAINER_SIZE = 220;
-const BASE_ARC_MARGIN = 24;
+const BASE_CONTAINER_SIZE = 200;
+const BASE_ARC_MARGIN = 20;
 const BASE_ARC_MIN_SIZE = 80;
 const WORK_SHIFT_HOURS = 8;
 
@@ -93,10 +93,10 @@ export function createWatermindNode(config, width, height, xPosition, yPosition)
     let arcMargin = Math.round(BASE_ARC_MARGIN * scale);
     let arcSize = Math.max(BASE_ARC_MIN_SIZE, Math.min(width, height) - arcMargin);
 
-    let titleFontSize = Math.max(1, Math.round(13 * scale));
-    let mainFontSize = Math.max(1, Math.round(26 * scale));
-    let subFontSize = Math.max(1, Math.round(11 * scale));
-    let btnFontSize = Math.max(1, Math.round(10 * scale));
+    let titleFontSize = Math.max(10, Math.round(12 * scale));
+    let mainFontSize = Math.max(18, Math.round(24 * scale));
+    let subFontSize = Math.max(9, Math.round(11 * scale));
+    let btnFontSize = Math.max(9, Math.round(10 * scale));
 
     let messageSource = null;
     let activeNotification = null;
@@ -361,10 +361,11 @@ export function createWatermindNode(config, width, height, xPosition, yPosition)
         arcMargin = Math.round(BASE_ARC_MARGIN * scale);
         arcSize = Math.max(BASE_ARC_MIN_SIZE, Math.min(container.width, container.height) - arcMargin);
 
-        titleFontSize = Math.max(1, Math.round(13 * scale));
-        mainFontSize = Math.max(1, Math.round(26 * scale));
-        subFontSize = Math.max(1, Math.round(11 * scale));
-        btnFontSize = Math.max(1, Math.round(10 * scale));
+        // Pontosan a fájl tetején lévő finomított arányok:
+        titleFontSize = Math.max(10, Math.round(12 * scale));
+        mainFontSize = Math.max(18, Math.round(24 * scale));
+        subFontSize = Math.max(9, Math.round(11 * scale));
+        btnFontSize = Math.max(9, Math.round(10 * scale));
 
         canvasActor.set_size(arcSize, arcSize);
         canvasActor.queue_repaint();
@@ -375,7 +376,7 @@ export function createWatermindNode(config, width, height, xPosition, yPosition)
 
         const btnPadY = Math.max(1, Math.round(2 * scale));
         const btnPadX = Math.max(2, Math.round(5 * scale));
-        controlsRow.style = `margin-top: ${Math.round(6 * scale)}px; spacing: ${Math.max(2, Math.round(4 * scale))}px;`;
+        controlsRow.style = `margin-top: ${Math.round(5 * scale)}px; spacing: ${Math.max(2, Math.round(4 * scale))}px;`;
 
         buttons.forEach((btn) => {
             btn.style = `${fontCss}padding: ${btnPadY}px ${btnPadX}px; font-size: ${btnFontSize}px; min-width: 0px; min-height: 0px; border-radius: 99px;`;
@@ -383,7 +384,7 @@ export function createWatermindNode(config, width, height, xPosition, yPosition)
     }
 
     attachResponsiveScaler(container, BASE_CONTAINER_SIZE, BASE_CONTAINER_SIZE, (_ratio, w, h) => {
-        applyScale(Math.min(w, h) / BASE_CONTAINER_SIZE);
+        applyScale(Math.max(0.65, Math.min(w, h) / BASE_CONTAINER_SIZE));
     });
 
     updateUI();

@@ -3,9 +3,7 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import {
     resolveWidgetForegroundColor,
-    resolveExplicitFontFamily,
     parseCssColor,
-    cssColorToRgba,
 } from '../../utils/widgetUtils.js';
 import {
     createWidgetContainer,
@@ -13,12 +11,14 @@ import {
     attachResponsiveScaler,
 } from '../../shell/widgetUIUtils.js';
 
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
+
 const ROWS = 4;
 const BIT_COUNTS = [2, 4, 3, 4, 3, 4];
 const WITHIN_GAP_RATIO = 0.35;
 const BETWEEN_GAP_RATIO = 0.9;
 const EDGE_GAP_RATIO = 0.25;
-
 
 function getClockDigits() {
     const now = GLib.DateTime.new_now_local();
@@ -37,16 +37,11 @@ export function createBinaryNode(config, width, height, xPosition, yPosition) {
     const textColor = resolveWidgetForegroundColor(config);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    // Színek előkészítése a Cairo rajzoláshoz
     const parsedText = parseCssColor(textColor);
-    // Aktív pont: alapértelmezetten a widget szövegszíne (vagy ha megadott kiemelőszín van, az használható)
     const activeColor = [parsedText.r, parsedText.g, parsedText.b, 0.95];
-    // Inaktív pont: ugyanez a szín finom, 18%-os halványsággal
     const inactiveColor = [parsedText.r, parsedText.g, parsedText.b, 0.18];
 
-    const state = {
-        timerId: null,
-    };
+    const state = { timerId: null };
 
     const drawingArea = new St.DrawingArea({
         x_expand: true,
@@ -64,7 +59,7 @@ export function createBinaryNode(config, width, height, xPosition, yPosition) {
         }
 
         const digits = getClockDigits();
-        const margin = Math.min(8, Math.min(w, h) * 0.06);
+        const margin = Math.min(12, Math.min(w, h) * 0.08);
         const availableWidth = Math.max(10, w - margin * 2);
         const availableHeight = Math.max(10, h - margin * 2);
 
@@ -128,13 +123,16 @@ export function createBinaryNode(config, width, height, xPosition, yPosition) {
 
     container.set_child(drawingArea);
 
-    // Másodperces időzítő a repainthez
     state.timerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
         drawingArea.queue_repaint();
         return GLib.SOURCE_CONTINUE;
     });
 
     connectTimerCleanup(container, state);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, () => {
+        drawingArea.queue_repaint();
+    });
 
     return container;
 }

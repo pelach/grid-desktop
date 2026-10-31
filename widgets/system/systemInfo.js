@@ -12,11 +12,11 @@ import {
     CAIRO_OPERATOR_CLEAR,
     CAIRO_OPERATOR_OVER,
 } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup } from '../../shell/widgetUIUtils.js';
+import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 
+const BASE_CONTAINER_WIDTH = 200;
+const BASE_CONTAINER_HEIGHT = 200;
 
-const BADGE_BG_ALPHA = 0.12;
-const SUB_LABEL_OPACITY = 0.65;
 const CARD_BG_DARK_ALPHA = 0.05;
 const CARD_BG_LIGHT_ALPHA = 0.04;
 const CARD_BORDER_DARK_ALPHA = 0.06;
@@ -74,12 +74,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     const accentHex = config.globalAccentColor || '#3584e4';
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-
-    const scale = Math.max(0.65, Math.min(width / 110, height / 110));
-    const padding = Math.max(8, Math.round(12 * scale));
-    const badgeIconSize = Math.max(13, Math.round(15 * scale));
-    const badgePadding = Math.max(3, Math.round(5 * scale));
-    const badgeRadius = Math.max(6, Math.round(7 * scale));
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
 
     const monitorType = (config.systemInfoType || 'cpu').toLowerCase();
     const showChart = config.showChart === true;
@@ -101,105 +96,80 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         defaultLabel = 'GPU';
     }
 
+    const isDarkSurface = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
+
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`,
+    });
+    container.add_child(mainLayout);
+
+    // ── 1. Egységes Fejléc: KIZÁRÓLAG az IKON és a NÉV ──
+    const headerBox = new St.BoxLayout({
+        orientation: Clutter.Orientation.HORIZONTAL,
+        x_expand: true,
+        y_align: Clutter.ActorAlign.START,
     });
 
-    const isDarkSurface = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
-    const badgeBg = cssColorToRgba(textColor, BADGE_BG_ALPHA);
-    const iconBadge = new St.Bin({
-        style: `background-color: ${badgeBg}; border-radius: ${badgeRadius}px; padding: ${badgePadding}px;`,
+    const headerIcon = new St.Icon({
+        icon_name: iconName,
+        style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    const topIcon = new St.Icon({
-        icon_name: iconName,
-        icon_size: badgeIconSize,
-        style: `color: ${textColor}; opacity: 0.9;`,
+
+    const headerLabel = new St.Label({
+        text: defaultLabel,
+        y_align: Clutter.ActorAlign.CENTER,
     });
-    iconBadge.set_child(topIcon);
+    headerLabel.clutter_text.set_ellipsize(0);
+
+    headerBox.add_child(headerIcon);
+    headerBox.add_child(headerLabel);
+    mainLayout.add_child(headerBox);
 
     let percentLabel;
-    let typeLabel;
     let chartArea = null;
+    let chartCard = null;
+    let centerBox = null;
     let samples = [];
 
     if (!showChart) {
-        const topBox = new St.BoxLayout({
-            orientation: Clutter.Orientation.HORIZONTAL,
-            x_align: Clutter.ActorAlign.END,
-            x_expand: true,
-        });
-        topBox.add_child(iconBadge);
-        mainLayout.add_child(topBox);
-
-        const bottomBox = new St.BoxLayout({
+        // ── NORMÁL NÉZET: Érték tökéletesen KÖZÉPRE zárva ──
+        centerBox = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
-            y_align: Clutter.ActorAlign.END,
+            x_expand: true,
             y_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
         });
-
-        const percentFontSize = Math.max(16, Math.round(22 * scale));
-        const labelFontSize = Math.max(10, Math.round(12 * scale));
 
         percentLabel = new St.Label({
             text: '--%',
-            style: `${fontCss}color: ${textColor}; font-size: ${percentFontSize}px; font-weight: bold; line-height: 1.1;`,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
         });
 
-        typeLabel = new St.Label({
-            text: defaultLabel,
-            style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SUB_LABEL_OPACITY}; font-weight: 500;`,
-        });
-
-        bottomBox.add_child(percentLabel);
-        bottomBox.add_child(typeLabel);
-        mainLayout.add_child(bottomBox);
+        centerBox.add_child(percentLabel);
+        mainLayout.add_child(centerBox);
     } else {
-        const headerBox = new St.BoxLayout({
-            orientation: Clutter.Orientation.HORIZONTAL,
-            x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-
-        const textInfoBox = new St.BoxLayout({
-            orientation: Clutter.Orientation.VERTICAL,
-            x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-
-        const percentFontSize = Math.max(15, Math.round(18 * scale));
-        const labelFontSize = Math.max(9, Math.round(11 * scale));
-
+        // ── CHART NÉZET: Érték a fejléc alatt balra, alatta a grafikon ──
         percentLabel = new St.Label({
             text: '--%',
-            style: `${fontCss}color: ${textColor}; font-size: ${percentFontSize}px; font-weight: bold; line-height: 1.0;`,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.START,
+            y_align: Clutter.ActorAlign.CENTER,
         });
-
-        typeLabel = new St.Label({
-            text: defaultLabel,
-            style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SUB_LABEL_OPACITY}; font-weight: 500;`,
-        });
-
-        textInfoBox.add_child(percentLabel);
-        textInfoBox.add_child(typeLabel);
-
-        headerBox.add_child(textInfoBox);
-        headerBox.add_child(iconBadge);
-        mainLayout.add_child(headerBox);
+        mainLayout.add_child(percentLabel);
 
         const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
         const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
-        const cardRadius = Math.max(8, Math.round(10 * scale));
-        const cardPadding = Math.max(4, Math.round(6 * scale));
 
-        const chartCard = new St.BoxLayout({
+        chartCard = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
             x_expand: true,
             y_expand: true,
-            style: `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPadding}px;`,
+            style: `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: 10px; padding: 6px; margin-top: 4px;`,
         });
 
         chartArea = new St.DrawingArea({
@@ -220,7 +190,40 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         mainLayout.add_child(chartCard);
     }
 
-    container.add_child(mainLayout);
+    function applyScale(newScale) {
+    scale = newScale;
+    const titleFontSize = Math.max(11, Math.round(13 * scale));
+    const iconSize = Math.round(16 * scale);
+
+    mainLayout.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
+    headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+    headerIcon.icon_size = iconSize;
+    headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
+    headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+
+    if (!showChart) {
+        const valSize = Math.max(32, Math.round(44 * scale));
+        percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.0;`;
+    } else {
+        const valSize = Math.max(15, Math.round(18 * scale));
+        percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.1; margin-bottom: 2px;`;
+        if (chartCard) {
+            const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
+            const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
+            const cardRadius = Math.max(6, Math.round(10 * scale));
+            const cardPad = Math.max(4, Math.round(6 * scale));
+            const cardMargin = Math.max(4, Math.round(6 * scale));
+
+            chartCard.style = `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPad}px; margin-top: ${cardMargin}px;`;
+        }
+    }
+}
+
+    applyScale(scale);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
+    });
 
     const pushSample = (ratio) => {
         if (!showChart || !chartArea) return;

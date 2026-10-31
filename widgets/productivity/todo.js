@@ -14,14 +14,8 @@ import {
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler, attachButtonFeedback } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const REF_WIDTH_PX = 240;
-const REF_HEIGHT_PX = 200;
-const CONTAINER_PADDING_PX = 14;
-const ROW_GAP_PX = 8;
-const ROW_PADDING_V_PX = 8;
-const ROW_PADDING_H_PX = 12;
-const ROW_RADIUS_PX = 14;
-const CHECKBOX_SIZE_PX = 20;
+const BASE_CONTAINER_WIDTH = 200;
+const BASE_CONTAINER_HEIGHT = 200;
 
 const DEFAULT_TASKS = [
     { text: 'Workout', done: true },
@@ -42,7 +36,7 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
     const filePath = GLib.build_filenamev([dataDir, `todo-${config.id || 'default'}.json`]);
 
     let tasks = DEFAULT_TASKS.map(task => ({ ...task }));
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
     let tasksLoaded = false;
 
     const state = {
@@ -56,7 +50,7 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
     });
     container.add_child(mainBox);
 
-    // ── FEJLÉC ──
+    // ── 1. Egységes Fejléc ──
     const headerRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         y_align: Clutter.ActorAlign.CENTER,
@@ -120,7 +114,7 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
     attachButtonFeedback(cancelAddBtn);
     inlineInputBox.add_child(cancelAddBtn);
 
-    // ── GÖRGETHETŐ FELADATLISTA ──
+    // ── 2. Görgethető feladatlista ──
     const listScroll = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
@@ -184,23 +178,28 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
 
     function renderRows() {
         listContainer.destroy_all_children();
-        const px = (v) => Math.max(1, Math.round(v * scale));
+
+        const cardPadding = Math.max(5, Math.round(6 * scale));
+        const cardRadius = Math.max(6, Math.round(9 * scale));
+        const rowGap = Math.max(4, Math.round(5 * scale));
+        const rightScrollGap = Math.max(6, Math.round(8 * scale));
+        const itemFontSize = Math.max(11, Math.round(13 * scale));
+        const checkSize = Math.max(15, Math.round(16 * scale));
 
         if (tasks.length === 0) {
             const emptyLabel = new St.Label({
                 text: 'No tasks yet',
                 x_align: Clutter.ActorAlign.CENTER,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `${fontCss}font-size: ${px(12)}px; color: ${textColor}; opacity: 0.5; margin-top: ${px(20)}px;`,
+                style: `${fontCss}font-size: ${itemFontSize}px; color: ${textColor}; opacity: 0.5; margin-top: ${Math.round(20 * scale)}px;`,
             });
             listContainer.add_child(emptyLabel);
             return;
         }
 
         tasks.forEach((task, idx) => {
-            // Aktív vs elvégzett kártya háttér/átlátszóság
-            const cardBg = task.done ? `rgba(${textRgb()}, 0.04)` : `rgba(${textRgb()}, 0.12)`;
-            const borderCol = task.done ? `rgba(${textRgb()}, 0.08)` : `rgba(${textRgb()}, 0.22)`;
+            const cardBg = task.done ? `rgba(${textRgb()}, 0.04)` : `rgba(${textRgb()}, 0.08)`;
+            const borderCol = task.done ? `rgba(${textRgb()}, 0.06)` : `rgba(${textRgb()}, 0.16)`;
 
             const row = new St.BoxLayout({
                 orientation: Clutter.Orientation.HORIZONTAL,
@@ -208,10 +207,10 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
                 x_expand: true,
                 style: `background-color: ${cardBg}; `
                      + `border: 1px solid ${borderCol}; `
-                     + `padding: ${px(ROW_PADDING_V_PX)}px ${px(ROW_PADDING_H_PX)}px; `
-                     + `border-radius: ${px(ROW_RADIUS_PX)}px; `
-                     + `margin-bottom: ${px(ROW_GAP_PX)}px; `
-                     + `margin-right: ${px(4)}px;`
+                     + `padding: ${cardPadding}px; `
+                     + `border-radius: ${cardRadius}px; `
+                     + `margin-bottom: ${rowGap}px; `
+                     + `margin-right: ${rightScrollGap}px;`
             });
 
             // Kör alakú checkbox
@@ -219,18 +218,18 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
                 reactive: true,
                 can_focus: true,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `width: ${px(CHECKBOX_SIZE_PX)}px; height: ${px(CHECKBOX_SIZE_PX)}px; `
+                style: `width: ${checkSize}px; height: ${checkSize}px; `
                      + `border-radius: 9999px; `
-                     + `background-color: ${task.done ? 'transparent' : 'transparent'}; `
-                     + `border: ${Math.max(1, px(1.5))}px solid rgba(${textRgb()}, ${task.done ? '0.35' : '0.65'}); `
-                     + `margin-right: ${px(10)}px;`
+                     + `background-color: transparent; `
+                     + `border: 1.5px solid rgba(${textRgb()}, ${task.done ? '0.35' : '0.65'}); `
+                     + `margin-right: ${Math.round(8 * scale)}px;`
             });
 
             if (task.done) {
                 checkBtn.set_child(new St.Icon({
                     icon_name: 'emblem-ok-symbolic',
-                    icon_size: px(11),
-                    style: `color: ${textColor}; opacity: 0.5;`
+                    icon_size: Math.max(9, Math.round(10 * scale)),
+                    style: `color: ${textColor}; opacity: 0.6;`
                 }));
             }
 
@@ -250,7 +249,7 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
             const textLabel = new St.Label({
                 x_expand: true,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `${fontCss}font-size: ${px(13)}px; `
+                style: `${fontCss}font-size: ${itemFontSize}px; `
                      + `color: ${textColor}; opacity: ${task.done ? 0.45 : 0.95}; `
                      + `font-weight: ${task.done ? 'normal' : '500'};`
             });
@@ -264,10 +263,10 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
                 reactive: true,
                 can_focus: true,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `padding: ${px(2)}px; border-radius: 9999px; opacity: 0.4;`,
+                style: `padding: 2px; border-radius: 9999px; opacity: 0.4;`,
                 child: new St.Icon({
                     icon_name: 'window-close-symbolic',
-                    icon_size: px(12)
+                    icon_size: Math.max(11, Math.round(12 * scale))
                 })
             });
             deleteBtn.connect('clicked', () => {
@@ -285,30 +284,30 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
 
     function applyScale(newScale) {
         scale = newScale;
-        const px = (v) => Math.max(1, Math.round(v * scale));
-
-        mainBox.style = `padding: ${px(CONTAINER_PADDING_PX)}px; spacing: ${px(8)}px;`;
-
         const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const iconSize = Math.round(16 * scale);
 
-        headerRow.style = `margin-bottom: ${px(4)}px;`;
-        headerIcon.icon_size = px(16);
-        headerIcon.style = `color: ${textColor}; margin-right: ${px(6)}px;`;
+        // Nincs felesleges spacing a mainBox-on, pont úgy mint az audioOutput.js-ben:
+        mainBox.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
+
+        headerRow.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
 
         titleLabel.style = `${fontCss}font-size: ${titleFontSize}px; font-weight: bold; `
             + `color: ${textColor}; opacity: 0.9;`;
 
-        addButton.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.12); padding: ${px(4)}px;`;
-        if (addButton.child) addButton.child.icon_size = px(13);
+        addButton.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.12); padding: ${Math.max(3, Math.round(4 * scale))}px;`;
+        if (addButton.child) addButton.child.icon_size = Math.max(12, Math.round(13 * scale));
 
-        inlineInputBox.style = `spacing: ${px(6)}px; margin-bottom: ${px(6)}px;`;
-        entry.style = `${fontCss}font-size: ${px(12)}px; padding: ${px(4)}px ${px(8)}px; border-radius: ${px(6)}px;`;
+        inlineInputBox.style = `spacing: ${Math.round(6 * scale)}px; margin-bottom: ${Math.round(6 * scale)}px;`;
+        entry.style = `${fontCss}font-size: ${Math.max(10, Math.round(12 * scale))}px; padding: 4px 8px; border-radius: 6px;`;
 
-        saveAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.15); padding: ${px(4)}px;`;
-        if (saveAddBtn.child) saveAddBtn.child.icon_size = px(12);
+        saveAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.15); padding: 4px;`;
+        if (saveAddBtn.child) saveAddBtn.child.icon_size = 12;
 
-        cancelAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.1); padding: ${px(4)}px;`;
-        if (cancelAddBtn.child) cancelAddBtn.child.icon_size = px(12);
+        cancelAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.1); padding: 4px;`;
+        if (cancelAddBtn.child) cancelAddBtn.child.icon_size = 12;
 
         renderRows();
     }
@@ -322,9 +321,9 @@ export function createTodoNode(config, width, height, xPosition, yPosition) {
             global.stage.set_key_focus(null);
     });
 
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        applyScale(Math.min(w / REF_WIDTH_PX, h / REF_HEIGHT_PX));
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
     });
 
     loadJsonFromFileAsync(filePath, (savedData, loadError) => {

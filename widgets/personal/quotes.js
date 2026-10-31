@@ -7,6 +7,9 @@ import { SECONDARY_OPACITY, resolveExplicitFontFamily, resolveWidgetForegroundCo
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
+const BASE_CONTAINER_WIDTH_PX = 200;
+const BASE_CONTAINER_HEIGHT_PX = 200;
+
 const QUOTE_ROTATE_INTERVAL_SEC = 30;
 
 let quotesJsonPath = null;
@@ -24,24 +27,21 @@ export function createQuotesNode(config, width, height, xPosition, yPosition) {
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
 
-    const REF_WIDTH = 220;
-    const REF_HEIGHT = 220;
-    let scale = Math.min(width / REF_WIDTH, height / REF_HEIGHT);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
 
     const outerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${Math.max(1, Math.round(14 * scale))}px;`,
     });
     container.add_child(outerBox);
 
     const quoteLabel = new St.Label({
         text: '',
         x_align: Clutter.ActorAlign.CENTER,
-        y_align: Clutter.ActorAlign.START,
+        y_align: Clutter.ActorAlign.CENTER,
         x_expand: true,
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.max(1, Math.round(17 * scale))}px; padding: 0 4px;`,
+        y_expand: true,
     });
     quoteLabel.clutter_text.line_wrap = true;
     quoteLabel.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
@@ -52,9 +52,6 @@ export function createQuotesNode(config, width, height, xPosition, yPosition) {
         x_align: Clutter.ActorAlign.END,
         y_align: Clutter.ActorAlign.END,
         x_expand: true,
-        y_expand: true,
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.max(1, Math.round(13 * scale))}px; `
-            + `opacity: ${SECONDARY_OPACITY}; padding-right: ${Math.max(1, Math.round(4 * scale))}px;`,
     });
     outerBox.add_child(authorLabel);
 
@@ -100,14 +97,21 @@ export function createQuotesNode(config, width, height, xPosition, yPosition) {
 
     function applyScale(newScale) {
         scale = newScale;
-        outerBox.style = `padding: ${Math.max(1, Math.round(14 * scale))}px;`;
-        quoteLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.max(1, Math.round(17 * scale))}px; padding: 0 4px;`;
-        authorLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.max(1, Math.round(13 * scale))}px; `
-            + `opacity: ${SECONDARY_OPACITY}; padding-right: ${Math.max(1, Math.round(4 * scale))}px;`;
+        const pad = Math.max(8, Math.round(10 * scale));
+        const quoteFontSize = Math.max(12, Math.round(15 * scale));
+        const authorFontSize = Math.max(10, Math.round(11.5 * scale));
+
+        outerBox.style = `padding: ${pad}px;`;
+        quoteLabel.style = `${fontCss}color: ${textColor}; font-size: ${quoteFontSize}px; line-height: 1.3; padding: 0 2px;`;
+        authorLabel.style = `${fontCss}color: ${textColor}; font-size: ${authorFontSize}px; font-weight: 500; `
+            + `opacity: ${SECONDARY_OPACITY}; margin-top: ${Math.round(4 * scale)}px;`;
     }
 
-    attachResponsiveScaler(container, REF_WIDTH, REF_HEIGHT, (_ratio, w, h) => {
-        applyScale(Math.min(w / REF_WIDTH, h / REF_HEIGHT));
+    applyScale(scale);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
+        if (isActorDestroyed(container)) return;
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX)));
     });
 
     state.refreshTimerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, QUOTE_ROTATE_INTERVAL_SEC, () => {

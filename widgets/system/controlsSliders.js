@@ -22,10 +22,10 @@ import {
 
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CONTAINER_WIDTH_PX = 240;
-const BASE_CONTAINER_HEIGHT_PX = 140;
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
-// Tisztán Cairo-alapú kapszula csúszka (garantáltan balról jobbra, 0 allocation hiba)
+// Tisztán Cairo-alapú kapszula csúszka
 class CapsuleSlider {
     constructor(activeColorHex, onChangeCallback) {
         this.value = 0.0;
@@ -191,10 +191,11 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     });
     container.add_child(contentBox);
 
-    // Fejléc
+    // ── 1. Egységes Fejléc ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
+        y_align: Clutter.ActorAlign.START,
     });
     const headerIcon = new St.Icon({
         icon_name: 'preferences-system-symbolic',
@@ -209,6 +210,15 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     headerBox.add_child(headerIcon);
     headerBox.add_child(headerLabel);
     contentBox.add_child(headerBox);
+
+    // Csúszkák konténere (középre zárt elrendezés)
+    const slidersBox = new St.BoxLayout({
+        orientation: Clutter.Orientation.VERTICAL,
+        x_expand: true,
+        y_expand: true,
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+    contentBox.add_child(slidersBox);
 
     // Backendek elérése
     const quickSettings = Main.panel?.statusArea?.quickSettings;
@@ -227,13 +237,13 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
         console.debug('ControlsSliders: Brightness D-Bus proxy error:', e);
     }
 
-    // 1. SOR: Hangerő
+    // ── 1. SOR: Hangerő ──
     const volRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    const volBtn = new St.Button({ reactive: true, can_focus: true });
+    const volBtn = new St.Button({ reactive: true, can_focus: true, y_align: Clutter.ActorAlign.CENTER });
     attachButtonFeedback(volBtn);
     const volIcon = new St.Icon({
         icon_name: 'audio-volume-high-symbolic',
@@ -263,7 +273,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     volRow.add_child(volBtn);
     volRow.add_child(volSlider.actor);
     volRow.add_child(volPercentLabel);
-    contentBox.add_child(volRow);
+    slidersBox.add_child(volRow);
 
     const sigVolBtn = volBtn.connect('clicked', () => {
         const stream = volIndicator?._stream || volIndicator?._control?.get_default_sink();
@@ -274,13 +284,13 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
         }
     });
 
-    // 2. SOR: Fényerő
+    // ── 2. SOR: Fényerő ──
     const brightRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    const brightBtn = new St.Button({ reactive: true, can_focus: true });
+    const brightBtn = new St.Button({ reactive: true, can_focus: true, y_align: Clutter.ActorAlign.CENTER });
     attachButtonFeedback(brightBtn);
     const brightIcon = new St.Icon({
         icon_name: 'display-brightness-symbolic',
@@ -323,7 +333,7 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
     brightRow.add_child(brightBtn);
     brightRow.add_child(brightSlider.actor);
     brightRow.add_child(brightPercentLabel);
-    contentBox.add_child(brightRow);
+    slidersBox.add_child(brightRow);
 
     const sigBrightBtn = brightBtn.connect('clicked', () => {
         if (!brightSlider) return;
@@ -387,31 +397,35 @@ export function createControlsSlidersNode(config, width, height, xPosition, yPos
         if (!volSlider || !brightSlider) return;
         scale = newScale;
 
-        const pad = Math.max(6, Math.round(8 * scale));
-        const rowGap = Math.max(4, Math.round(6 * scale));
-        const btnSize = Math.max(26, Math.round(30 * scale));
-        const sliderHeight = Math.max(20, Math.round(24 * scale));
-        const iconSize = Math.max(14, Math.round(16 * scale));
-        const fontSize = Math.max(9, Math.round(11 * scale));
         const titleFontSize = Math.max(11, Math.round(13 * scale));
-        const pctWidth = Math.max(26, Math.round(36 * scale));
+        const iconSize = Math.round(16 * scale);
+
+        // Standard bázis padding és térköz:
+        const pad = Math.max(8, Math.round(10 * scale));
+        const rowGap = Math.max(4, Math.round(6 * scale));
+        const btnSize = Math.max(24, Math.round(28 * scale));
+        const sliderHeight = Math.max(18, Math.round(24 * scale));
+        const btnIconSize = Math.max(12, Math.round(14 * scale));
+        const fontSize = Math.max(10, Math.round(12 * scale));
+        const pctWidth = Math.max(28, Math.round(34 * scale));
 
         contentBox.style = `padding: ${pad}px;`;
-        headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
-        headerIcon.icon_size = Math.round(16 * scale);
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
         headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
 
-        volRow.style = `margin-bottom: ${rowGap}px;`;
+        slidersBox.style = `spacing: ${rowGap}px;`;
+
         volBtn.style = `width: ${btnSize}px; height: ${btnSize}px; border-radius: ${Math.round(btnSize / 2)}px; background-color: ${iconBtnBg}; margin-right: ${rowGap}px;`;
-        volIcon.icon_size = iconSize;
+        volIcon.icon_size = btnIconSize;
         volIcon.style = `color: ${textColor};`;
         volSlider.updateStyle(sliderHeight, sliderTrackColor);
         volPercentLabel.style = `${fontCss}color: ${textColor}; font-size: ${fontSize}px; font-weight: bold; margin-left: ${rowGap}px;`;
         volPercentLabel.width = pctWidth;
 
         brightBtn.style = `width: ${btnSize}px; height: ${btnSize}px; border-radius: ${Math.round(btnSize / 2)}px; background-color: ${iconBtnBg}; margin-right: ${rowGap}px;`;
-        brightIcon.icon_size = iconSize;
+        brightIcon.icon_size = btnIconSize;
         brightIcon.style = `color: ${textColor};`;
         brightSlider.updateStyle(sliderHeight, sliderTrackColor);
         brightPercentLabel.style = `${fontCss}color: ${textColor}; font-size: ${fontSize}px; font-weight: bold; margin-left: ${rowGap}px;`;

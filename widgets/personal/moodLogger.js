@@ -7,20 +7,20 @@ import { createWidgetContainer, attachResponsiveScaler, attachButtonFeedback, co
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 import { todayDateString, toDateString, loadDatesAsync, getMood, saveMood } from '../../utils/moodStore.js';
 
-const REF_WIDTH_PX = 380;
-const REF_HEIGHT_PX = 190;
-const CONTAINER_PADDING_PX = 14;
-const PANEL_GAP_PX = 16;
-const LEFT_COLUMN_WIDTH_PX = 145;
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
-const GREETING_FONT_SIZE_PX = 15;
-const DATE_FONT_SIZE_PX = 12;
-const HISTORY_LABEL_FONT_SIZE_PX = 11.5;
-const PICKER_ROW_PADDING_PX = 5;
-const PICKER_ROW_RADIUS_PX = 14;
-const FACE_ICON_SIZE_PX = 20;
-const DOT_SIZE_PX = 11;
-const DOT_GRID_GAP_PX = 6;
+const PANEL_GAP_PX = 14;
+const LEFT_COLUMN_WIDTH_PX = 150;
+
+const GREETING_FONT_SIZE_PX = 14;
+const DATE_FONT_SIZE_PX = 11;
+const HISTORY_LABEL_FONT_SIZE_PX = 11;
+const PICKER_ROW_PADDING_PX = 4;
+const PICKER_ROW_RADIUS_PX = 10;
+const FACE_ICON_SIZE_PX = 19;
+const DOT_SIZE_PX = 14;
+const DOT_GRID_GAP_PX = 7;
 const GRID_COLUMNS = 7;
 const TODAY_DOT_BORDER_PX = 2;
 
@@ -32,30 +32,24 @@ const MOOD_LEVELS = [
     { level: 5, iconName: 'face-laugh-symbolic', color: '#3B82F6' },
 ];
 
-// Az aktuális hónap naptár celláinak felépítése (hétfői kezdéssel)
 function buildCurrentMonthCalendar() {
     const now = GLib.DateTime.new_now_local();
     const year = now.get_year();
     const month = now.get_month();
 
-    // Hónap első napja
     const firstDay = GLib.DateTime.new_local(year, month, 1, 0, 0, 0);
-    // Hétfő = 0 ... Vasárnap = 6
     const startOffset = (firstDay.get_day_of_week() + 6) % 7;
 
-    // Hónap napjainak száma (következő hónap 1. napja mínusz 1 nap)
     const nextMonth = month === 12 
         ? GLib.DateTime.new_local(year + 1, 1, 1, 0, 0, 0)
         : GLib.DateTime.new_local(year, month + 1, 1, 0, 0, 0);
     const daysInMonth = nextMonth.add_days(-1).get_day_of_month();
 
     const cells = [];
-    // 1. Üres helyek a hónap elején
     for (let i = 0; i < startOffset; i++) {
         cells.push(null);
     }
 
-    // 2. A hónap valódi napjai
     for (let day = 1; day <= daysInMonth; day++) {
         const dt = GLib.DateTime.new_local(year, month, day, 0, 0, 0);
         cells.push(toDateString(dt));
@@ -88,7 +82,7 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
     const textBytes = parseCssColor(textColor);
     const textRgb = () => `${Math.round(textBytes.r * 255)},${Math.round(textBytes.g * 255)},${Math.round(textBytes.b * 255)}`;
 
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
 
     const calData = buildCurrentMonthCalendar();
     const state = { 
@@ -105,7 +99,7 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
     });
     container.add_child(mainBox);
 
-    // ── FEJLÉC ──
+    // ── 1. Szabványos Fejléc ──
     const headerRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         y_align: Clutter.ActorAlign.CENTER,
@@ -127,7 +121,7 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
     titleLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
     headerRow.add_child(titleLabel);
 
-    // ── TARTALOM ──
+    // ── 2. Tartalmi blokk ──
     const contentBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -135,7 +129,7 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
     });
     mainBox.add_child(contentBox);
 
-    // Bal oszlop
+    // Bal oldali panel: Köszöntés + Smiley választó
     const actionPanel = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: false,
@@ -174,7 +168,7 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
         state.moodButtons.push(button);
     }
 
-    // Jobb oszlop
+    // Jobb oldali panel: Hónap neve + Naptári pöttyök
     const historyPanel = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -199,19 +193,26 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
         scale = newScale;
         const px = (v) => Math.max(1, Math.round(v * scale));
 
-        mainBox.style = `padding: ${px(CONTAINER_PADDING_PX)}px; spacing: ${px(8)}px;`;
-
+        const currentGridGap = Math.max(3, Math.round(DOT_GRID_GAP_PX * scale));
+        dotGrid.layout_manager.column_spacing = currentGridGap;
+        dotGrid.layout_manager.row_spacing = currentGridGap;
+        
+        const pad = Math.max(8, Math.round(10 * scale));
         const titleFontSize = Math.max(11, Math.round(13 * scale));
-        headerRow.style = `margin-bottom: ${px(4)}px;`;
-        headerIcon.icon_size = px(16);
-        headerIcon.style = `color: ${textColor}; margin-right: ${px(6)}px;`;
+        const iconSize = Math.round(16 * scale);
+
+        mainBox.style = `padding: ${pad}px;`;
+
+        headerRow.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
         titleLabel.style = `${fontCss}font-size: ${titleFontSize}px; font-weight: bold; color: ${textColor}; opacity: 0.9;`;
 
         contentBox.style = `spacing: ${px(PANEL_GAP_PX)}px;`;
-        actionPanel.style = `width: ${px(LEFT_COLUMN_WIDTH_PX)}px; spacing: 3px;`;
+        actionPanel.style = `width: ${px(LEFT_COLUMN_WIDTH_PX)}px; spacing: 2px;`;
         historyPanel.style = `margin-top: ${px(2)}px;`;
 
-        greetingLabel.style = `${fontCss}font-size: ${px(GREETING_FONT_SIZE_PX)}px; font-weight: 400; color: ${textColor};`;
+        greetingLabel.style = `${fontCss}font-size: ${px(GREETING_FONT_SIZE_PX)}px; font-weight: 500; color: ${textColor};`;
         dateLabel.style = `${fontCss}font-size: ${px(DATE_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
 
         faceRow.style = `background-color: rgba(${textRgb()}, 0.08); padding: ${px(PICKER_ROW_PADDING_PX)}px; border-radius: ${px(PICKER_ROW_RADIUS_PX)}px;`;
@@ -222,7 +223,7 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
             applyButtonStyle(button, level, isActive, px(FACE_ICON_SIZE_PX));
         }
 
-        historyLabel.style = `${fontCss}font-size: ${px(HISTORY_LABEL_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-bottom: ${px(6)}px;`;
+        historyLabel.style = `${fontCss}font-size: ${px(HISTORY_LABEL_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-bottom: ${px(4)}px;`;
 
         renderDotGrid();
     }
@@ -239,7 +240,6 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
         const px = (v) => Math.max(1, Math.round(v * scale));
         const size = px(DOT_SIZE_PX);
 
-        // Üres naptári cella (a hónap előtti napok)
         if (!dateKey) {
             return new St.Widget({
                 width: size,
@@ -339,9 +339,9 @@ export function createMoodNode(config, width, height, xPosition, yPosition) {
         }
     });
 
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        applyScale(Math.min(w / REF_WIDTH_PX, h / REF_HEIGHT_PX));
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX)));
     });
 
     return container;

@@ -7,12 +7,11 @@ import {
 } from '../../utils/widgetUtils.js';
 import { buildFontCss } from './weatherCommon.js';
 
-// Négyzetes bázis a rácsarányokhoz (hasonlóan a weatherStandard-hoz):
-const BASE_LAYOUT_SIZE = 180;
+const BASE_LAYOUT_SIZE = 200;
 
-const BASE_TEMP_FONT_SIZE = 54;
-const BASE_CITY_FONT_SIZE = 15;
-const TEMP_MARGIN_BOTTOM_PX = 6;
+const BASE_TEMP_FONT_SIZE = 48;
+const BASE_CITY_FONT_SIZE = 14;
+const TEMP_MARGIN_BOTTOM_PX = 4;
 
 export function buildSimpleLayout(layout, widgetData = null) {
     const uiElements = {};
@@ -52,10 +51,11 @@ export function attachSimpleScaler(widgetNode, uiElements, widgetData) {
     const fontCss = buildFontCss(widgetData);
     return attachResponsiveScaler(widgetNode, BASE_LAYOUT_SIZE, BASE_LAYOUT_SIZE, (scale) => {
         if (!uiElements || !uiElements.tempLabel || !uiElements.cityLabel) return;
+        const s = Math.max(0.65, scale);
 
-        const tempSize = Math.max(1, Math.round(BASE_TEMP_FONT_SIZE * scale));
-        const citySize = Math.max(1, Math.round(BASE_CITY_FONT_SIZE * scale));
-        const marginBottom = Math.max(1, Math.round(TEMP_MARGIN_BOTTOM_PX * scale));
+        const tempSize = Math.max(1, Math.round(BASE_TEMP_FONT_SIZE * s));
+        const citySize = Math.max(1, Math.round(BASE_CITY_FONT_SIZE * s));
+        const marginBottom = Math.max(1, Math.round(TEMP_MARGIN_BOTTOM_PX * s));
 
         uiElements.tempLabel.style = `${fontCss}font-size: ${tempSize}px; font-weight: 500; margin-bottom: ${marginBottom}px; text-align: center; color: inherit;`;
         uiElements.cityLabel.style = `${fontCss}font-size: ${citySize}px; font-weight: 500; opacity: ${SECONDARY_OPACITY}; text-align: center; color: inherit;`;

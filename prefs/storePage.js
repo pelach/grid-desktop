@@ -198,11 +198,11 @@ export function buildStorePage(window, settings, extensionPath) {
         {
             title: 'Weather',
             items: [
-                def(STORE_WIDGETS[STORE_CATEGORIES.weather[0]], () => addWeather(3, 3, 'standard')),
-                def(STORE_WIDGETS[STORE_CATEGORIES.weather[1]], () => addWeather(3, 3, 'simple')),
-                def(STORE_WIDGETS[STORE_CATEGORIES.weather[2]], () => addWeather(6, 4, 'forecast')),
-                def(STORE_WIDGETS.weatherBars, () => addWeatherBarsWidget(settings, settings.get_string('weather-city'), 6, 6)),
-                def(STORE_WIDGETS.weatherCards, () => addWeatherCardsWidget(settings, settings.get_string('weather-city'), 3, 3)),
+                def(STORE_WIDGETS[STORE_CATEGORIES.weather[0]], () => addWeather(4, 4, 'standard')),
+                def(STORE_WIDGETS[STORE_CATEGORIES.weather[1]], () => addWeather(4, 4, 'simple')),
+                def(STORE_WIDGETS[STORE_CATEGORIES.weather[2]], () => addWeather(8, 4, 'forecast')),
+                def(STORE_WIDGETS.weatherBars, () => addWeatherBarsWidget(settings, settings.get_string('weather-city'), 8, 8)),
+                def(STORE_WIDGETS.weatherCards, () => addWeatherCardsWidget(settings, settings.get_string('weather-city'), 4, 4)),
                 def(STORE_WIDGETS.sunScheduleWidget, () => openAddSunScheduleDialog(window, settings)),
                 def(STORE_WIDGETS.moonWidget, () => openAddMoonDialog(window, settings)),
             ]
@@ -212,7 +212,7 @@ export function buildStorePage(window, settings, extensionPath) {
             items: [
                 def(STORE_WIDGETS[STORE_CATEGORIES.music[0]], () => addMusicWidget(settings, 4, 4)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.music[1]], () => addMusicWidget(settings, 8, 4)),
-                def(STORE_WIDGETS.lyricsWidget, () => addLyricsWidget(settings, 6, 4)),
+                def(STORE_WIDGETS.lyricsWidget, () => addLyricsWidget(settings, 8, 4)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.media[0]], () => openAddImageDialog(window, settings)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.media[1]], () => openAddSlideshowDialog(window, settings)),
             ]
@@ -224,15 +224,15 @@ export function buildStorePage(window, settings, extensionPath) {
                 def(STORE_WIDGETS.systemDashboard, () => addSystemDashboardWidget(settings, 4, 4)),
                 def(STORE_WIDGETS.hardwerinfo, () => addHardwerInfoWidget(settings)),
                 def(STORE_WIDGETS.systemMonitor, () => addCpuRamWidget(settings, 4, 2)),
-                def(STORE_WIDGETS.systemInfo, () => addSystemInfoWidget(settings, 'cpu', 2, 2)),
-                def(STORE_WIDGETS.resourceWheel, () => addResourceWheelWidget(settings, 'cpu', 5, 4)),
+                def(STORE_WIDGETS.systemInfo, () => addSystemInfoWidget(settings, 'cpu', 4, 4)),
+                def(STORE_WIDGETS.resourceWheel, () => addResourceWheelWidget(settings, 'cpu', 4, 4)),
                 def(STORE_WIDGETS.uptime, () => addUptimeWidget(settings)),
                 def(STORE_WIDGETS.updates, () => addUpdatesWidget(settings)),
                 def(STORE_WIDGETS.storageBar, () => addStorageBarWidget(settings)),
-                def(STORE_WIDGETS.batteryStatus, () => addBatteryStatusWidget(settings, 4, 3)),
+                def(STORE_WIDGETS.batteryStatus, () => addBatteryStatusWidget(settings, 4, 4)),
 
                 // Hálózat
-                def(STORE_WIDGETS.networkSpeed, () => addNetworkSpeedWidget(settings, 3, 2)),
+                def(STORE_WIDGETS.networkSpeed, () => addNetworkSpeedWidget(settings, 8, 4)),
                 def(STORE_WIDGETS.pingMonitor, () => addPingWidget(settings)),
 
                 // Hardver- és gyorskapcsolók
@@ -251,7 +251,7 @@ export function buildStorePage(window, settings, extensionPath) {
             title: 'Focus & Productivity',
             items: [
                 def(STORE_WIDGETS.pomodoroTimer, () => addPomodoroWidget(settings, 4, 4)),
-                def(STORE_WIDGETS.pomodoroFocus, () => addPomodoroFocusWidget(settings, 4, 2)),
+                def(STORE_WIDGETS.pomodoroFocus, () => addPomodoroFocusWidget(settings, 8, 4)),
                 def(STORE_WIDGETS.todoWidget, () => addTodoWidget(settings)),
                 def(STORE_WIDGETS.quickNotes, () => addNotesWidget(settings, 4, 4)),
                 def(STORE_WIDGETS.clipboardHistory, () => addClipboardWidget(settings, 4, 4)),
@@ -263,8 +263,8 @@ export function buildStorePage(window, settings, extensionPath) {
             title: 'Time & Calendar',
             items: [
                 // Órák
-                def(STORE_WIDGETS[STORE_CATEGORIES.time[0]], () => addTimeWidget(settings, 3, 2, 'digital')),
-                def(STORE_WIDGETS.analogClock, () => addAnalogClockWidget(settings, 'basic', 3, 3)),
+                def(STORE_WIDGETS[STORE_CATEGORIES.time[0]], () => addTimeWidget(settings, 4, 4, 'digital')),
+                def(STORE_WIDGETS.analogClock, () => addAnalogClockWidget(settings, 'basic', 4, 4)),
                 def(STORE_WIDGETS.worldClock, () => openAddWorldClockDialog(window, settings)),
                 def(STORE_WIDGETS.worldAnalog, () => openAddWorldAnalogDialog(window, settings)),
                 def(STORE_WIDGETS.binary, () => addBinaryWidget(settings)),

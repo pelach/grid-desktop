@@ -5,12 +5,11 @@ import GLib from 'gi://GLib';
 import {
     resolveWidgetForegroundColor,
     resolveExplicitFontFamily,
-    cssColorToRgba,
 } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup } from '../../shell/widgetUIUtils.js';
+import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 
-const BADGE_BG_ALPHA = 0.12;
-const SUB_LABEL_OPACITY = 0.65;
+const BASE_CONTAINER_WIDTH = 200;
+const BASE_CONTAINER_HEIGHT = 200;
 
 function getFlatpakUpdateCount(callback) {
     if (!GLib.find_program_in_path('flatpak')) {
@@ -38,12 +37,11 @@ function getFlatpakUpdateCount(callback) {
     }
 }
 
-
 // Csomagkezelő felderítése parancs és felirat szerint
 function detectPackageManager() {
     if (GLib.find_program_in_path('checkupdates')) {
         return {
-            name: 'PACMAN',
+            name: 'Pacman',
             cmd: ['sh', '-c', 'LC_ALL=C checkupdates 2>/dev/null | wc -l'],
         };
     }
@@ -67,12 +65,12 @@ function detectPackageManager() {
     }
     if (GLib.find_program_in_path('zypper')) {
         return {
-            name: 'ZYPPER',
+            name: 'Zypper',
             cmd: ['sh', '-c', "LC_ALL=C zypper -qn lu 2>/dev/null | grep -E '^v ' | wc -l"],
         };
     }
     return {
-        name: 'UPDATES',
+        name: 'Updates',
         cmd: null,
     };
 }
@@ -83,68 +81,76 @@ export function createUpdatesNode(config, width, height, xPosition, yPosition) {
     const textColor = resolveWidgetForegroundColor(config);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    // systemInfo méretezési logika (2x2 -> 3x3 -> 4x4)
-    const scale = Math.max(0.65, Math.min(width / 110, height / 110));
-    const padding = Math.max(8, Math.round(12 * scale));
-    const badgeIconSize = Math.max(13, Math.round(15 * scale));
-    const badgePadding = Math.max(3, Math.round(5 * scale));
-    const badgeRadius = Math.max(6, Math.round(7 * scale));
-    const countFontSize = Math.max(16, Math.round(22 * scale));
-    const labelFontSize = Math.max(10, Math.round(12 * scale));
-
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
     const pm = detectPackageManager();
 
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`,
     });
+    container.add_child(mainLayout);
 
-    // 1. Jobb felső sarok: Ikon jelvény
-    const topBox = new St.BoxLayout({
+    // ── 1. Egységes Fejléc: Bal felül ikon + csomagkezelő név ──
+    const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
-        x_align: Clutter.ActorAlign.END,
         x_expand: true,
+        y_align: Clutter.ActorAlign.START,
     });
 
-    const badgeBg = cssColorToRgba(textColor, BADGE_BG_ALPHA);
-    const iconBadge = new St.Bin({
-        style: `background-color: ${badgeBg}; border-radius: ${badgeRadius}px; padding: ${badgePadding}px;`,
+    const headerIcon = new St.Icon({
+        icon_name: 'software-update-available-symbolic',
+        style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
 
-    const topIcon = new St.Icon({
-        icon_name: 'software-update-available-symbolic',
-        icon_size: badgeIconSize,
-        style: `color: ${textColor}; opacity: 0.9;`,
+    const headerLabel = new St.Label({
+        text: pm.name,
+        y_align: Clutter.ActorAlign.CENTER,
     });
-    iconBadge.set_child(topIcon);
-    topBox.add_child(iconBadge);
-    mainLayout.add_child(topBox);
+    headerLabel.clutter_text.set_ellipsize(0);
 
-    // 2. Bal alsó sarok: Szám és alatta a csomagkezelő neve
-    const bottomBox = new St.BoxLayout({
+    headerBox.add_child(headerIcon);
+    headerBox.add_child(headerLabel);
+    mainLayout.add_child(headerBox);
+
+    // ── 2. Középre zárt doboz: A nagy szám ──
+    const centerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
-        y_align: Clutter.ActorAlign.END,
+        x_expand: true,
         y_expand: true,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
     });
 
     const countLabel = new St.Label({
         text: '--',
-        style: `${fontCss}color: ${textColor}; font-size: ${countFontSize}px; font-weight: bold; line-height: 1.1;`,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
     });
 
-    const typeLabel = new St.Label({
-        text: pm.name,
-        style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SUB_LABEL_OPACITY}; font-weight: 600;`,
+    centerBox.add_child(countLabel);
+    mainLayout.add_child(centerBox);
+
+    function applyScale(newScale) {
+        scale = newScale;
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const iconSize = Math.round(16 * scale);
+        const valSize = Math.max(32, Math.round(44 * scale));
+
+        mainLayout.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
+        headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+        countLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.0;`;
+    }
+
+    applyScale(scale);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
     });
-
-    bottomBox.add_child(countLabel);
-    bottomBox.add_child(typeLabel);
-    mainLayout.add_child(bottomBox);
-
-    container.add_child(mainLayout);
 
     let isDisposed = false;
 
@@ -185,25 +191,24 @@ export function createUpdatesNode(config, width, height, xPosition, yPosition) {
             countLabel.set_text(`${total}`);
 
             if (total === 0) {
-                topIcon.set_icon_name('emblem-ok-symbolic');
+                headerIcon.set_icon_name('emblem-ok-symbolic');
             } else {
-                topIcon.set_icon_name('software-update-available-symbolic');
+                headerIcon.set_icon_name('software-update-available-symbolic');
             }
 
-            // Ha van flatpak is, kiírhatja pl. "APT + FP"-ként, vagy simán hagyhatod a natív nevét:
             if (flatpakCount > 0 && nativeCount > 0) {
-                typeLabel.set_text(`${pm.name}+FP`);
+                headerLabel.set_text(`${pm.name} + FP`);
             } else if (flatpakCount > 0 && nativeCount === 0) {
-                typeLabel.set_text('FLATPAK');
+                headerLabel.set_text('Flatpak');
             } else {
-                typeLabel.set_text(pm.name);
+                headerLabel.set_text(pm.name);
             }
         });
     };
 
     checkUpdates();
 
-    // 30 percenkénti frissítés (1800 mp)
+    // 30 percenkénti ellenőrzés
     const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1800, () => {
         if (isDisposed) return GLib.SOURCE_REMOVE;
         checkUpdates();

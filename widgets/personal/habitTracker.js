@@ -12,14 +12,8 @@ import {
 import { createWidgetContainer, attachResponsiveScaler, attachButtonFeedback } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const REF_WIDTH_PX = 380;
-const REF_HEIGHT_PX = 230;
-const CONTAINER_PADDING_PX = 14;
-const ROW_GAP_PX = 8;
-const ROW_PADDING_PX = 8;
-const ROW_RADIUS_PX = 14;
-const CIRCLE_SIZE_PX = 22;
-
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DEFAULT_PALETTE = ['#C2E7FF', '#A2C9C2', '#FFE082', '#D7AEFB', '#FFB4AB'];
@@ -30,18 +24,14 @@ const DEFAULT_HABITS = [
     { name: 'Read / Study', days: [true, true, false, true, false, false, false], color: '#FFE082' }
 ];
 
-// Kiszámolja az aktuális szériát az adott heti napok alapján
 function calculateStreak(days) {
-    // Mai nap indexe: Hétfő = 0, ..., Vasárnap = 6
     const now = new Date();
-    const jsDay = now.getDay(); // 0: Vasárnap, 1: Hétfő ...
+    const jsDay = now.getDay();
     const todayIdx = (jsDay + 6) % 7;
 
     let streak = 0;
     let idx = todayIdx;
 
-    // Ha a mai nap még nincs bepipálva, megnézzük, hogy a tegnapi megvolt-e, 
-    // hogy ne nullázódjon le a széria napközben
     if (!days[todayIdx]) {
         idx = todayIdx - 1;
     }
@@ -55,7 +45,6 @@ function calculateStreak(days) {
 }
 
 export function createHabitTrackerNode(config, width, height, xPosition, yPosition) {
-
     const dataDir = getGridDesktopDataDir('habits');
     const filePath = GLib.build_filenamev([dataDir, `${config.id || 'habits'}.json`]);
 
@@ -72,9 +61,8 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
 
     const textBytes = parseCssColor(textColor);
     const textRgb = () => `${Math.round(textBytes.r * 255)},${Math.round(textBytes.g * 255)},${Math.round(textBytes.b * 255)}`;
- 
 
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
 
     const state = {
         isAdding: false
@@ -87,7 +75,7 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
     });
     container.add_child(mainBox);
 
-    // --- FEJLÉC ---
+    // ── 1. Egységes Fejléc ──
     const headerRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         y_align: Clutter.ActorAlign.CENTER,
@@ -120,7 +108,7 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
     attachButtonFeedback(addButton);
     headerRow.add_child(addButton);
 
-    // --- INLINE INPUT MEZŐ ---
+    // ── INLINE INPUT MEZŐ ──
     const inlineInputBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         y_align: Clutter.ActorAlign.CENTER,
@@ -151,7 +139,7 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
     attachButtonFeedback(cancelAddBtn);
     inlineInputBox.add_child(cancelAddBtn);
 
-    // --- LISTA KONTÉNER ---
+    // ── 2. Görgethető feladatlista ──
     const listScroll = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
@@ -200,7 +188,15 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
 
     function renderRows() {
         listContainer.destroy_all_children();
-        const px = (v) => Math.max(1, Math.round(v * scale));
+
+        const cardPadding = Math.max(3, Math.round(5 * scale));
+        const cardRadius = Math.max(6, Math.round(8 * scale));
+        const rowGap = Math.max(3, Math.round(4 * scale));
+        const rightScrollGap = Math.max(4, Math.round(6 * scale));
+        const nameFontSize = Math.max(10, Math.round(12 * scale));
+        const streakFontSize = Math.max(9, Math.round(10.5 * scale));
+        const circleSize = Math.max(15, Math.round(16 * scale)); // 20 helyett finom 16px!
+        const dayLabelFontSize = Math.max(8, Math.round(8.5 * scale));
 
         habits.forEach((habit, hIdx) => {
             const row = new St.BoxLayout({
@@ -208,10 +204,10 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
                 y_align: Clutter.ActorAlign.CENTER,
                 x_expand: true,
                 style: `background-color: rgba(${textRgb()}, 0.06); `
-                     + `padding: ${px(ROW_PADDING_PX)}px; `
-                     + `border-radius: ${px(ROW_RADIUS_PX)}px; `
-                     + `margin-bottom: ${px(ROW_GAP_PX)}px; `
-                     + `margin-right: ${px(4)}px;`
+                     + `padding: ${cardPadding}px 8px; `
+                     + `border-radius: ${cardRadius}px; `
+                     + `margin-bottom: ${rowGap}px; `
+                     + `margin-right: ${rightScrollGap}px;`
             });
 
             // Név
@@ -219,20 +215,21 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
                 text: habit.name,
                 y_align: Clutter.ActorAlign.CENTER,
                 x_expand: true,
-                style: `${fontCss}font-size: ${px(13)}px; font-weight: 500; color: ${textColor};`
+                style: `${fontCss}font-size: ${nameFontSize}px; font-weight: 500; color: ${textColor};`
             });
+            nameLabel.clutter_text.set_ellipsize(3);
             row.add_child(nameLabel);
 
-            // Dinamikusan számolt Streak számláló
+            // Streak számláló
             const currentStreak = calculateStreak(habit.days);
             const streakPill = new St.Label({
                 text: `${currentStreak}d`,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `${fontCss}font-size: ${px(11)}px; font-weight: bold; color: ${textColor}; `
+                style: `${fontCss}font-size: ${streakFontSize}px; font-weight: bold; color: ${textColor}; `
                      + `background-color: rgba(${textRgb()}, 0.08); `
-                     + `padding: ${px(2)}px ${px(8)}px; `
+                     + `padding: 2px 7px; `
                      + `border-radius: 9999px; `
-                     + `margin-right: ${px(8)}px;`
+                     + `margin-right: ${Math.round(8 * scale)}px;`
             });
             row.add_child(streakPill);
 
@@ -240,7 +237,7 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
             const daysBox = new St.BoxLayout({
                 orientation: Clutter.Orientation.HORIZONTAL,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `spacing: ${px(4)}px; margin-right: ${px(6)}px;`
+                style: `spacing: 2px; margin-right: 4px;`
             });
 
             habit.days.forEach((done, dIdx) => {
@@ -263,14 +260,14 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
                     const border = isDone ? habit.color : `rgba(${textRgb()}, 0.25)`;
                     const dayTextColor = isDone ? '#1E1E1E' : textColor;
 
-                    dayBtn.style = `width: ${px(CIRCLE_SIZE_PX)}px; height: ${px(CIRCLE_SIZE_PX)}px; `
+                    dayBtn.style = `width: ${circleSize}px; height: ${circleSize}px; `
                         + `border-radius: 9999px; `
                         + `background-color: ${bg}; `
                         + `border: 1px solid ${border};`;
 
-                    dayLabel.style = `${fontCss}font-size: ${px(10)}px; font-weight: bold; `
+                    dayLabel.style = `${fontCss}font-size: ${dayLabelFontSize}px; font-weight: bold; `
                         + `color: ${dayTextColor}; `
-                        + `text-align: center; width: ${px(CIRCLE_SIZE_PX)}px;`;
+                        + `text-align: center; width: ${circleSize}px;`;
                 }
 
                 updateDayStyle();
@@ -278,8 +275,6 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
                 dayBtn.connect('clicked', () => {
                     habit.days[dIdx] = !habit.days[dIdx];
                     updateDayStyle();
-                    
-                    // Kattintáskor azonnal újraszámoljuk és frissítjük a szöveget
                     streakPill.text = `${calculateStreak(habit.days)}d`;
                     saveHabits();
                 });
@@ -290,15 +285,15 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
 
             row.add_child(daysBox);
 
-            // Törlés gomb (Remove)
+            // Törlés gomb
             const removeBtn = new St.Button({
                 reactive: true,
                 can_focus: true,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `padding: ${px(3)}px; border-radius: 9999px; opacity: 0.6;`,
+                style: `padding: 2px; border-radius: 9999px; opacity: 0.6;`,
                 child: new St.Icon({
                     icon_name: 'window-close-symbolic',
-                    icon_size: px(12)
+                    icon_size: Math.max(10, Math.round(12 * scale))
                 })
             });
             attachButtonFeedback(removeBtn);
@@ -316,32 +311,33 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
 
     function applyScale(newScale) {
         scale = newScale;
-        const px = (v) => Math.max(1, Math.round(v * scale));
 
-        mainBox.style = `padding: ${px(CONTAINER_PADDING_PX)}px; spacing: ${px(8)}px;`;
-
+        const pad = Math.max(8, Math.round(10 * scale));
         const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const iconSize = Math.round(16 * scale);
 
-        headerRow.style = `margin-bottom: ${px(4)}px;`;
-        headerIcon.icon_size = px(16);
-        headerIcon.style = `color: ${textColor}; margin-right: ${px(6)}px;`;
+        mainBox.style = `padding: ${pad}px;`;
 
-        titleLabel.style = `${fontCss}font-size: ${titleFontSize}px; font-weight: bold; `
-            + `color: ${textColor}; opacity: 0.9;`;
+        headerRow.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
 
-        addButton.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.12); padding: ${px(4)}px;`;
-        if (addButton.child) addButton.child.icon_size = px(13);
-            inlineInputBox.style = `spacing: ${px(6)}px; margin-bottom: ${px(6)}px;`;
-            entry.style = `${fontCss}font-size: ${px(12)}px; padding: ${px(4)}px ${px(8)}px; border-radius: ${px(6)}px;`;
-            
-            saveAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.15); padding: ${px(4)}px;`;
-            if (saveAddBtn.child) saveAddBtn.child.icon_size = px(12);
+        titleLabel.style = `${fontCss}font-size: ${titleFontSize}px; font-weight: bold; color: ${textColor}; opacity: 0.9;`;
 
-            cancelAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.1); padding: ${px(4)}px;`;
-            if (cancelAddBtn.child) cancelAddBtn.child.icon_size = px(12);
+        addButton.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.12); padding: 4px;`;
+        if (addButton.child) addButton.child.icon_size = Math.max(12, Math.round(13 * scale));
 
-            renderRows();
-        }
+        inlineInputBox.style = `spacing: ${Math.round(6 * scale)}px; margin-bottom: ${Math.round(6 * scale)}px;`;
+        entry.style = `${fontCss}font-size: ${Math.max(10, Math.round(12 * scale))}px; padding: 4px 8px; border-radius: 6px;`;
+
+        saveAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.15); padding: 4px;`;
+        if (saveAddBtn.child) saveAddBtn.child.icon_size = 12;
+
+        cancelAddBtn.style = `border-radius: 9999px; background-color: rgba(${textRgb()}, 0.1); padding: 4px;`;
+        if (cancelAddBtn.child) cancelAddBtn.child.icon_size = 12;
+
+        renderRows();
+    }
 
     applyScale(scale);
 
@@ -353,9 +349,9 @@ export function createHabitTrackerNode(config, width, height, xPosition, yPositi
         }
     });
 
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        applyScale(Math.min(w / REF_WIDTH_PX, h / REF_HEIGHT_PX));
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX)));
     });
 
     return container;

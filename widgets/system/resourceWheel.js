@@ -8,18 +8,15 @@ import {
     resolveWidgetForegroundColor,
     resolveExplicitFontFamily,
     parseCssColor,
-    cssColorToRgba,
     CAIRO_OPERATOR_CLEAR,
     CAIRO_OPERATOR_OVER,
     CAIRO_LINE_CAP_ROUND,
 } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup } from '../../shell/widgetUIUtils.js';
+import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
+import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
+const BASE_CONTAINER_SIZE = 200;
 
-const BASE_CONTAINER_WIDTH_PX = 270;
-const BASE_CONTAINER_HEIGHT_PX = 210;
-
-// Kívülről befelé haladva: Disk -> RAM -> Temp -> CPU (legbelül a kék CPU)
 const RINGS = [
     { key: 'disk', label: 'Disk', rRatio: 1.0,  color: '#fff59d', rgb: [1.00, 0.96, 0.62] },
     { key: 'ram',  label: 'RAM',  rRatio: 0.80, color: '#a5d6a7', rgb: [0.65, 0.84, 0.65] },
@@ -34,33 +31,27 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     const parsedText = parseCssColor(textColor);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-
-    const scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
-    const padding = Math.max(10, Math.round(14 * scale));
+    let scale = Math.max(0.65, Math.min(width, height) / BASE_CONTAINER_SIZE);
 
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`,
     });
-
-    const titleFontSize = Math.max(11, Math.round(13 * scale));
 
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
-        style: `margin-bottom: ${Math.round(4 * scale)}px;`,
+        y_align: Clutter.ActorAlign.CENTER,
     });
     const headerIcon = new St.Icon({
         icon_name: 'utilities-system-monitor-symbolic',
-        icon_size: Math.round(16 * scale),
-        style: `color: ${textColor}; margin-right: 6px;`,
+        style: `color: ${textColor}; margin-right: 5px; opacity: 0.85;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerLabel = new St.Label({
-        text: 'Resource Wheel',
-        style: `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`,
+        text: 'Resources',
+        style: `${fontCss}color: ${textColor}; font-weight: bold; opacity: 0.9;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     headerLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
@@ -69,7 +60,6 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     headerBox.add_child(headerLabel);
     mainLayout.add_child(headerBox);
 
-    // ── Középső blokk: 2:3 arány a keréknek, 1:3 a legendának ──
     const middleRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -89,27 +79,26 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         orientation: Clutter.Orientation.VERTICAL,
         y_align: Clutter.ActorAlign.CENTER,
         x_align: Clutter.ActorAlign.END,
-        style: `spacing: ${Math.max(4, Math.round(6 * scale))}px; margin-left: ${Math.round(10 * scale)}px;`,
     });
 
     const legendLabels = {};
-    // A legendában a megszokott sorrendben írjuk ki: CPU, RAM, Disk, Temp
+    const legendDots = [];
     const legendOrder = ['cpu', 'ram', 'disk', 'temp'];
     legendOrder.forEach(key => {
         const ring = RINGS.find(r => r.key === key);
         const row = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'spacing: 6px;',
+            style: 'spacing: 4px;',
         });
         const dot = new St.Label({
             text: '●',
-            style: `color: ${ring.color}; font-size: ${Math.round(9 * scale)}px;`,
+            style: `color: ${ring.color};`,
             y_align: Clutter.ActorAlign.CENTER,
         });
         const lbl = new St.Label({
             text: `${ring.label}: --%`,
-            style: `${fontCss}color: ${textColor}; font-size: ${Math.round(11 * scale)}px; font-weight: 500;`,
+            style: `${fontCss}color: ${textColor}; font-weight: 500;`,
             y_align: Clutter.ActorAlign.CENTER,
         });
         lbl.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
@@ -117,29 +106,18 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         row.add_child(lbl);
         legendCol.add_child(row);
         legendLabels[ring.key] = lbl;
+        legendDots.push(dot);
     });
 
     middleRow.add_child(legendCol);
     mainLayout.add_child(middleRow);
-
-    // ── Alsó footer ───────────────────────────────────────────
-    const footerLabel = new St.Label({
-        text: 'Hardware telemetry updated in real time',
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.round(9 * scale)}px; opacity: 0.5;`,
-        x_align: Clutter.ActorAlign.START,
-    });
-    footerLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
-    mainLayout.add_child(footerLabel);
-
     container.add_child(mainLayout);
 
-    // ── Állapotváltozók ───────────────────────────────────────
     let currentMetrics = { cpu: 15, ram: 40, disk: 50, temp: 45 };
     let prevIdle = 0;
     let prevTotal = 0;
     let isDisposed = false;
 
-    // ── Cairo Rajzolás ────────────────────────────────────────
     drawingArea.connect('repaint', (area) => {
         const ctx = area.get_context();
         const [w, h] = area.get_surface_size();
@@ -153,24 +131,21 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         const cx = w / 2;
         const cy = h / 2;
 
-        const maxRadius = (Math.min(w, h) / 2) - (6 * scale);
-        const lineWidth = Math.max(3.5, 4.8 * scale);
+        const maxRadius = (Math.min(w, h) / 2) - (4 * scale);
+        const lineWidth = Math.max(3, 4.2 * scale);
         const baseR = maxRadius - lineWidth;
 
-        // 1. Gyűrűk kirajzolása
         RINGS.forEach(ring => {
             const r = baseR * ring.rRatio;
             if (r <= 2) return;
             const val = currentMetrics[ring.key] || 0;
 
-            // Halvány sáv
             ctx.setLineWidth(lineWidth);
             ctx.setSourceRGBA(ring.rgb[0], ring.rgb[1], ring.rgb[2], 0.15);
             ctx.newPath();
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Színes ív
             const ratio = Math.max(0.02, Math.min(1.0, val / 100.0));
             ctx.setSourceRGBA(ring.rgb[0], ring.rgb[1], ring.rgb[2], 1.0);
             ctx.newPath();
@@ -178,12 +153,10 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
             ctx.stroke();
         });
 
-        // 2. Középső szöveg kirajzolása Pango-val
         const pangoLayout = PangoCairo.create_layout(ctx);
-        const pangoDesc = Pango.FontDescription.from_string(fontFamily);
+        const pangoDesc = Pango.FontDescription.from_string(fontFamily || 'Sans');
 
-        // Százalék
-        pangoDesc.set_size(Math.round(13 * scale * Pango.SCALE));
+        pangoDesc.set_size(Math.round(12 * scale * Pango.SCALE));
         pangoDesc.set_weight(Pango.Weight.BOLD);
         pangoLayout.set_font_description(pangoDesc);
         pangoLayout.set_text(`${currentMetrics.cpu}%`, -1);
@@ -193,21 +166,19 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         ctx.moveTo(cx - (vW / 2), cy - vH + (2 * scale));
         PangoCairo.show_layout(ctx, pangoLayout);
 
-        // CPU címke (kékkel, ahogy a legbelső kör)
         pangoDesc.set_size(Math.round(8 * scale * Pango.SCALE));
         pangoDesc.set_weight(Pango.Weight.BOLD);
         pangoLayout.set_font_description(pangoDesc);
         pangoLayout.set_text('CPU', -1);
 
-        const [sW, sH] = pangoLayout.get_pixel_size();
-        ctx.setSourceRGBA(0.56, 0.79, 0.98, 1.0); // kék
+        const [sW] = pangoLayout.get_pixel_size();
+        ctx.setSourceRGBA(0.56, 0.79, 0.98, 1.0);
         ctx.moveTo(cx - (sW / 2), cy + (2 * scale));
         PangoCairo.show_layout(ctx, pangoLayout);
 
         ctx.$dispose();
     });
 
-    // ── Valós idejű adatok lekérése ───────────────────────────
     const readCpuDelta = () => {
         try {
             const file = Gio.File.new_for_path('/proc/stat');
@@ -283,10 +254,8 @@ echo "\${mem:-40};;\${disk:-50};;\${temp:-45}"
         readOtherStats();
     };
 
-    // Első futás
     updateAll();
 
-    // 2 másodpercenkénti pontos frissítés
     const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
         if (isDisposed) return GLib.SOURCE_REMOVE;
         updateAll();
@@ -296,6 +265,35 @@ echo "\${mem:-40};;\${disk:-50};;\${temp:-45}"
     registerWidgetCleanup(container, () => {
         isDisposed = true;
         if (timeoutId) GLib.source_remove(timeoutId);
+    });
+
+    function applyScale(newScale) {
+        scale = newScale;
+        const pad = Math.max(8, Math.round(10 * scale));
+        const titleFontSize = Math.max(10, Math.round(12 * scale));
+        const iconSize = Math.round(14 * scale);
+        const legendFontSize = Math.max(9, Math.round(10.5 * scale));
+        const dotSize = Math.max(7, Math.round(8 * scale));
+
+        mainLayout.style = `padding: ${pad}px; spacing: ${Math.round(4 * scale)}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(3 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+
+        legendCol.style = `spacing: ${Math.max(2, Math.round(4 * scale))}px; margin-left: ${Math.round(6 * scale)}px;`;
+        legendDots.forEach(d => d.style = `${d.style} font-size: ${dotSize}px;`);
+        Object.values(legendLabels).forEach(lbl => {
+            lbl.style = `${fontCss}color: ${textColor}; font-size: ${legendFontSize}px; font-weight: 500;`;
+        });
+
+        drawingArea.queue_repaint();
+    }
+
+    applyScale(scale);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_SIZE, BASE_CONTAINER_SIZE, (_ratio, w, h) => {
+        if (isActorDestroyed(container)) return;
+        applyScale(Math.max(0.65, Math.min(w, h) / BASE_CONTAINER_SIZE));
     });
 
     return container;

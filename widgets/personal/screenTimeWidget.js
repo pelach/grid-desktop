@@ -16,22 +16,20 @@ import { screenTimeEngine } from '../../utils/screenTimeEngine.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 import { toDateString } from '../../utils/moodStore.js';
 
-const REF_WIDTH = 360;
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
-const REF_HEIGHT = 170;
-
-const MAIN_PANEL_WIDTH_RATIO = 0.65;
+const MAIN_PANEL_WIDTH_RATIO = 0.62;
 const SIDE_PANEL_LIGHTEN = 0.08;
 
-const Y_AXIS_WIDTH_PX = 35;
-const X_AXIS_HEIGHT_PX = 15;
-const BAR_WIDTH_PX = 4;
+const Y_AXIS_WIDTH_PX = 32;
+const X_AXIS_HEIGHT_PX = 14;
+const BAR_WIDTH_PX = 4.5;
 const HOURS_PER_DAY = 24;
 
-// Dynamic axis: tallest hour bucket, rounded up to a 5-minute multiple.
 const MIN_SCALE_SECONDS = 300;
-const HEADER_RESERVED_HEIGHT_PX = 46;
-const HEADER_MARGIN_BOTTOM_PX = 12;
+const HEADER_RESERVED_HEIGHT_PX = 40;
+const HEADER_MARGIN_BOTTOM_PX = 8;
 
 function computeScaleMaxSeconds(hours) {
     let maxSeconds = 0;
@@ -41,26 +39,25 @@ function computeScaleMaxSeconds(hours) {
     return Math.ceil(base / MIN_SCALE_SECONDS) * MIN_SCALE_SECONDS;
 }
 
-const HEADER_FONT_SIZE_PX = 32;
+const HEADER_FONT_SIZE_PX = 26;
 const DATE_LABEL_FONT_SIZE_PX = 11;
-const AXIS_LABEL_FONT_SIZE_PX = 10;
-const APP_TIME_FONT_SIZE_PX = 13;
-const NAV_BUTTON_SIZE_PX = 26;
-const NAV_ICON_SIZE_PX = 16;
-const APP_ICON_SIZE_PX = 20;
+const AXIS_LABEL_FONT_SIZE_PX = 9.5;
+const APP_TIME_FONT_SIZE_PX = 12;
+const NAV_BUTTON_SIZE_PX = 24;
+const NAV_ICON_SIZE_PX = 14;
+const APP_ICON_SIZE_PX = 18;
 const MAX_VISIBLE_APPS = 4;
 const SECONDARY_TEXT_OPACITY = 0.63;
 const DISABLED_CONTROL_OPACITY = Math.round(255 * SECONDARY_TEXT_OPACITY);
 const GRID_LINE_ALPHA = 0.3;
-const PANEL_PADDING_TOP_PX = 16;
-const PANEL_PADDING_BOTTOM_PX = 16;
-const PANEL_PADDING_LEFT_PX = 20;
-const PANEL_PADDING_RIGHT_PX = 12;
-const HEADER_PADDING_RIGHT_PX = 5;
+const PANEL_PADDING_TOP_PX = 12;
+const PANEL_PADDING_BOTTOM_PX = 12;
+const PANEL_PADDING_LEFT_PX = 14;
+const PANEL_PADDING_RIGHT_PX = 10;
+const HEADER_PADDING_RIGHT_PX = 4;
 const NAV_BUTTON_BORDER_RADIUS_PX = 6;
-const AXIS_LABEL_SPACING_PX = 4;
-const AXIS_MARGIN_BOTTOM_PX = 6;
-const APP_ROWS_SPACING_PX = 14;
+const AXIS_MARGIN_BOTTOM_PX = 4;
+const APP_ROWS_SPACING_PX = 8;
 
 function addDays(dateString, delta) {
     const [y, m, d] = dateString.split('-').map(Number);
@@ -99,7 +96,6 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
     const accentHex = config.globalAccentColor || '#3584e4';
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
     const textRgba = (alpha) => cssColorToRgba(textColor, alpha);
-;
 
     const state = {
         selectedDate: null,
@@ -137,36 +133,31 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
         text: '0m',
         x_expand: true,
         y_align: Clutter.ActorAlign.START,
-        style: `${fontCss}color: ${textColor}; font-size: ${HEADER_FONT_SIZE_PX}px; font-weight: 300;`,
     });
     headerBox.add_child(totalTimeLabel);
 
     const controlsColumn = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_align: Clutter.ActorAlign.END,
-        style: 'spacing: 6px;',
+        style: 'spacing: 4px;',
     });
     headerBox.add_child(controlsColumn);
 
     const dateLabel = new St.Label({
         text: '',
-        style: `${fontCss}color: ${textColor}; font-size: ${DATE_LABEL_FONT_SIZE_PX}px; `
-            + `font-weight: 600; opacity: ${SECONDARY_TEXT_OPACITY};`,
+        style: `${fontCss}color: ${textColor}; font-weight: 600; opacity: ${SECONDARY_TEXT_OPACITY};`,
     });
     controlsColumn.add_child(dateLabel);
 
-    const navButtonsRow = new St.BoxLayout({ style: 'spacing: 6px;' });
+    const navButtonsRow = new St.BoxLayout({ style: 'spacing: 4px;' });
     controlsColumn.add_child(navButtonsRow);
 
     const buildNavButton = (iconName, action) => {
         const button = new St.Button({
             reactive: true,
             can_focus: true,
-            style: `width: ${NAV_BUTTON_SIZE_PX}px; height: ${NAV_BUTTON_SIZE_PX}px;`
-                + `border: 1px solid ${textRgba(0.14)}; border-radius: 6px; background-color: transparent;`,
             child: new St.Icon({
                 icon_name: iconName,
-                icon_size: NAV_ICON_SIZE_PX,
                 style: `color: ${textColor}; opacity: ${SECONDARY_TEXT_OPACITY};`,
             }),
         });
@@ -203,8 +194,7 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
         y_expand: true,
         y_align: yAxisAlignments[index],
         x_align: Clutter.ActorAlign.END,
-        style: `${fontCss}color: ${textColor}; font-size: ${AXIS_LABEL_FONT_SIZE_PX}px; `
-            + `opacity: ${SECONDARY_TEXT_OPACITY};`,
+        style: `${fontCss}color: ${textColor}; opacity: ${SECONDARY_TEXT_OPACITY};`,
     }));
     const yAxisBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -218,8 +208,7 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
         text,
         x_expand: true,
         x_align: xAxisAlignments[index],
-        style: `${fontCss}color: ${textColor}; font-size: ${AXIS_LABEL_FONT_SIZE_PX}px; `
-            + `opacity: ${SECONDARY_TEXT_OPACITY};`,
+        style: `${fontCss}color: ${textColor}; opacity: ${SECONDARY_TEXT_OPACITY};`,
     }));
     const xAxisBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
@@ -233,7 +222,6 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
         y_expand: true,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        style: 'spacing: 14px;',
     });
     rightPanel.add_child(appRowsBox);
 
@@ -265,7 +253,6 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
         }
     }
 
-    // Cheap fingerprint of the visible app list.
     function appListSignature(snapshot) {
         return JSON.stringify(snapshot.apps.slice(0, MAX_VISIBLE_APPS).map(app => [app.key, app.seconds]));
     }
@@ -306,25 +293,22 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
         const apps = state.snapshot.apps.slice(0, MAX_VISIBLE_APPS);
         if (apps.length === 0) {
             appRowsBox.add_child(new St.Label({
-                text: 'No activity recorded',
+                text: 'No activity',
                 x_expand: true,
                 x_align: Clutter.ActorAlign.CENTER,
-                style: `${fontCss}color: ${textColor}; font-size: ${APP_TIME_FONT_SIZE_PX}px; `
-                    + `opacity: ${SECONDARY_TEXT_OPACITY};`,
+                style: `${fontCss}color: ${textColor}; font-size: ${Math.max(10, Math.round(APP_TIME_FONT_SIZE_PX * (state.geometry.scale || 1)))}px; opacity: ${SECONDARY_TEXT_OPACITY};`,
             }));
             return;
         }
 
-        for (const app of apps) {
-            const s = state.geometry.scale || 1;
-            const px = (v) => Math.max(1, Math.round(v * s));
+        const s = state.geometry.scale || 1;
+        const px = (v) => Math.max(1, Math.round(v * s));
 
-            // Icon pinned left, duration immediately after it — every value
-            // starts at the same x so short ("6m") and long ("1h 53m") stay aligned.
+        for (const app of apps) {
             const row = new St.BoxLayout({
                 orientation: Clutter.Orientation.HORIZONTAL,
                 x_align: Clutter.ActorAlign.FILL,
-                style: 'spacing: 10px;',
+                style: `spacing: ${px(8)}px;`,
             });
 
             const iconSlot = new St.Widget({
@@ -347,8 +331,7 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
                 text: formatCompactDuration(app.seconds),
                 x_expand: true,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `${fontCss}color: ${textColor}; font-size: ${px(APP_TIME_FONT_SIZE_PX)}px; `
-                    + `opacity: ${SECONDARY_TEXT_OPACITY};`,
+                style: `${fontCss}color: ${textColor}; font-size: ${px(APP_TIME_FONT_SIZE_PX)}px; opacity: ${SECONDARY_TEXT_OPACITY}; font-weight: 500;`,
             }));
 
             appRowsBox.add_child(row);
@@ -407,10 +390,8 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
     });
 
     function applyLayout(currentWidth, currentHeight) {
-        // Skip until the container has real dimensions; otherwise scale and
-        // plot extents collapse to NaN and Clutter allocates INT32_MIN.
         if (!currentWidth || !currentHeight) return;
-        const s = Math.min(currentWidth / REF_WIDTH, currentHeight / REF_HEIGHT);
+        const s = Math.max(0.65, Math.min(currentWidth / BASE_CONTAINER_WIDTH_PX, currentHeight / BASE_CONTAINER_HEIGHT_PX));
         if (!isFinite(s) || s <= 0) return;
         state.geometry.scale = s;
 
@@ -423,6 +404,7 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
         const padBottom = Math.round(PANEL_PADDING_BOTTOM_PX * s);
         const padLeft = Math.round(PANEL_PADDING_LEFT_PX * s);
         const padRight = Math.round(PANEL_PADDING_RIGHT_PX * s);
+
         leftPanel.style = `background-color: ${bgColor}; border-radius: ${borderRadius}px 0 0 ${borderRadius}px;`
             + `padding: ${padTop}px ${padRight}px ${padBottom}px ${padLeft}px;`;
 
@@ -431,15 +413,22 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
 
         headerBox.style = `margin-bottom: ${Math.round(HEADER_MARGIN_BOTTOM_PX * s)}px; padding-right: ${Math.round(HEADER_PADDING_RIGHT_PX * s)}px;`;
         totalTimeLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(HEADER_FONT_SIZE_PX * s)}px; font-weight: 300;`;
+        dateLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(DATE_LABEL_FONT_SIZE_PX * s)}px; font-weight: 600; opacity: ${SECONDARY_TEXT_OPACITY};`;
 
-        prevButton.style = `width: ${Math.round(NAV_BUTTON_SIZE_PX * s)}px; height: ${Math.round(NAV_BUTTON_SIZE_PX * s)}px;`
+        const navBtnSize = Math.round(NAV_BUTTON_SIZE_PX * s);
+        const navBtnStyle = `width: ${navBtnSize}px; height: ${navBtnSize}px;`
             + `border: 1px solid ${textRgba(0.14)}; border-radius: ${Math.round(NAV_BUTTON_BORDER_RADIUS_PX * s)}px; background-color: transparent;`;
-        nextButton.style = prevButton.style;
+        prevButton.style = navBtnStyle;
+        nextButton.style = navBtnStyle;
+
+        if (prevButton.child) prevButton.child.icon_size = Math.round(NAV_ICON_SIZE_PX * s);
+        if (nextButton.child) nextButton.child.icon_size = Math.round(NAV_ICON_SIZE_PX * s);
+
+        const axisFontSize = Math.max(8, Math.round(AXIS_LABEL_FONT_SIZE_PX * s));
+        yAxisLabels.forEach(l => l.style = `${fontCss}color: ${textColor}; font-size: ${axisFontSize}px; opacity: ${SECONDARY_TEXT_OPACITY};`);
+        xAxisLabels.forEach(l => l.style = `${fontCss}color: ${textColor}; font-size: ${axisFontSize}px; opacity: ${SECONDARY_TEXT_OPACITY};`);
 
         const chartWrapWidth = mainWidth - padLeft - padRight;
-        // Reserve only what the tallest header column actually occupies
-        // (date label 14 + spacing 6 + nav buttons 26), so the plot top — and
-        // therefore the max scale mark — rises to the prev/next button level.
         const chartWrapHeight = currentHeight - padTop - padBottom
             - Math.round((HEADER_RESERVED_HEIGHT_PX + HEADER_MARGIN_BOTTOM_PX) * s);
         const plotWidth = Math.max(1, chartWrapWidth - Math.round(Y_AXIS_WIDTH_PX * s));
@@ -452,7 +441,7 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
         yAxisBox.set_position(plotWidth, 0);
         yAxisBox.set_size(Math.round(Y_AXIS_WIDTH_PX * s), plotHeight);
 
-        xAxisBox.set_position(0, plotHeight + Math.round(4 * s));
+        xAxisBox.set_position(0, plotHeight + Math.round(2 * s));
         xAxisBox.set_size(plotWidth, Math.round(X_AXIS_HEIGHT_PX * s));
         xAxisBox.style = `margin-bottom: ${Math.round(AXIS_MARGIN_BOTTOM_PX * s)}px;`;
 
@@ -462,7 +451,7 @@ export function createScreenTimeNode(config, width, height, xPosition, yPosition
     }
 
     applyLayout(width, height);
-    attachResponsiveScaler(container, REF_WIDTH, REF_HEIGHT, (_ratio, w, h) => applyLayout(w, h));
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => applyLayout(w, h));
     refreshData();
 
     return container;

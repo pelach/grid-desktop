@@ -16,8 +16,8 @@ import {
 } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CONTAINER_WIDTH_PX = 220;
-const BASE_CONTAINER_HEIGHT_PX = 220;
+const BASE_CONTAINER_WIDTH_PX = 200;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
 const CARD_BG_DARK_ALPHA = 0.05;
 const CARD_BG_LIGHT_ALPHA = 0.04;
@@ -60,7 +60,6 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
     const textColor = resolveWidgetForegroundColor(config);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-
     let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
     let lastDevicesData = [];
     let isDisposed = false;
@@ -76,25 +75,26 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
     });
     container.add_child(contentBox);
 
-    // Fejléc
+    // ── 1. Egységes Fejléc (Hajszálpontosan mint az audioOutput.js) ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
     });
     const headerIcon = new St.Icon({
         icon_name: 'battery-level-100-charged-symbolic',
-        style: `color: ${textColor}; margin-right: 6px;`,
+        style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerLabel = new St.Label({
         text: 'Battery Status',
         y_align: Clutter.ActorAlign.CENTER,
     });
+    headerLabel.clutter_text.set_ellipsize(0);
     headerBox.add_child(headerIcon);
     headerBox.add_child(headerLabel);
     contentBox.add_child(headerBox);
 
-    // Görgető konténer
+    // ── 2. Görgető konténer ──
     const scrollView = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
@@ -111,17 +111,26 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
     scrollView.set_child(listContainer);
 
     const renderDeviceRow = (data) => {
-        const cardPadding = Math.max(4, Math.round(6 * scale));
+        // audioOutput.js szerinti méretezés
+        const cardPadding = Math.max(5, Math.round(8 * scale));
         const cardRadius = Math.max(6, Math.round(10 * scale));
-        const deviceFontSize = Math.max(10, Math.round(12 * scale));
+        const rowGap = Math.max(4, Math.round(6 * scale));
+        const rightScrollGap = Math.max(6, Math.round(8 * scale));
+        const deviceFontSize = Math.max(11, Math.round(13 * scale));
         const percentFontSize = Math.max(11, Math.round(13 * scale));
-        const subFontSize = Math.max(8, Math.round(9.5 * scale));
-        const iconSize = Math.max(15, Math.round(18 * scale));
-        const miniIconSize = Math.max(11, Math.round(13 * scale));
+        const subFontSize = Math.max(9, Math.round(10 * scale));
+        const iconSize = Math.max(16, Math.round(18 * scale));
+        const miniIconSize = Math.max(12, Math.round(14 * scale));
 
         const cardBg = cssColorToRgba(textColor, cardBgAlpha);
         const cardBorder = cssColorToRgba(textColor, cardBorderAlpha);
-        const itemCardStyle = `background-color: ${cardBg}; border: 1px solid ${cardBorder}; border-radius: ${cardRadius}px; padding: ${cardPadding}px;`;
+        
+        const itemCardStyle = `background-color: ${cardBg}; `
+            + `border: 1px solid ${cardBorder}; `
+            + `border-radius: ${cardRadius}px; `
+            + `padding: ${cardPadding}px; `
+            + `margin-bottom: ${rowGap}px; `
+            + `margin-right: ${rightScrollGap}px;`;
 
         const row = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
@@ -147,6 +156,8 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
             text: data.name,
             style: `${fontCss}color: ${textColor}; font-size: ${deviceFontSize}px; font-weight: 500;`,
         });
+        nameLabel.clutter_text.set_ellipsize(3);
+
         const subLabel = new St.Label({
             text: data.subtext,
             style: `${fontCss}color: ${textColor}; font-size: ${subFontSize}px; opacity: ${LABEL_OPACITY};`,
@@ -183,8 +194,7 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
         if (isDisposed || isActorDestroyed(container)) return;
         listContainer.destroy_all_children();
 
-        const deviceFontSize = Math.max(10, Math.round(12 * scale));
-        listContainer.style = `spacing: ${Math.round(5 * scale)}px;`;
+        const deviceFontSize = Math.max(11, Math.round(13 * scale));
 
         if (lastDevicesData.length === 0) {
             const emptyLabel = new St.Label({
@@ -268,13 +278,13 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
 
     function applyScale(newScale) {
         scale = newScale;
-        const titleFontSize = Math.max(10, Math.round(12 * scale));
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
 
-        contentBox.style = `padding: ${Math.max(6, Math.round(8 * scale))}px; spacing: ${Math.max(4, Math.round(6 * scale))}px;`;
-        headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
-        headerIcon.icon_size = Math.round(15 * scale);
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = Math.round(16 * scale);
         headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+        contentBox.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
 
         renderList();
     }

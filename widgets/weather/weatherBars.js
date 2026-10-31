@@ -5,27 +5,38 @@ import { FALLBACK_LOCATION, HOURLY_FORECAST_COUNT, createFallbackIcon, configure
 import { SECONDARY_OPACITY } from '../../utils/widgetUtils.js';
 import { attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 
-const BASE_LAYOUT_WIDTH = 260;
-const BASE_LAYOUT_HEIGHT = 260;
+const BASE_LAYOUT_WIDTH = 400;
+const BASE_LAYOUT_HEIGHT = 400;
 
-const BASE_CITY_FONT_SIZE = 14;
-const BASE_TEMP_FONT_SIZE = 28;
-const BASE_ICON_SIZE = 22;
-const BASE_CONDITION_FONT_SIZE = 11;
-const BASE_HIGHLOW_FONT_SIZE = 9;
+const BASE_CITY_FONT_SIZE = 17;
+const BASE_TEMP_FONT_SIZE = 40;
+const BASE_ICON_SIZE = 30;
+const BASE_CONDITION_FONT_SIZE = 14;
+const BASE_HIGHLOW_FONT_SIZE = 12;
 
-const BASE_HOURLY_TEXT_SIZE = 9;
-const BASE_HOURLY_ICON_SIZE = 14;
+const BASE_HOURLY_TEXT_SIZE = 12.5;
+const BASE_HOURLY_ICON_SIZE = 18;
 
-const BASE_DAILY_TEXT_SIZE = 10;
-const BASE_DAILY_ICON_SIZE = 13;
-const BASE_BAR_HEIGHT = 4;
+const BASE_DAILY_TEXT_SIZE = 14;
+const BASE_DAILY_ICON_SIZE = 18;
+const BASE_BAR_HEIGHT = 6;
 
 const FORECAST_DAYS_COUNT = 5;
 
 export function buildBarsLayout(layout, widgetData, extensionPath) {
-    const uiElements = { layout, hourlyActors: [], dailyActors: [] };
+    const uiElements = { layout, hourlyActors: [], dailyActors: [], dividers: [] };
     const fontCss = buildFontCss(widgetData);
+
+    // ── Segédfüggvény: finom macOS stílusú elválasztó vonal ──
+    const createDivider = () => {
+        const div = new St.Widget({
+            style: 'background-color: rgba(255, 255, 255, 0.12); height: 1px;',
+            x_expand: true,
+            height: 1,
+        });
+        uiElements.dividers.push(div);
+        return div;
+    };
 
     // ── 1. Header ──
     const topLayout = new St.BoxLayout({ orientation: Clutter.Orientation.HORIZONTAL, x_expand: true });
@@ -45,7 +56,11 @@ export function buildBarsLayout(layout, widgetData, extensionPath) {
     leftLayout.add_child(uiElements.tempLabel);
     topLayout.add_child(leftLayout);
 
-    const rightLayout = new St.BoxLayout({ orientation: Clutter.Orientation.VERTICAL, x_align: Clutter.ActorAlign.END });
+    const rightLayout = new St.BoxLayout({ 
+        orientation: Clutter.Orientation.VERTICAL, 
+        x_align: Clutter.ActorAlign.END,
+        style: 'spacing: 2px;'
+    });
     const iconWrapper = new St.BoxLayout({ orientation: Clutter.Orientation.HORIZONTAL, x_align: Clutter.ActorAlign.END, x_expand: true });
     uiElements.conditionIcon = new St.Icon({
         gicon: createFallbackIcon(extensionPath),
@@ -74,11 +89,14 @@ export function buildBarsLayout(layout, widgetData, extensionPath) {
 
     layout.add_child(topLayout);
 
+    // Vonal a fejléc és az órás sáv között
+    layout.add_child(createDivider());
+
     // ── 2. Hourly Forecast ──
     const hourlyContainer = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
-        style: 'margin-top: 4px; margin-bottom: 8px;'
+        style: 'margin-top: 6px; margin-bottom: 8px;'
     });
 
     for (let i = 0; i < HOURLY_FORECAST_COUNT; i++) {
@@ -92,7 +110,7 @@ export function buildBarsLayout(layout, widgetData, extensionPath) {
         const icon = new St.Icon({
             gicon: createFallbackIcon(extensionPath),
             icon_size: BASE_HOURLY_ICON_SIZE,
-            style: 'margin-top: 1px; margin-bottom: 1px;'
+            style: 'margin-top: 2px; margin-bottom: 2px;'
         });
         const hourlyIconWrapper = new St.BoxLayout({ orientation: Clutter.Orientation.HORIZONTAL, x_align: Clutter.ActorAlign.CENTER, x_expand: true });
         hourlyIconWrapper.add_child(icon);
@@ -111,6 +129,9 @@ export function buildBarsLayout(layout, widgetData, extensionPath) {
     }
     layout.add_child(hourlyContainer);
 
+    // Vonal az órás és a napi előrejelzés között (a napok FÖLÉ)
+    layout.add_child(createDivider());
+
     // ── 3. Daily Forecast with Bars ──
     const dailyContainer = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -121,29 +142,35 @@ export function buildBarsLayout(layout, widgetData, extensionPath) {
     const accentColor = widgetData.accentColor || widgetData.globalAccentColor || '#5b8cbd';
 
     for (let i = 0; i < FORECAST_DAYS_COUNT; i++) {
+        // Ha nem az első elem, húzunk egy elválasztó vonalat a napok KÖZÉ is
+        if (i > 0) {
+            dailyContainer.add_child(createDivider());
+        }
+
         const row = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
             x_expand: true,
             y_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
+            style: 'padding-top: 2px; padding-bottom: 2px;',
         });
 
         const dayLabel = new St.Label({
             text: '---',
-            style: `${fontCss}font-size: ${BASE_DAILY_TEXT_SIZE}px; font-weight: 600; min-width: 32px;`,
+            style: `${fontCss}font-size: ${BASE_DAILY_TEXT_SIZE}px; font-weight: 600; min-width: 36px;`,
             y_align: Clutter.ActorAlign.CENTER,
         });
 
         const icon = new St.Icon({
             gicon: createFallbackIcon(extensionPath),
             icon_size: BASE_DAILY_ICON_SIZE,
-            style: 'margin-right: 4px;',
+            style: 'margin-right: 6px;',
             y_align: Clutter.ActorAlign.CENTER,
         });
 
         const minLabel = new St.Label({
             text: '--°',
-            style: `${fontCss}font-size: ${BASE_DAILY_TEXT_SIZE}px; min-width: 24px; text-align: right; margin-right: 6px; opacity: 0.85;`,
+            style: `${fontCss}font-size: ${BASE_DAILY_TEXT_SIZE}px; min-width: 28px; text-align: right; margin-right: 6px; opacity: 0.85;`,
             y_align: Clutter.ActorAlign.CENTER,
         });
 
@@ -153,14 +180,14 @@ export function buildBarsLayout(layout, widgetData, extensionPath) {
         });
 
         const barBg = new St.Widget({
-            style: `background-color: rgba(255, 255, 255, 0.15); height: ${BASE_BAR_HEIGHT}px; border-radius: 2px;`,
+            style: `background-color: rgba(255, 255, 255, 0.15); height: ${BASE_BAR_HEIGHT}px; border-radius: 3px;`,
             x_expand: true,
             height: BASE_BAR_HEIGHT,
             y_align: Clutter.ActorAlign.CENTER,
         });
 
         const activeBar = new St.Widget({
-            style: `background-gradient-direction: horizontal; background-gradient-start: ${accentColor}; background-gradient-end: #ffd043; height: ${BASE_BAR_HEIGHT}px; border-radius: 2px;`,
+            style: `background-gradient-direction: horizontal; background-gradient-start: ${accentColor}; background-gradient-end: #ffd043; height: ${BASE_BAR_HEIGHT}px; border-radius: 3px;`,
             width: 8,
             height: BASE_BAR_HEIGHT,
             x: 0,
@@ -172,7 +199,7 @@ export function buildBarsLayout(layout, widgetData, extensionPath) {
 
         const maxLabel = new St.Label({
             text: '--°',
-            style: `${fontCss}font-size: ${BASE_DAILY_TEXT_SIZE}px; min-width: 24px; text-align: left; margin-left: 6px; font-weight: 500;`,
+            style: `${fontCss}font-size: ${BASE_DAILY_TEXT_SIZE}px; min-width: 28px; text-align: left; margin-left: 6px; font-weight: 500;`,
             y_align: Clutter.ActorAlign.CENTER,
         });
 
@@ -204,30 +231,29 @@ export function attachBarsScaler(widgetNode, uiElements, widgetData) {
 
     return attachResponsiveScaler(widgetNode, BASE_LAYOUT_WIDTH, BASE_LAYOUT_HEIGHT, (scale, w, h) => {
         if (!uiElements || !uiElements.cityLabel) return;
+        const s = Math.max(0.65, scale);
 
-        // Arányos belső margó a külső konténernek, hogy Large méretben se érje el a szélét
-        const outerPad = Math.max(12, Math.round(14 * scale));
+        const outerPad = Math.max(12, Math.round(14 * s));
         if (uiElements.layout) {
             uiElements.layout.style = `padding: ${outerPad}px;`;
         }
 
-        const citySize = Math.max(1, Math.round(BASE_CITY_FONT_SIZE * scale));
-        const tempSize = Math.max(1, Math.round(BASE_TEMP_FONT_SIZE * scale));
-        const iconSize = Math.max(1, Math.round(BASE_ICON_SIZE * scale));
-        const condSize = Math.max(1, Math.round(BASE_CONDITION_FONT_SIZE * scale));
-        const highLowSize = Math.max(1, Math.round(BASE_HIGHLOW_FONT_SIZE * scale));
+        const citySize = Math.max(1, Math.round(BASE_CITY_FONT_SIZE * s));
+        const tempSize = Math.max(1, Math.round(BASE_TEMP_FONT_SIZE * s));
+        const iconSize = Math.max(1, Math.round(BASE_ICON_SIZE * s));
+        const condSize = Math.max(1, Math.round(BASE_CONDITION_FONT_SIZE * s));
+        const highLowSize = Math.max(1, Math.round(BASE_HIGHLOW_FONT_SIZE * s));
 
-        const hourlyTextSize = Math.max(1, Math.round(BASE_HOURLY_TEXT_SIZE * scale));
-        const hourlyIconSize = Math.max(1, Math.round(BASE_HOURLY_ICON_SIZE * scale));
+        const hourlyTextSize = Math.max(1, Math.round(BASE_HOURLY_TEXT_SIZE * s));
+        const hourlyIconSize = Math.max(1, Math.round(BASE_HOURLY_ICON_SIZE * s));
 
-        const dailyTextSize = Math.max(1, Math.round(BASE_DAILY_TEXT_SIZE * scale));
-        const dailyIconSize = Math.max(1, Math.round(BASE_DAILY_ICON_SIZE * scale));
-        const barH = Math.max(3, Math.round(BASE_BAR_HEIGHT * scale));
+        const dailyTextSize = Math.max(1, Math.round(BASE_DAILY_TEXT_SIZE * s));
+        const dailyIconSize = Math.max(1, Math.round(BASE_DAILY_ICON_SIZE * s));
+        const barH = Math.max(4, Math.round(BASE_BAR_HEIGHT * s));
         
-        // Növeljük a feliratok fenntartott szélességét, hogy kényelmesen elférjenek
-        const dayW = Math.max(26, Math.round(36 * scale));
-        const valW = Math.max(22, Math.round(28 * scale));
-        const gap = Math.max(4, Math.round(6 * scale));
+        const dayW = Math.max(26, Math.round(36 * s));
+        const valW = Math.max(22, Math.round(28 * s));
+        const gap = Math.max(4, Math.round(6 * s));
 
         uiElements.cityLabel.style = `${fontCss}font-weight: 600; font-size: ${citySize}px; margin-bottom: 2px; color: inherit;`;
         uiElements.tempLabel.style = `${fontCss}font-size: ${tempSize}px; font-weight: 300; color: inherit;`;
@@ -245,9 +271,6 @@ export function attachBarsScaler(widgetNode, uiElements, widgetData) {
 
         if (uiElements.dailyActors) {
             const accentColor = widgetData.accentColor || widgetData.globalAccentColor || '#5b8cbd';
-            
-            // Kiszámítjuk a barBg tényleges rendelkezésre álló szélességét:
-            // w - 2 * outerPad - dayW - iconSize - 2 * valW - margók
             const availableBarWidth = Math.max(30, Math.floor(w - (outerPad * 2) - dayW - dailyIconSize - (valW * 2) - (gap * 4)));
 
             uiElements.dailyActors.forEach(actor => {
@@ -261,7 +284,6 @@ export function attachBarsScaler(widgetNode, uiElements, widgetData) {
                 actor.activeBar.set_height(barH);
                 actor.activeBar.style = `background-gradient-direction: horizontal; background-gradient-start: ${accentColor}; background-gradient-end: #ffd043; height: ${barH}px; border-radius: ${Math.round(barH / 2)}px;`;
 
-                // Azonnal átskálázzuk az activeBar-t az új mérethez:
                 refreshDailyBarGeometry(actor, availableBarWidth);
             });
         }

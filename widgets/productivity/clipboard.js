@@ -26,8 +26,8 @@ const PREVIEW_TEXT_MIN_LENGTH = 22;
 const ITEM_IDLE_ALPHA = 0.06;
 const ITEM_HOVER_ALPHA = 0.12;
 
-const REF_WIDTH_PX = 220;
-const REF_HEIGHT_PX = 220;
+const BASE_CONTAINER_WIDTH_PX = 200;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
 export function createClipboardNode(config, width, height, xPosition, yPosition) {
     const fontFamily = resolveExplicitFontFamily(config);
@@ -36,8 +36,7 @@ export function createClipboardNode(config, width, height, xPosition, yPosition)
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
     const textRgba = (alpha) => cssColorToRgba(textColor, alpha);
 
-
-    let currentScale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let currentScale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
 
     const contentBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -103,7 +102,7 @@ export function createClipboardNode(config, width, height, xPosition, yPosition)
         if (isActorDestroyed(container)) return;
         itemContainer.destroy_all_children();
 
-        const itemFontSize = Math.max(11, Math.round(13 * currentScale));
+        const itemFontSize = Math.max(10, Math.round(12 * currentScale));
 
         if (state.clipboardHistory.length === 0) {
             const emptyLabel = new St.Label({
@@ -119,10 +118,10 @@ export function createClipboardNode(config, width, height, xPosition, yPosition)
         }
 
         const maxLen = Math.max(PREVIEW_TEXT_MIN_LENGTH, Math.round(PREVIEW_TEXT_MAX_LENGTH * currentScale));
-        const itemRadius = Math.max(4, Math.round(8 * currentScale));
-        const padV = Math.max(4, Math.round(7 * currentScale));
-        const padH = Math.max(6, Math.round(10 * currentScale));
-        const gap = Math.max(3, Math.round(5 * currentScale));
+        const itemRadius = Math.max(4, Math.round(6 * currentScale));
+        const padV = Math.max(3, Math.round(5 * currentScale));
+        const padH = Math.max(6, Math.round(8 * currentScale));
+        const gap = Math.max(3, Math.round(4 * currentScale));
 
         const itemNormalStyle = `padding: ${padV}px ${padH}px; margin-bottom: ${gap}px; border-radius: ${itemRadius}px; `
             + `background-color: ${textRgba(ITEM_IDLE_ALPHA)}; border: 1px solid ${textRgba(0.06)};`;
@@ -201,11 +200,9 @@ export function createClipboardNode(config, width, height, xPosition, yPosition)
         } else if (!loadError) {
             saveJsonToFile(clipboardFilePath, { history: state.clipboardHistory });
         }
-        // Induláskor lekérjük az aktuális értéket egyszer
         updateClipboardIfChanged();
     });
 
-    // Eseményvezérelt figyelés: csak akkor fut le, ha valóban megváltozik a vágólap
     state.ownerChangedId = selection.connect('owner-changed', (_selection, selectionType) => {
         if (selectionType === Meta.SelectionType.SELECTION_CLIPBOARD) {
             updateClipboardIfChanged();
@@ -221,11 +218,11 @@ export function createClipboardNode(config, width, height, xPosition, yPosition)
 
     function applyScale(scale) {
         currentScale = scale;
-        const padding = Math.max(8, Math.round(12 * scale));
-        const titleFontSize = Math.max(9, Math.round(10.5 * scale));
-        const iconSize = Math.max(12, Math.round(14 * scale));
+        const padding = Math.max(8, Math.round(10 * scale));
+        const titleFontSize = Math.max(10, Math.round(12 * scale));
+        const iconSize = Math.round(14 * scale);
 
-        contentBox.style = `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`;
+        contentBox.style = `padding: ${padding}px; spacing: ${Math.round(4 * scale)}px;`;
         headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px; border-bottom: 1px solid ${textRgba(0.1)}; padding-bottom: ${Math.round(4 * scale)}px;`;
         headerIcon.icon_size = iconSize;
         headerIcon.style = `color: ${textColor}; margin-right: 6px; opacity: 0.85;`;
@@ -234,10 +231,10 @@ export function createClipboardNode(config, width, height, xPosition, yPosition)
         renderClipboardItems();
     }
 
-    applyScale(Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX));
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    applyScale(currentScale);
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        applyScale(Math.min(w / REF_WIDTH_PX, h / REF_HEIGHT_PX));
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX)));
     });
 
     return container;

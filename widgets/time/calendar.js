@@ -8,10 +8,10 @@ const DATE_POLL_INTERVAL_MS = 60_000;
 
 const BASE_SCALE_SIZE = 200;
 const TOP_BAR_RADIUS_PX = 12;
-const DAY_FONT_SIZE_PX = 13;
-const DATE_FONT_SIZE_PX = 48;
+const DAY_FONT_SIZE_PX = 13.5;
+const DATE_FONT_SIZE_PX = 46;
 const MONTH_FONT_SIZE_PX = 15;
-const MONTH_MARGIN_BOTTOM_PX = 8;
+const MONTH_MARGIN_BOTTOM_PX = 6;
 const CONTENT_BG_ALPHA = 0.06;
 
 function getToday() {
@@ -32,8 +32,7 @@ export function createCalendarNode(config, width, height, xPosition, yPosition) 
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
 
-
-    let scale = Math.min(width / BASE_SCALE_SIZE, height / BASE_SCALE_SIZE);
+    let scale = Math.max(0.65, Math.min(width / BASE_SCALE_SIZE, height / BASE_SCALE_SIZE));
 
     const outerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -53,7 +52,7 @@ export function createCalendarNode(config, width, height, xPosition, yPosition) 
         text: '',
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.round(DAY_FONT_SIZE_PX * scale)}px; opacity: ${SECONDARY_OPACITY};`,
+        style: `${fontCss}color: ${textColor}; font-size: ${Math.round(DAY_FONT_SIZE_PX * scale)}px; opacity: ${SECONDARY_OPACITY}; font-weight: 500;`,
     });
     topBar.add_child(dayLabel);
     outerBox.add_child(topBar);
@@ -93,7 +92,7 @@ export function createCalendarNode(config, width, height, xPosition, yPosition) 
 
     function applyScale(newScale) {
         scale = newScale;
-        dayLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(DAY_FONT_SIZE_PX * scale)}px; opacity: ${SECONDARY_OPACITY};`;
+        dayLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(DAY_FONT_SIZE_PX * scale)}px; opacity: ${SECONDARY_OPACITY}; font-weight: 500;`;
         dateNumber.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(DATE_FONT_SIZE_PX * scale)}px; font-weight: 300;`;
         monthLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(MONTH_FONT_SIZE_PX * scale)}px; `
             + `opacity: ${SECONDARY_OPACITY}; margin-bottom: ${Math.round(MONTH_MARGIN_BOTTOM_PX * scale)}px;`;
@@ -116,7 +115,7 @@ export function createCalendarNode(config, width, height, xPosition, yPosition) 
     connectTimerCleanup(container, state);
 
     attachResponsiveScaler(container, BASE_SCALE_SIZE, BASE_SCALE_SIZE, (_ratio, w, h) => {
-        applyScale(Math.min(w / BASE_SCALE_SIZE, h / BASE_SCALE_SIZE));
+        applyScale(Math.max(0.65, Math.min(w / BASE_SCALE_SIZE, h / BASE_SCALE_SIZE)));
     });
 
     return container;

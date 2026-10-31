@@ -1,7 +1,6 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import Pango from 'gi://Pango';
-import Cairo from 'gi://cairo';
 import GLib from 'gi://GLib';
 import {
     resolveWidgetForegroundColor,
@@ -9,11 +8,12 @@ import {
     cssColorToRgba,
     SECONDARY_OPACITY,
 } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup } from '../../shell/widgetUIUtils.js';
+import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { storageEngine } from '../../utils/storageEngine.js';
+import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CONTAINER_WIDTH = 260;
-const BASE_CONTAINER_HEIGHT = 130;
+const BASE_CONTAINER_WIDTH = 400;
+const BASE_CONTAINER_HEIGHT = 200;
 const PADDING_PX = 14;
 const ICON_CONTAINER_BG_ALPHA = 0.08;
 const ICON_CONTAINER_BORDER_ALPHA = 0.08;
@@ -34,7 +34,6 @@ function formatLegendBytes(bytes) {
     return `${Math.round(mb)} MB`;
 }
 
-// Segédfüggvény lekerekített téglalap útvonalhoz Cairoban
 function drawRoundedRect(cr, x, y, width, height, radius) {
     cr.newSubPath();
     cr.arc(x + width - radius, y + radius, radius, -Math.PI / 2, 0);
@@ -50,26 +49,22 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    const scale = Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT);
-    const pad = Math.max(8, Math.round(PADDING_PX * scale));
-    const valueFontSize = Math.max(16, Math.round(24 * scale));
-    const labelFontSize = Math.max(9, Math.round(11 * scale));
-    const legendFontSize = Math.max(8, Math.round(9 * scale));
-    const iconBoxSize = Math.max(22, Math.round(26 * scale));
-    const iconSize = Math.max(12, Math.round(14 * scale));
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
 
+    // A fő doboz, függőlegesen középre igazítva a kártyán belül
     const mainBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${pad}px;`,
+        y_align: Clutter.ActorAlign.CENTER,
     });
+    container.add_child(mainBox);
 
-    // ── 1. Fejléc: Szabad hely balra, HDD ikon doboz jobbra ──────────────────
+    // ── 1. Fejléc ──
     const topRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
-        y_align: Clutter.ActorAlign.START,
+        y_align: Clutter.ActorAlign.CENTER,
     });
 
     const textColumn = new St.BoxLayout({
@@ -80,54 +75,36 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
     const valueRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.START,
-        y_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.END,
     });
 
-    const valueLabel = new St.Label({
-        text: '--',
-        style: `${fontCss}color: ${textColor}; font-size: ${valueFontSize}px; font-weight: 600;`,
-    });
+    const valueLabel = new St.Label({ text: '--' });
     valueLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
 
-    const unitLabel = new St.Label({
-        text: 'free',
-        style: `${fontCss}color: ${textColor}; opacity: ${SECONDARY_OPACITY}; `
-            + `font-size: ${Math.round(valueFontSize * 0.42)}px; font-weight: 400; `
-            + `margin-left: ${Math.round(4 * scale)}px; margin-top: ${Math.round(4 * scale)}px;`,
-    });
+    const unitLabel = new St.Label({ text: 'free' });
     unitLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
 
     valueRow.add_child(valueLabel);
     valueRow.add_child(unitLabel);
 
-    const totalLabel = new St.Label({
-        text: 'Összesen: --',
-        style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SECONDARY_OPACITY}; margin-top: 1px;`,
-    });
+    const totalLabel = new St.Label({ text: 'Total: --' });
     totalLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.END);
 
     textColumn.add_child(valueRow);
     textColumn.add_child(totalLabel);
 
     const iconContainer = new St.BoxLayout({
-        width: iconBoxSize,
-        height: iconBoxSize,
         x_expand: false,
         y_expand: false,
-        y_align: Clutter.ActorAlign.START,
-        style: `background-color: ${cssColorToRgba(textColor, ICON_CONTAINER_BG_ALPHA)}; `
-            + `border: 1px solid ${cssColorToRgba(textColor, ICON_CONTAINER_BORDER_ALPHA)}; `
-            + `border-radius: ${Math.round(6 * scale)}px;`,
+        y_align: Clutter.ActorAlign.CENTER,
     });
 
     const icon = new St.Icon({
         icon_name: 'drive-harddisk-symbolic',
-        icon_size: iconSize,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
         x_expand: true,
         y_expand: true,
-        style: `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
     });
     iconContainer.add_child(icon);
 
@@ -135,22 +112,22 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
     topRow.add_child(iconContainer);
     mainBox.add_child(topRow);
 
-    // ── 2. Középső sáv: Szegmentált Cairo Bar ────────────────────────────────
+    // ── 2. Középső sáv ──
     let currentData = null;
-    const barHeight = Math.max(8, Math.round(12 * scale));
 
     const drawingArea = new St.DrawingArea({
         x_expand: true,
-        height: barHeight,
-        style: `margin-top: ${Math.round(5 * scale)}px; margin-bottom: ${Math.round(8 * scale)}px;`,
     });
 
     drawingArea.connect('repaint', (area) => {
         const cr = area.get_context();
         const [w, h] = area.get_surface_size();
+        if (w <= 0 || h <= 0) {
+            cr.$dispose();
+            return;
+        }
         const r = h / 2;
 
-        // Háttér tálca (szabad hely területe)
         drawRoundedRect(cr, 0, 0, w, h, r);
         cr.setSourceRGBA(1.0, 1.0, 1.0, 0.08);
         cr.fill();
@@ -160,18 +137,17 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
             return;
         }
 
-        // Maszkoljuk a teljes kerek sávot, így a szegmensek belül maradnak
         cr.save();
         drawRoundedRect(cr, 0, 0, w, h, r);
         cr.clip();
 
         const segments = [
-            { key: 'system',  color: [0.21, 0.52, 0.89] }, // Kék (#3584e4)
-            { key: 'media',   color: [0.57, 0.25, 0.67] }, // Lila (#9141ac)
-            { key: 'archive', color: [0.90, 0.38, 0.00] }, // Narancs (#e66100)
-            { key: 'image',   color: [0.20, 0.82, 0.48] }, // Zöld (#33d17a)
-            { key: 'docs',    color: [0.96, 0.83, 0.18] }, // Sárga (#f6d32d)
-            { key: 'other',   color: [0.50, 0.50, 0.55] }, // Szürke
+            { key: 'system',  color: [0.21, 0.52, 0.89] },
+            { key: 'media',   color: [0.57, 0.25, 0.67] },
+            { key: 'archive', color: [0.90, 0.38, 0.00] },
+            { key: 'image',   color: [0.20, 0.82, 0.48] },
+            { key: 'docs',    color: [0.96, 0.83, 0.18] },
+            { key: 'other',   color: [0.50, 0.50, 0.55] },
         ];
 
         let startX = 0;
@@ -192,7 +168,7 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
 
     mainBox.add_child(drawingArea);
 
-    // ── 3. Alsó rész: Legend címkék ──────────────────────────────────────────
+    // ── 3. Alsó legendák ──
     const legendRow1 = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -200,33 +176,27 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
     const legendRow2 = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
-        style: `margin-top: ${Math.round(2 * scale)}px;`,
     });
+
+    const legendWidgets = [];
 
     function createLegendItem(colorHex, text) {
         const itemBox = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
             y_align: Clutter.ActorAlign.CENTER,
-            style: `margin-right: ${Math.round(6 * scale)}px;`,
         });
 
         const dot = new St.Widget({
-            width: Math.round(5 * scale),
-            height: Math.round(5 * scale),
             y_align: Clutter.ActorAlign.CENTER,
-            style: `width: ${Math.round(5 * scale)}px; height: ${Math.round(5 * scale)}px; `
-                + `border-radius: 99px; background-color: ${colorHex}; margin-right: 3px;`,
+            style: `border-radius: 99px; background-color: ${colorHex}; margin-right: 4px;`,
         });
 
-        const label = new St.Label({
-            text: text,
-            style: `${fontCss}color: ${textColor}; font-size: ${legendFontSize}px; opacity: 0.75;`,
-        });
-        // Ne pontozza le!
+        const label = new St.Label({ text });
         label.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
 
         itemBox.add_child(dot);
         itemBox.add_child(label);
+        legendWidgets.push({ dot, label, itemBox });
         return { box: itemBox, label };
     }
 
@@ -246,8 +216,6 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
     mainBox.add_child(legendRow1);
     mainBox.add_child(legendRow2);
 
-    container.add_child(mainBox);
-
     const targetPath = config.storagePath || '/';
     let locationName = 'Root';
     if (targetPath !== '/') {
@@ -255,14 +223,54 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
         locationName = (base && base !== '.') ? base : targetPath;
     }
 
-    // ── 4. Adatfrissítés bekötése ────────────────────────────────────────────
+    function applyScale(newScale) {
+        scale = newScale;
+        const padH = Math.max(12, Math.round(PADDING_PX * scale * 1.2));
+        const padV = Math.max(10, Math.round(PADDING_PX * scale));
+        const valueFontSize = Math.max(18, Math.round(30 * scale)); // Nagyobb, markánsabb
+        const labelFontSize = Math.max(10, Math.round(12.5 * scale));
+        const legendFontSize = Math.max(9, Math.round(11 * scale));
+        const iconBoxSize = Math.max(26, Math.round(34 * scale));
+        const iconSize = Math.max(14, Math.round(18 * scale));
+        const barHeight = Math.max(10, Math.round(14 * scale));
+        const dotSize = Math.max(5, Math.round(7 * scale));
+
+        mainBox.style = `padding: ${padV}px ${padH}px;`;
+
+        valueLabel.style = `${fontCss}color: ${textColor}; font-size: ${valueFontSize}px; font-weight: 600; line-height: 1.0;`;
+        unitLabel.style = `${fontCss}color: ${textColor}; opacity: ${SECONDARY_OPACITY}; `
+            + `font-size: ${Math.round(valueFontSize * 0.42)}px; font-weight: 400; `
+            + `margin-left: 5px; margin-bottom: 2px;`;
+        totalLabel.style = `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SECONDARY_OPACITY}; margin-top: 3px;`;
+
+        iconContainer.style = `width: ${iconBoxSize}px; height: ${iconBoxSize}px; `
+            + `background-color: ${cssColorToRgba(textColor, ICON_CONTAINER_BG_ALPHA)}; `
+            + `border: 1px solid ${cssColorToRgba(textColor, ICON_CONTAINER_BORDER_ALPHA)}; `
+            + `border-radius: ${Math.round(8 * scale)}px;`;
+        icon.icon_size = iconSize;
+        icon.style = `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+
+        drawingArea.set_height(barHeight);
+        drawingArea.style = `margin-top: ${Math.round(12 * scale)}px; margin-bottom: ${Math.round(12 * scale)}px;`;
+
+        legendRow2.style = `margin-top: ${Math.round(5 * scale)}px;`;
+
+        legendWidgets.forEach(({ dot, label, itemBox }) => {
+            itemBox.style = `margin-right: ${Math.round(12 * scale)}px;`;
+            dot.style = `${dot.style} width: ${dotSize}px; height: ${dotSize}px;`;
+            label.style = `${fontCss}color: ${textColor}; font-size: ${legendFontSize}px; opacity: 0.8; font-weight: 500;`;
+        });
+
+        drawingArea.queue_repaint();
+    }
+
     const onDataUpdate = (data) => {
-        if (!data) return;
+        if (!data || isActorDestroyed(container)) return;
         currentData = data;
 
         if (data.isUnmounted) {
             valueLabel.set_text('--');
-            totalLabel.set_text(`${locationName}: Unmounted / Offline`);
+            totalLabel.set_text(`${locationName}: Offline`);
             legSys.label.set_text('System: --');
             legMed.label.set_text('Media: --');
             legArc.label.set_text('Archive: --');
@@ -283,6 +291,13 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
 
         drawingArea.queue_repaint();
     };
+
+    applyScale(scale);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
+        if (isActorDestroyed(container)) return;
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
+    });
 
     const unsubscribe = storageEngine.subscribe(targetPath, onDataUpdate);
     registerWidgetCleanup(container, unsubscribe);

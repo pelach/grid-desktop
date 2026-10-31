@@ -782,7 +782,7 @@ export function fetchWeatherViaOpenMeteo(context) {
     if (isActorDestroyed(widgetNode)) return;
 
     const gnomeCity = getGnomeDefaultWeatherCity();
-    const location = widgetData.location || widgetData.globalWeatherCity || gnomeCity || FALLBACK_LOCATION; //[cite: 4]
+    const location = widgetData.location || widgetData.globalWeatherCity || gnomeCity || FALLBACK_LOCATION; //[: 4]
 
     if (!widgetNode.weatherSession) {
         widgetNode.weatherSession = new Soup.Session();

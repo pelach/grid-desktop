@@ -1,15 +1,14 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
-import { resolveWidgetForegroundColor, resolveExplicitFontFamily, cssColorToRgba } from '../../utils/widgetUtils.js';
+import { resolveWidgetForegroundColor, resolveExplicitFontFamily } from '../../utils/widgetUtils.js';
 import { drawCircularArc, createWidgetContainer, connectTimerCleanup, attachButtonFeedback, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { BUTTON_PRIMARY } from '../../desktopGrid/constants.js';
 
 const STOPWATCH_ARC_LINE_WIDTH_RATIO = 0.06;
-const BASE_CONTAINER_SIZE = 220;
-const BASE_ARC_MARGIN = 24;
+const BASE_CONTAINER_SIZE = 200;
+const BASE_ARC_MARGIN = 20;
 const BASE_ARC_MIN_SIZE = 80;
-
 
 function formatStopwatchTime(elapsedMs) {
     const totalSeconds = Math.floor(elapsedMs / 1000);
@@ -30,7 +29,6 @@ export function createStopwatchNode(config, width, height, xPosition, yPosition)
     const accentHex = config.globalAccentColor || '#3584e4';
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-
     const widgetTitle = config.stopwatchLabel || 'Stopper';
 
     const state = {
@@ -40,14 +38,14 @@ export function createStopwatchNode(config, width, height, xPosition, yPosition)
         timerId: null,
     };
 
-    let scale = Math.min(width, height) / BASE_CONTAINER_SIZE;
+    let scale = Math.max(0.65, Math.min(width, height) / BASE_CONTAINER_SIZE);
     let arcMargin = Math.round(BASE_ARC_MARGIN * scale);
     let arcSize = Math.max(BASE_ARC_MIN_SIZE, Math.min(width, height) - arcMargin);
 
-    let titleFontSize = Math.max(1, Math.round(13 * scale));
-    let timeFontSize = Math.max(1, Math.round(28 * scale));
-    let playIconSize = Math.max(1, Math.round(24 * scale));
-    let secIconSize = Math.max(1, Math.round(20 * scale));
+    let titleFontSize = Math.max(10, Math.round(12 * scale));
+    let timeFontSize = Math.max(18, Math.round(24 * scale));
+    let playIconSize = Math.max(1, Math.round(20 * scale));
+    let secIconSize = Math.max(1, Math.round(16 * scale));
 
     const canvasActor = new St.DrawingArea({
         width: arcSize,
@@ -59,7 +57,6 @@ export function createStopwatchNode(config, width, height, xPosition, yPosition)
     canvasActor.connect('repaint', (area) => {
         const ctx = area.get_context();
         const [canvasWidth, canvasHeight] = area.get_surface_size();
-        // A körív 60 másodpercenként fordul körbe teljesen
         const progress = ((state.elapsedMs % 60000) / 60000);
         drawCircularArc(ctx, canvasWidth, canvasHeight, progress, accentHex, STOPWATCH_ARC_LINE_WIDTH_RATIO);
         ctx.$dispose();
@@ -87,14 +84,14 @@ export function createStopwatchNode(config, width, height, xPosition, yPosition)
 
     const controlsRow = new St.BoxLayout({
         x_align: Clutter.ActorAlign.CENTER,
-        style: `margin-top: ${Math.round(8 * scale)}px;`,
+        style: `margin-top: ${Math.round(6 * scale)}px;`,
     });
 
-    const resetBtn = new St.Button({ reactive: true, can_focus: true, style: 'border-radius: 99px; margin: 0px 4px;' });
+    const resetBtn = new St.Button({ reactive: true, can_focus: true, style: 'border-radius: 99px; margin: 0px 3px;' });
     const resetIcon = new St.Icon({ icon_name: 'view-refresh-symbolic', icon_size: secIconSize, style: `color: ${textColor}; opacity: 0.7;` });
     resetBtn.set_child(resetIcon);
 
-    const playPauseBtn = new St.Button({ reactive: true, can_focus: true, style: 'border-radius: 99px; margin: 0px 4px;' });
+    const playPauseBtn = new St.Button({ reactive: true, can_focus: true, style: 'border-radius: 99px; margin: 0px 3px;' });
     const playPauseIcon = new St.Icon({ icon_name: 'media-playback-start-symbolic', icon_size: playIconSize, style: `color: ${textColor};` });
     playPauseBtn.set_child(playPauseIcon);
 
@@ -108,7 +105,6 @@ export function createStopwatchNode(config, width, height, xPosition, yPosition)
     labelsBox.add_child(timeLabel);
     labelsBox.add_child(controlsRow);
 
-    // Közös rétegezés (Stack) a rajzterületnek és a feliratoknak
     const contentStack = new Clutter.Actor({
         layout_manager: new Clutter.BinLayout(),
         x_expand: true,
@@ -138,7 +134,6 @@ export function createStopwatchNode(config, width, height, xPosition, yPosition)
         state.startTime = Date.now() - state.elapsedMs;
         playPauseIcon.set_icon_name('media-playback-pause-symbolic');
 
-        // ~50 ms-os frissítés a sima tizedmásodperces pörgéshez
         state.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
             state.elapsedMs = Date.now() - state.startTime;
             updateDisplay();
@@ -174,22 +169,22 @@ export function createStopwatchNode(config, width, height, xPosition, yPosition)
         scale = newScale;
         arcMargin = Math.round(BASE_ARC_MARGIN * scale);
         arcSize = Math.max(BASE_ARC_MIN_SIZE, Math.min(container.width, container.height) - arcMargin);
-        titleFontSize = Math.max(1, Math.round(13 * scale));
-        timeFontSize = Math.max(1, Math.round(28 * scale));
-        playIconSize = Math.max(1, Math.round(24 * scale));
-        secIconSize = Math.max(1, Math.round(20 * scale));
+        titleFontSize = Math.max(10, Math.round(12 * scale));
+        timeFontSize = Math.max(18, Math.round(24 * scale));
+        playIconSize = Math.max(1, Math.round(20 * scale));
+        secIconSize = Math.max(1, Math.round(16 * scale));
 
         canvasActor.set_size(arcSize, arcSize);
         canvasActor.queue_repaint();
         titleLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; opacity: 0.55; margin-bottom: 2px;`;
         timeLabel.style = `${fontCss}color: ${textColor}; font-size: ${timeFontSize}px; font-weight: 300;`;
-        controlsRow.style = `margin-top: ${Math.round(8 * scale)}px;`;
+        controlsRow.style = `margin-top: ${Math.round(6 * scale)}px;`;
         playPauseIcon.icon_size = playIconSize;
         resetIcon.icon_size = secIconSize;
     }
 
     attachResponsiveScaler(container, BASE_CONTAINER_SIZE, BASE_CONTAINER_SIZE, (_ratio, w, h) => {
-        applyScale(Math.min(w, h) / BASE_CONTAINER_SIZE);
+        applyScale(Math.max(0.65, Math.min(w, h) / BASE_CONTAINER_SIZE));
     });
 
     return container;

@@ -18,11 +18,11 @@ import {
 import { subscribeToFeed } from '../../utils/rssEngine.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const REF_WIDTH_PX = 220;
-const REF_HEIGHT_PX = 220;
+const BASE_CONTAINER_WIDTH_PX = 200;
+const BASE_CONTAINER_HEIGHT_PX = 200;
+
 const ARTICLE_TITLE_MAX_CHARS = 160;
 const SOURCE_NAME_MAX_CHARS = 30;
-
 
 const ROTATE_INTERVAL_SECONDS = 15;
 const FADE_DURATION_MS = 150;
@@ -56,12 +56,9 @@ function relativeTimeFromIso(dateIso) {
 }
 
 export function createRssHeadlinesNode(config, width, height, xPosition, yPosition) {
-    const bgColor = resolveWidgetBackgroundColor(config);
     const textColor = resolveWidgetForegroundColor(config);
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
-    const borderRadius = config.appliedBorderRadius || 0;
-    const textRgba = (alpha) => cssColorToRgba(textColor, alpha);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
     const hasFeed = typeof config.feedUrl === 'string' && config.feedUrl.startsWith('http');
@@ -71,7 +68,7 @@ export function createRssHeadlinesNode(config, width, height, xPosition, yPositi
     let articles = [];
     let currentIndex = 0;
     let dotWidgets = [];
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
 
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -80,7 +77,7 @@ export function createRssHeadlinesNode(config, width, height, xPosition, yPositi
     });
     container.add_child(mainLayout);
 
-    // ── Fejléc ──
+    // ── 1. Fejléc ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -103,7 +100,7 @@ export function createRssHeadlinesNode(config, width, height, xPosition, yPositi
     headerBox.add_child(sourceLabel);
     mainLayout.add_child(headerBox);
 
-    // ── Törzs: Kattintható doboz a hír címével (nincs ScrollView) ──
+    // ── 2. Törzs: Kattintható hír cím doboz (nincs scroll) ──
     const bodyBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -124,7 +121,7 @@ export function createRssHeadlinesNode(config, width, height, xPosition, yPositi
     articleTitle.clutter_text.ellipsize = Pango.EllipsizeMode.END;
     bodyBox.add_child(articleTitle);
 
-    // Kattintásra cikk megnyitása
+    // Kattintásra külső link megnyitása
     bodyBox.connect('button-press-event', () => {
         if (articles.length === 0) return Clutter.EVENT_PROPAGATE;
         const currentArticle = articles[currentIndex % articles.length];
@@ -139,7 +136,7 @@ export function createRssHeadlinesNode(config, width, height, xPosition, yPositi
         return Clutter.EVENT_STOP;
     });
 
-    // ── Lábléc ──
+    // ── 3. Lábléc: Időbélyeg + Lapozó pöttyök ──
     const footerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -188,9 +185,9 @@ export function createRssHeadlinesNode(config, width, height, xPosition, yPositi
         dotWidgets.forEach((dot, index) => {
             if (isActorDestroyed(container)) return;
             const isActive = index === activeIndex;
-            dot.style = `width: ${isActive ? Math.round(10 * scale) : Math.round(4 * scale)}px;`
-                + `height: ${Math.round(4 * scale)}px; border-radius: ${Math.round(2 * scale)}px;`
-                + `background-color: ${textColor}; margin: 0 ${Math.round(2 * scale)}px;`
+            dot.style = `width: ${isActive ? Math.round(10 * scale) : Math.round(4 * scale)}px; `
+                + `height: ${Math.round(4 * scale)}px; border-radius: ${Math.round(2 * scale)}px; `
+                + `background-color: ${textColor}; margin: 0 ${Math.round(2 * scale)}px; `
                 + `opacity: ${isActive ? 1 : 0.27};`;
         });
     }
@@ -264,27 +261,26 @@ export function createRssHeadlinesNode(config, width, height, xPosition, yPositi
 
     restartRotationTimer();
 
-    // ── Reszponzív skálázás beállítása ──
+    // ── Reszponzív skálázás (200x200 bázis) ──
     function applyLayout(currentWidth, currentHeight) {
         if (!currentWidth || !currentHeight) return;
-        scale = Math.min(currentWidth / REF_WIDTH_PX, currentHeight / REF_HEIGHT_PX);
+        scale = Math.max(0.65, Math.min(currentWidth / BASE_CONTAINER_WIDTH_PX, currentHeight / BASE_CONTAINER_HEIGHT_PX));
 
-        const iconSize = Math.max(12, Math.round(14 * scale));
+        const pad = Math.max(8, Math.round(10 * scale));
+        const iconSize = Math.round(14 * scale);
+        const titleFontSize = Math.max(10, Math.round(12 * scale));
+        const articleTitleSize = Math.max(12, Math.round(14.5 * scale));
+        const footerFontSize = Math.max(8, Math.round(9 * scale));
 
-        const padding = Math.max(8, Math.round(12 * scale));
-        const titleFontSize = Math.max(9, Math.round(10.5 * scale));
-        const articleTitleSize = Math.max(1, Math.round(17 * scale));
-        const footerFontSize = Math.max(8, Math.round(8.5 * scale));
+        mainLayout.style = `padding: ${pad}px; spacing: ${Math.round(4 * scale)}px;`;
 
-        mainLayout.style = `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`;
-
-        sourceLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; letter-spacing: 0.5px; opacity: 0.9;`;
-        
+        headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
         headerIcon.icon_size = iconSize;
-        headerIcon.style = `color: ${textColor}; margin-right: ${Math.round(5 * scale)}px; opacity: 0.85;`;
+        headerIcon.style = `color: ${textColor}; margin-right: 5px; opacity: 0.85;`;
+        sourceLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; letter-spacing: 0.5px; opacity: 0.9;`;
 
         bodyBox.style = `padding: 0px 2px;`;
-        articleTitle.style = `${fontCss}color: ${textColor}; font-size: ${articleTitleSize}px;`;
+        articleTitle.style = `${fontCss}color: ${textColor}; font-size: ${articleTitleSize}px; line-height: 1.3;`;
 
         footerBox.style = `margin-top: ${Math.round(2 * scale)}px;`;
         timeLabel.style = `${fontCss}color: ${textColor}; font-size: ${footerFontSize}px; opacity: 0.45;`;
@@ -294,7 +290,7 @@ export function createRssHeadlinesNode(config, width, height, xPosition, yPositi
     }
 
     applyLayout(width, height);
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
         applyLayout(w, h);
     });

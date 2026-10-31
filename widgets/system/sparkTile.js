@@ -3,20 +3,17 @@ import Clutter from 'gi://Clutter';
 import Pango from 'gi://Pango';
 import { cssColorToRgba } from '../../utils/widgetUtils.js';
 
-export const BASE_CONTAINER_WIDTH = 260;
-export const BASE_CONTAINER_HEIGHT = 130;
+export const BASE_CONTAINER_WIDTH = 400;
+export const BASE_CONTAINER_HEIGHT = 200;
 export const TILE_GAP_PX = 10;
 export const TILE_MARGIN_PX = 10;
 
-const VALUE_FONT_SIZE_PX = 28;
-const LABEL_FONT_SIZE_PX = 10;
+const LABEL_FONT_SIZE_PX = 12;
 const TILE_PADDING_BASE_PX = 12;
-const TILE_RADIUS_BASE_PX = 10;
+const TILE_RADIUS_BASE_PX = 12;
 const TILE_BG_ALPHA = 0.06;
 const TILE_BORDER_ALPHA = 0.08;
-const UNIT_FONT_SIZE_RATIO = 0.45;
 
-// Reusable sparkline tile used by both CPU/RAM and network-speed widgets.
 export function createSparklineTile({
     labelText,
     unitText,
@@ -29,14 +26,11 @@ export function createSparklineTile({
     rowSpacingPx = 4,
     drawSamples,
 }) {
-    const tilePadding = Math.max(1, Math.round(TILE_PADDING_BASE_PX * scale));
-    const tileRadius = Math.max(1, Math.round(TILE_RADIUS_BASE_PX * scale));
-    const valueFontSize = Math.max(1, Math.round(24 * scale));
-    const labelFontSize = Math.max(1, Math.round(LABEL_FONT_SIZE_PX * scale));
-    const unitFontSize = Math.max(1, Math.round(valueFontSize * UNIT_FONT_SIZE_RATIO));
-
-    const numBoxMinWidth = Math.round(48 * scale);
-    const unitBoxWidth = Math.round(30 * scale);
+    const tilePadding = Math.max(8, Math.round(TILE_PADDING_BASE_PX * scale));
+    const tileRadius = Math.max(8, Math.round(TILE_RADIUS_BASE_PX * scale));
+    const valueFontSize = Math.max(26, Math.round(44 * scale)); // Testes, jól látható számok!
+    const labelFontSize = Math.max(10, Math.round(LABEL_FONT_SIZE_PX * scale));
+    const unitFontSize = Math.max(11, Math.round(valueFontSize * 0.38));
 
     const tile = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -46,49 +40,51 @@ export function createSparklineTile({
             + `border: 1px solid ${cssColorToRgba(textColor, TILE_BORDER_ALPHA)};`
             + `border-radius: ${tileRadius}px;`
             + `padding: ${tilePadding}px;`,
-        style_class: 'spacing',
     });
 
+    // Felső rész: érték + mértékegység
     const valueRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.START,
-        y_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.END,
     });
 
-    // font-feature-settings: 'tnum' biztosítja az azonos szélességű számjegyeket (nincs mikrovibráció)
     const valueLabel = new St.Label({
         text: '0',
-        x_align: Clutter.ActorAlign.END,
-        style: `${fontCss}color: ${textColor}; font-size: ${valueFontSize}px; font-weight: 300; min-width: ${numBoxMinWidth}px; text-align: right;`,
+        style: `${fontCss}color: ${textColor}; font-size: ${valueFontSize}px; font-weight: 300; line-height: 1.0;`,
     });
     valueLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
 
-    // A mértékegység indexben, felső igazítással
     const unitLabel = new St.Label({
         text: unitText,
-        x_align: Clutter.ActorAlign.START,
-        y_align: Clutter.ActorAlign.START,
+        y_align: Clutter.ActorAlign.END,
         style: `${fontCss}color: ${textColor}; opacity: ${unitOpacity}; `
-            + `font-size: ${unitFontSize}px; font-weight: 300; `
-            + `margin-top: ${Math.round(2 * scale)}px; margin-left: ${Math.round(2 * scale)}px;`,
+            + `font-size: ${unitFontSize}px; font-weight: 400; line-height: 1.1; `
+            + `margin-left: ${Math.round(4 * scale)}px; margin-bottom: ${Math.round(4 * scale)}px;`,
     });
     unitLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
 
     valueRow.add_child(valueLabel);
     valueRow.add_child(unitLabel);
+    tile.add_child(valueRow);
 
+    // Felirat (CPU / Memory / Download / Upload)
     const nameLabel = new St.Label({
         text: labelText,
-        style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${unitOpacity}; margin-top: 1px;`,
+        style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${unitOpacity}; margin-top: 2px; font-weight: 500;`,
     });
+    tile.add_child(nameLabel);
 
+    // Rugalmas térköz, hogy a chart leüljön az aljára
+    tile.add_child(new St.Widget({ y_expand: true }));
+
+    // Alsó diagram: arányos fix magasság a túlnyúlás ellen
+    const sparkHeight = Math.max(30, Math.round(50 * scale));
     const sparkArea = new St.DrawingArea({
         x_expand: true,
-        y_expand: true,
+        height: sparkHeight,
     });
 
-    tile.add_child(valueRow);
-    tile.add_child(nameLabel);
     tile.add_child(sparkArea);
 
     const samples = [];

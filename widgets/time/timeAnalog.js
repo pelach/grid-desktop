@@ -2,11 +2,11 @@ import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
-import { resolveWidgetForegroundColor, cssColorToRgba } from '../../utils/widgetUtils.js';
+import { resolveWidgetForegroundColor } from '../../utils/widgetUtils.js';
 import { attachResponsiveScaler, connectTimerCleanup, createWidgetContainer, startMinuteAlignedTimer } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CLOCK_SIZE = 160;
+const BASE_CLOCK_SIZE = 200;
 const DEFAULT_SKIN = 'basic';
 
 function getSkinFileUri(skinName, fileName) {
@@ -49,9 +49,7 @@ function loadSkinConfigAsync(skinName) {
                         resolve(JSON.parse(new TextDecoder().decode(contents)));
                         return;
                     }
-                } catch (e) {
-                    // Ha nincs fájl vagy hibás a JSON
-                }
+                } catch (e) {}
                 resolve(null);
             });
         } catch (e) {
@@ -128,13 +126,12 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         widgetNode.style += ' background-color: transparent; border: none; box-shadow: none;';
     } 
 
-    // Felesleges StBin eltávolítva: a widgetNode (BinLayout) közvetlenül kezeli a konténert
     const clockContainer = new St.Widget({
         layout_manager: new Clutter.BinLayout(),
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    widgetNode.add_child(clockContainer)
+    widgetNode.add_child(clockContainer);
 
     let hands = null;
     let dateLabel = null;
@@ -202,7 +199,6 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
             second: secondHand,
         };
 
-        // Késleltetjük a mutatók első elforgatását egy ciklussal, hogy a méretezés előbb lefusson
         GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             if (!isActorDestroyed(widgetNode) && hands) {
                 updateHands(hands, showSecondHand, dateLabel);
@@ -217,7 +213,7 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         if (!curW || !curH || curW <= 0 || curH <= 0) return;
 
         isBuilding = true;
-        const availableSpace = Math.min(curW, curH) * 0.88;
+        const availableSpace = Math.min(curW, curH) * 0.90;
         const scaledSize = Math.max(32, Math.round(availableSpace));
         buildClockElements(scaledSize);
         isBuilding = false;
@@ -233,11 +229,9 @@ export function createAnalogTimeNode(widgetData, width, height, xPosition, yPosi
         return GLib.SOURCE_CONTINUE;
     };
 
-    // Bőr konfiguráció aszinkron betöltése
     loadSkinConfigAsync(skinName).then((cfg) => {
         if (isActorDestroyed(widgetNode)) return;
         skinConfig = cfg;
-       
     });
 
     if (showSecondHand) {

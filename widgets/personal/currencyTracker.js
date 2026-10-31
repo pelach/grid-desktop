@@ -10,50 +10,47 @@ import {
     CAIRO_OPERATOR_OVER,
     CAIRO_LINE_CAP_ROUND,
 } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup } from '../../shell/widgetUIUtils.js';
+import { 
+    createWidgetContainer, 
+    registerWidgetCleanup, 
+    attachResponsiveScaler 
+} from '../../shell/widgetUIUtils.js';
+import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-
-const BASE_CONTAINER_WIDTH_PX = 270;
-const BASE_CONTAINER_HEIGHT_PX = 160;
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
 export function createCurrencyTrackerNode(config, width, height, xPosition, yPosition) {
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
     const textColor = resolveWidgetForegroundColor(config);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
-  
 
     const baseCurrency = (config.baseCurrency || 'EUR').toUpperCase();
     const targetCurrency = (config.targetCurrency || 'HUF').toUpperCase();
-
     const invertColors = Boolean(config.invertColors);
 
-    const scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
-    const padding = Math.max(10, Math.round(14 * scale));
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
 
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${padding}px; spacing: ${Math.round(6 * scale)}px;`,
     });
+    container.add_child(mainLayout);
 
-    const titleFontSize = Math.max(11, Math.round(13 * scale));
-
+    // ── Fejléc ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
-        style: `margin-bottom: ${Math.round(4 * scale)}px;`,
     });
     const headerIcon = new St.Icon({
         icon_name: 'bank-symbolic',
-        icon_size: Math.round(16 * scale),
         style: `color: ${textColor}; margin-right: 6px;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerLabel = new St.Label({
         text: `${baseCurrency} / ${targetCurrency}`,
-        style: `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     headerLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
@@ -62,7 +59,7 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
     headerBox.add_child(headerLabel);
     mainLayout.add_child(headerBox);
 
-    // ── Törzs: Bal oldalon az érték + badge, jobb oldalon a Cairo grafikon ──
+    // ── Törzs: Bal oldalon érték + badge, jobb oldalon a grafikon ──
     const bodyRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -70,21 +67,14 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
         y_align: Clutter.ActorAlign.FILL,
     });
 
-    const innerWidth = width - (padding * 2);
-    const leftWidth = Math.floor(innerWidth * 0.48); // Bal oldal a számoknak
-    const graphWidth = innerWidth - leftWidth;       // Jobb oldal a grafikonnak
-
     const leftCol = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         y_align: Clutter.ActorAlign.CENTER,
         x_align: Clutter.ActorAlign.START,
-        width: leftWidth,
-        style: `spacing: ${Math.round(4 * scale)}px;`,
     });
 
     const rateLabel = new St.Label({
         text: '---',
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.round(22 * scale)}px; font-weight: bold;`,
     });
     rateLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
     leftCol.add_child(rateLabel);
@@ -96,22 +86,18 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
 
     const changePill = new St.Label({
         text: '0.00%',
-        style: `${fontCss}font-size: ${Math.round(10 * scale)}px; font-weight: bold; padding: 2px 7px; border-radius: 5px; background-color: rgba(255,255,255,0.08); color: ${textColor};`,
     });
     const targetUnitLabel = new St.Label({
         text: ` ${targetCurrency}`,
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.round(11 * scale)}px; opacity: 0.6; margin-left: 6px;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     badgeBox.add_child(changePill);
     badgeBox.add_child(targetUnitLabel);
     leftCol.add_child(badgeBox);
-
     bodyRow.add_child(leftCol);
 
-    // Jobb oldali Sparkline: explicit szélességgel a 3. és 4. rácsoszloptér kitöltéséhez
     const drawingArea = new St.DrawingArea({
-        width: graphWidth,
+        x_expand: true,
         y_expand: true,
         x_align: Clutter.ActorAlign.FILL,
         y_align: Clutter.ActorAlign.FILL,
@@ -119,22 +105,53 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
     bodyRow.add_child(drawingArea);
     mainLayout.add_child(bodyRow);
 
-    // Lábléc
+    // ── Lábléc ──
     const footerLabel = new St.Label({
         text: '30-day trend · Frankfurter API',
-        style: `${fontCss}color: ${textColor}; font-size: ${Math.round(8 * scale)}px; opacity: 0.45;`,
         x_align: Clutter.ActorAlign.START,
     });
     mainLayout.add_child(footerLabel);
 
-    container.add_child(mainLayout);
-
-    // ── Állapot ───────────────────────────────────────────────
+    // ── Állapot ──
     let historyRates = [];
     let isDisposed = false;
     let isPositiveTrend = true;
 
-    // ── Grafikon kirajzolása ──────────────────────────────────
+    // ── Reszponzív skálázó függvény (applyScale) ──
+    function applyScale(newScale, currentWidth) {
+        scale = newScale;
+
+        const pad = Math.max(8, Math.round(10 * scale));
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const rateFontSize = Math.max(18, Math.round(26 * scale));
+        const pillFontSize = Math.max(10, Math.round(12 * scale));
+        const unitFontSize = Math.max(10, Math.round(12 * scale));
+        const footerFontSize = Math.max(8, Math.round(9 * scale));
+
+        mainLayout.style = `padding: ${pad}px; spacing: ${Math.round(6 * scale)}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = Math.round(16 * scale);
+        headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+
+        const effectiveW = (currentWidth || container.width || 400) - (pad * 2);
+        leftCol.width = Math.floor(effectiveW * 0.48);
+        leftCol.style = `spacing: ${Math.round(4 * scale)}px;`;
+
+        rateLabel.style = `${fontCss}color: ${textColor}; font-size: ${rateFontSize}px; font-weight: bold;`;
+        targetUnitLabel.style = `${fontCss}color: ${textColor}; font-size: ${unitFontSize}px; opacity: 0.6; margin-left: 6px;`;
+        footerLabel.style = `${fontCss}color: ${textColor}; font-size: ${footerFontSize}px; opacity: 0.45;`;
+
+        // Pill színstílus frissítése a trendnek megfelelően
+        if (isPositiveTrend) {
+            changePill.style = `${fontCss}font-size: ${pillFontSize}px; font-weight: bold; padding: 2px 7px; border-radius: 5px; background-color: rgba(76, 175, 80, 0.2); color: #81c784;`;
+        } else {
+            changePill.style = `${fontCss}font-size: ${pillFontSize}px; font-weight: bold; padding: 2px 7px; border-radius: 5px; background-color: rgba(244, 67, 54, 0.2); color: #e57373;`;
+        }
+
+        drawingArea.queue_repaint();
+    }
+
+    // ── Grafikon kirajzolása ──
     drawingArea.connect('repaint', (area) => {
         const ctx = area.get_context();
         const [w, h] = area.get_surface_size();
@@ -151,7 +168,7 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
 
         const padX = 2 * scale;
         const plotW = Math.max(10, w - (padX * 2));
-        const plotH = Math.max(10, Math.min(h * 0.35, 30 * scale));
+        const plotH = Math.max(10, Math.min(h * 0.45, 36 * scale));
         const padBottom = (h - plotH) / 2;
 
         const minVal = Math.min(...historyRates);
@@ -183,10 +200,9 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
         ctx.$dispose();
     });
 
-    // ── API Lekérés (Soup session) ────────────────────────────
+    // ── API Lekérés ──
     const fetchRates = () => {
         try {
-            // Elmúlt 30 nap kiszámítása (hogy legalább 5-6 munkanap meglegyen a hétvégék miatt)
             const now = GLib.DateTime.new_now_local();
             const past = now.add_days(-30);
             const startDateStr = past.format('%Y-%m-%d');
@@ -198,7 +214,7 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
             httpSession.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (s, res) => {
                 try {
                     const bytes = s.send_and_read_finish(res);
-                    if (isDisposed || !bytes) return;
+                    if (isDisposed || !bytes || isActorDestroyed(container)) return;
 
                     const data = JSON.parse(new TextDecoder().decode(bytes.get_data()));
                     if (!data || !data.rates || typeof data.rates !== 'object') {
@@ -217,7 +233,6 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
                     const firstRate = historyRates[0];
                     const diffPct = ((currentRate - firstRate) / firstRate) * 100;
 
-                    // Formázás: 2 tizedesjegy, ha kicsi az érték, 4
                     const decimals = currentRate < 10 ? 4 : 2;
                     rateLabel.set_text(currentRate.toFixed(decimals));
 
@@ -225,13 +240,7 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
                     const sign = isPositiveTrend ? '+' : '';
                     changePill.set_text(`${sign}${diffPct.toFixed(2)}%`);
 
-                    if (isPositiveTrend) {
-                        changePill.style = `${fontCss}font-size: ${Math.round(9 * scale)}px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: rgba(76, 175, 80, 0.2); color: #81c784;`;
-                    } else {
-                        changePill.style = `${fontCss}font-size: ${Math.round(9 * scale)}px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: rgba(244, 67, 54, 0.2); color: #e57373;`;
-                    }
-
-                    drawingArea.queue_repaint();
+                    applyScale(scale, container.width);
                 } catch (e) {}
             });
         } catch (e) {}
@@ -239,7 +248,6 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
 
     fetchRates();
 
-    // 15 percenkénti frissítés (devizapiacra bőven elég)
     const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 900, () => {
         if (isDisposed) return GLib.SOURCE_REMOVE;
         fetchRates();
@@ -249,6 +257,13 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
     registerWidgetCleanup(container, () => {
         isDisposed = true;
         if (timeoutId) GLib.source_remove(timeoutId);
+    });
+
+    applyScale(scale, width);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
+        if (isActorDestroyed(container)) return;
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX)), w);
     });
 
     return container;

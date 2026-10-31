@@ -8,25 +8,25 @@ import { resolveMusicPanelColors, resolveArtworkLayerStyle } from './cover.js';
 import { attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CONTAINER_WIDTH = 480;
-const BASE_CONTAINER_HEIGHT = 240;
+const BASE_CONTAINER_WIDTH = 400;
+const BASE_CONTAINER_HEIGHT = 200;
 
-const BASE_PADDING = 24;
-const BASE_TITLE_FONT_SIZE = 24;
-const BASE_ARTIST_FONT_SIZE = 18;
-const BASE_ALBUM_FONT_SIZE = 18;
-const LABEL_MARGIN_BOTTOM_PX = 4;
+const BASE_PADDING = 16;
+const BASE_TITLE_FONT_SIZE = 20;
+const BASE_ARTIST_FONT_SIZE = 15;
+const BASE_ALBUM_FONT_SIZE = 13;
+const LABEL_MARGIN_BOTTOM_PX = 3;
 
 // Alapméretek 240px magas widgetre kalkulálva
-const BASE_VINYL_SIZE = 190;
-const BASE_CENTER_LABEL_SIZE = 86;
-const BASE_ARM_WIDTH = 50;
-const BASE_ARM_HEIGHT = 155;
+const BASE_VINYL_SIZE = 155;
+const BASE_CENTER_LABEL_SIZE = 70;
+const BASE_ARM_WIDTH = 40;
+const BASE_ARM_HEIGHT = 125;
 
 function getAssetPath(filename) {
     const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
     const currentDir = GLib.path_get_dirname(currentFilePath);
-    return GLib.build_filenamev([currentDir, 'assets', filename]);
+    return GLib.build_filenamev([currentDir,  filename]);
 }
 
 export function buildLargeLayout(config, state, width) {

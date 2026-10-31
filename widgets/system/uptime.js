@@ -6,18 +6,23 @@ import {
     resolveWidgetForegroundColor,
     resolveExplicitFontFamily,
 } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup } from '../../shell/widgetUIUtils.js';
+import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
+
+const BASE_CONTAINER_WIDTH = 200;
+const BASE_CONTAINER_HEIGHT = 200;
 
 function formatUptime(secondsTotal) {
     const total = Math.floor(secondsTotal);
     const days = Math.floor(total / 86400);
     const hours = Math.floor((total % 86400) / 3600);
     const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
 
     const parts = [];
     if (days > 0) parts.push(`${days}d`);
     if (hours > 0 || days > 0) parts.push(`${hours}h`);
-    parts.push(`${minutes}m`);
+    if (minutes > 0 || hours > 0 || days > 0) parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
 
     return parts.join(' ');
 }
@@ -28,60 +33,76 @@ export function createUptimeNode(config, width, height, xPosition, yPosition) {
     const textColor = resolveWidgetForegroundColor(config);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    const scale = Math.max(0.7, Math.min(width / 200, height / 100));
-    const padding = Math.max(8, Math.round(12 * scale));
-    const headerIconSize = Math.max(14, Math.round(16 * scale));
-    const titleFontSize = Math.max(11, Math.round(13 * scale));
-    const uptimeFontSize = Math.max(16, Math.round(20 * scale));
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
 
     const contentBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${padding}px;`,
     });
     container.add_child(contentBox);
 
-    // Fejléc (mint az Audio Output / Battery Status widgeteknél)
+    // ── 1. Egységes Fejléc: Bal felül ikon + név ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
-        style: `margin-bottom: ${Math.round(6 * scale)}px;`,
+        y_align: Clutter.ActorAlign.START,
     });
 
     const headerIcon = new St.Icon({
         icon_name: 'preferences-system-time-symbolic',
-        icon_size: headerIconSize,
-        style: `color: ${textColor}; margin-right: 6px;`,
+        style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
 
     const headerLabel = new St.Label({
         text: 'Uptime',
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`,
     });
+    headerLabel.clutter_text.set_ellipsize(0);
 
     headerBox.add_child(headerIcon);
     headerBox.add_child(headerLabel);
     contentBox.add_child(headerBox);
 
-    // Érték megjelenítése alul
+    // ── 2. Érték: Középre igazítva a kártyán ──
     const valueBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        x_align: Clutter.ActorAlign.START,
+        x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
     });
 
     const uptimeLabel = new St.Label({
         text: '--',
-        style: `${fontCss}color: ${textColor}; font-size: ${uptimeFontSize}px; font-weight: 500;`,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
     });
 
     valueBox.add_child(uptimeLabel);
     contentBox.add_child(valueBox);
+
+    function applyScale(newScale) {
+        scale = newScale;
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const iconSize = Math.round(16 * scale);
+        // Hosszabb szöveg (pl. 2d 5h 14m 32s), ezért kissé finomabb, mint az egyetlen százalékérték
+        const uptimeFontSize = Math.max(22, Math.round(30 * scale));
+
+        contentBox.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
+        headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+        uptimeLabel.style = `${fontCss}color: ${textColor}; font-size: ${uptimeFontSize}px; font-weight: bold; line-height: 1.0;`;
+    }
+
+    applyScale(scale);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
+    });
 
     let isDisposed = false;
 
@@ -107,7 +128,8 @@ export function createUptimeNode(config, width, height, xPosition, yPosition) {
 
     readUptime();
 
-    const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 60, () => {
+    // 1 másodperces frissítés a folyamatos másodperchez
+    const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
         if (isDisposed) return GLib.SOURCE_REMOVE;
         readUptime();
         return GLib.SOURCE_CONTINUE;

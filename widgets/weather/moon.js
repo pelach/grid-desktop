@@ -3,7 +3,6 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
-
 import {
     CAIRO_OPERATOR_CLEAR,
     CAIRO_OPERATOR_OVER,
@@ -22,23 +21,18 @@ import {
 } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const REF_WIDTH_PX = 320;
-const REF_HEIGHT_PX = 160;
-const CONTAINER_PADDING_PX = 16;
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
+const CONTAINER_PADDING_PX = 12;
 
+const TITLE_FONT_SIZE_PX = 17;        // 15 helyett
+const SUBTITLE_FONT_SIZE_PX = 13;     // 11 helyett (város és megvilágítás)
+const INFO_LABEL_FONT_SIZE_PX = 12.5; // 11 helyett (Full moon, New moon címkék)
+const INFO_VALUE_FONT_SIZE_PX = 14;   // 12.5 helyett (dátumok és hátralévő napok)
+const MOON_CANVAS_SIZE_PX = 125;
 
-// Tipográfiai alapméretek
-const TITLE_FONT_SIZE_PX = 16;
-const SUBTITLE_FONT_SIZE_PX = 12;
-const INFO_LABEL_FONT_SIZE_PX = 11;
-const INFO_VALUE_FONT_SIZE_PX = 13;
-const MOON_CANVAS_SIZE_PX = 110;
-
-// Szinodikus hónap átlagos hossza napokban
 const SYNODIC_MONTH = 29.53058867;
-// Referencia újhold időpontja (2000. jan 6. 18:14 UTC)
 const KNOWN_NEW_MOON_TIMESTAMP = 947182440;
-
 
 let moonImagePath = null;
 try {
@@ -52,34 +46,19 @@ try {
     console.warn('Grid Desktop: Nem található a hold kép:', e.message);
 }
 
-
-
-/**
- * Kiszámítja az aktuális holdfázis paramétereit adott időpontban.
- * @param {Date} date 
- * @returns {{ phase: number, age: number, fraction: number }}
- * phase: 0..1 (0: Újhold, 0.25: Első negyed, 0.5: Telihold, 0.75: Utolsó negyed)
- */
 function getMoonPhaseData(date = new Date()) {
     const diffSeconds = (date.getTime() / 1000) - KNOWN_NEW_MOON_TIMESTAMP;
     const diffDays = diffSeconds / 86400;
     const cycles = diffDays / SYNODIC_MONTH;
-    const phase = cycles - Math.floor(cycles); // 0.0 - 1.0
+    const phase = cycles - Math.floor(cycles);
     const age = phase * SYNODIC_MONTH;
-
-    // Megvilágítottsági arány (0..1)
     const fraction = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
-
     return { phase, age, fraction };
 }
 
-/**
- * Megkeresi a legközelebbi jövőbeli újhold és telihold időpontját.
- */
 function getUpcomingPhases(currentDate = new Date()) {
     const { phase } = getMoonPhaseData(currentDate);
 
-    // Mennyi nap van még hátra a fázisig
     let daysToFull = (0.5 - phase) * SYNODIC_MONTH;
     if (daysToFull <= 0) daysToFull += SYNODIC_MONTH;
 
@@ -110,19 +89,15 @@ function formatDateShort(date) {
 }
 
 export function createMoonNode(config, width, height, xPosition, yPosition) {
-    const bgColor = resolveWidgetBackgroundColor(config);
     const textColor = resolveWidgetForegroundColor(config);
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
-    const borderRadius = config.appliedBorderRadius || 12;
-    const textRgb = parseCssColor(textColor);
     const textRgba = (alpha) => cssColorToRgba(textColor, alpha);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
     const state = { timerId: null };
 
-    // Déli félteke esetén a fázis vizuálisan tükröződik
     const isSouthernHemisphere = (config.latitude !== undefined && config.latitude < 0);
 
     const mainBox = new St.BoxLayout({
@@ -134,7 +109,6 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
     });
     container.add_child(mainBox);
 
-    // Bal oldal: Hold grafika (DrawingArea)
     const moonCanvasBox = new St.Widget({
         layout_manager: new Clutter.BinLayout(),
         x_align: Clutter.ActorAlign.CENTER,
@@ -155,7 +129,6 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
     moonCanvasBox.add_child(moonCanvas);
     mainBox.add_child(moonCanvasBox);
 
-    // Jobb oldal: Szöveges adatok
     const contentBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -164,35 +137,30 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
     });
     mainBox.add_child(contentBox);
 
-    // Város / Helyszín
     const locationLabel = new St.Label({
         text: config.city || 'Holdfázis',
         x_expand: true,
     });
     contentBox.add_child(locationLabel);
 
-    // Aktuális fázis neve
     const phaseNameLabel = new St.Label({
         text: 'Telihold',
         x_expand: true,
     });
     contentBox.add_child(phaseNameLabel);
 
-    // Megvilágítottsági százalék
     const illuminationLabel = new St.Label({
         text: '100% megvilágítás',
         x_expand: true,
     });
     contentBox.add_child(illuminationLabel);
 
-    // Elválasztó vonal
     const separator = new St.Widget({
         x_expand: true,
         style: 'height: 1px;',
     });
     contentBox.add_child(separator);
 
-    // Következő fázisok konténere
     const datesRow = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -247,11 +215,9 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
 
         const isWaxing = phase <= 0.5;
         const fraction = currentPhaseData.fraction;
-        // k: -1 (újholdkor) ... 0 (félholdkor) ... +1 (teliholdkor)
         const k = 2 * fraction - 1;
         const steps = 60;
 
-        // Teliholdnál (99%+ megvilágítás) nincs árnyék, tündököljön a teljes fotó:
         if (fraction >= 0.99) {
             ctx.$dispose();
             return;
@@ -260,12 +226,8 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
         ctx.save();
         ctx.newPath();
 
-        // Mindig a Hold árnyékos (sötét) területét határoljuk körül:
         if (isWaxing) {
-            // Növekvő hold: a jobb oldal világos, a bal oldal sötét.
-            // Külső bal félkörív (fentről lefelé a bal peremen):
             ctx.arc(cx, cy, radius, -Math.PI / 2, Math.PI / 2);
-            // Visszafelé alulról felfelé a terminátor (fény-árnyék határ) mentén:
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI / 2 - (i / steps) * Math.PI;
                 const y = cy + radius * Math.sin(angle);
@@ -273,10 +235,7 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
                 ctx.lineTo(x, y);
             }
         } else {
-            // Fogyó hold: a bal oldal világos, a jobb oldal sötét.
-            // Külső jobb félkörív:
             ctx.arc(cx, cy, radius, Math.PI / 2, 3 * Math.PI / 2);
-            // Visszafelé a terminátor mentén:
             for (let i = 0; i <= steps; i++) {
                 const angle = 3 * Math.PI / 2 - (i / steps) * Math.PI;
                 const y = cy + radius * Math.sin(angle);
@@ -286,7 +245,6 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
         }
 
         ctx.closePath();
-        // Árnyék sötétítése: szép mély árnyék enyhe földfénnyel
         ctx.setSourceRGBA(0.05, 0.05, 0.08, 0.82);
         ctx.fill();
         ctx.restore();
@@ -313,11 +271,10 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
 
     function applyLayout(currentWidth, currentHeight) {
         if (!currentWidth || !currentHeight) return;
-        scale = Math.min(currentWidth / REF_WIDTH_PX, currentHeight / REF_HEIGHT_PX);
+        scale = Math.max(0.65, Math.min(currentWidth / BASE_CONTAINER_WIDTH_PX, currentHeight / BASE_CONTAINER_HEIGHT_PX));
         const px = (v) => Math.max(1, Math.round(v * scale));
 
-        container.set_style(`${container.style || ''} padding: ${px(CONTAINER_PADDING_PX)}px;`);
-
+        mainBox.style = `padding: ${px(CONTAINER_PADDING_PX)}px;`;
 
         const canvasSize = px(MOON_CANVAS_SIZE_PX);
         moonCanvasBox.set_size(canvasSize, canvasSize);
@@ -325,26 +282,17 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
         moonCanvas.set_size(canvasSize, canvasSize);
         moonCanvasBox.style = `margin-right: ${px(14)}px;`;
 
-        locationLabel.style = `${fontCss}font-size: ${px(SUBTITLE_FONT_SIZE_PX)}px; `
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY}; font-weight: 500;`;
-
-        phaseNameLabel.style = `${fontCss}font-size: ${px(TITLE_FONT_SIZE_PX)}px; `
-            + `color: ${textColor}; font-weight: bold;`;
-
-        illuminationLabel.style = `${fontCss}font-size: ${px(SUBTITLE_FONT_SIZE_PX)}px; `
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+        locationLabel.style = `${fontCss}font-size: ${px(SUBTITLE_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; font-weight: 500;`;
+        phaseNameLabel.style = `${fontCss}font-size: ${px(TITLE_FONT_SIZE_PX)}px; color: ${textColor}; font-weight: bold;`;
+        illuminationLabel.style = `${fontCss}font-size: ${px(SUBTITLE_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
 
         separator.style = `height: 1px; background-color: ${textRgba(0.12)}; margin: ${px(4)}px 0;`;
 
-        fullMoonBlock.lbl.style = `${fontCss}font-size: ${px(INFO_LABEL_FONT_SIZE_PX)}px; `
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
-        fullMoonBlock.val.style = `${fontCss}font-size: ${px(INFO_VALUE_FONT_SIZE_PX)}px; `
-            + `color: ${textColor}; font-weight: 600;`;
+        fullMoonBlock.lbl.style = `${fontCss}font-size: ${px(INFO_LABEL_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+        fullMoonBlock.val.style = `${fontCss}font-size: ${px(INFO_VALUE_FONT_SIZE_PX)}px; color: ${textColor}; font-weight: 600;`;
 
-        newMoonBlock.lbl.style = `${fontCss}font-size: ${px(INFO_LABEL_FONT_SIZE_PX)}px; `
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
-        newMoonBlock.val.style = `${fontCss}font-size: ${px(INFO_VALUE_FONT_SIZE_PX)}px; `
-            + `color: ${textColor}; font-weight: 600;`;
+        newMoonBlock.lbl.style = `${fontCss}font-size: ${px(INFO_LABEL_FONT_SIZE_PX)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+        newMoonBlock.val.style = `${fontCss}font-size: ${px(INFO_VALUE_FONT_SIZE_PX)}px; color: ${textColor}; font-weight: 600;`;
 
         updateData();
     }
@@ -364,12 +312,11 @@ export function createMoonNode(config, width, height, xPosition, yPosition) {
 
     applyLayout(width, height);
 
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
         applyLayout(w, h);
     });
 
-    // 10 percenkénti frissítés elegendő az égitest mozgásához
     const REFRESH_INTERVAL_MS = 600000;
     startPollingTimer(updateData, REFRESH_INTERVAL_MS, state);
 

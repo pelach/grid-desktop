@@ -1,5 +1,6 @@
 import St from 'gi://St';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 
 import { 
@@ -10,12 +11,10 @@ import {
 import { createWidgetContainer, attachResponsiveScaler, attachButtonFeedback } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const REF_WIDTH_PX = 180;
-const REF_HEIGHT_PX = 180;
-const CONTAINER_PADDING_PX = 16;
-const BUTTON_SIZE_PX = 60;
+const BASE_CONTAINER_SIZE = 200;
+const CONTAINER_PADDING_PX = 12;
+const BUTTON_SIZE_PX = 62;
 const ICON_SIZE_PX = 24;
-
 
 export function createPowerTogglesNode(config, width, height, xPosition, yPosition) {
     const textColor = resolveWidgetForegroundColor(config);
@@ -25,11 +24,9 @@ export function createPowerTogglesNode(config, width, height, xPosition, yPositi
 
     const textBytes = parseCssColor(textColor);
     const textRgb = () => `${Math.round(textBytes.r * 255)},${Math.round(textBytes.g * 255)},${Math.round(textBytes.b * 255)}`;
-  
 
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let scale = Math.max(0.65, Math.min(width, height) / BASE_CONTAINER_SIZE);
 
-    // DBus hívások a műveletekhez
     const executeAction = (action) => {
         try {
             if (action === 'suspend') {
@@ -77,7 +74,7 @@ export function createPowerTogglesNode(config, width, height, xPosition, yPositi
                     '/org/gnome/SessionManager',
                     'org.gnome.SessionManager',
                     'Logout',
-                    new GLib.Variant('(u)', [1]), // 1 = azonnali megerősítő dialog / logout
+                    new GLib.Variant('(u)', [1]),
                     null,
                     Gio.DBusCallFlags.NONE,
                     -1,
@@ -86,7 +83,6 @@ export function createPowerTogglesNode(config, width, height, xPosition, yPositi
                 );
             }
         } catch (e) {
-            // Fallback parancssori megoldás
             const cmdMap = {
                 suspend: 'systemctl suspend',
                 reboot: 'gnome-session-quit --reboot',
@@ -103,7 +99,6 @@ export function createPowerTogglesNode(config, width, height, xPosition, yPositi
         }
     };
 
-    // Fő konténer: 2x2 elrendezés
     const mainBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -140,19 +135,15 @@ export function createPowerTogglesNode(config, width, height, xPosition, yPositi
         return btn;
     }
 
-    // 1. Bal felső: Felfüggesztés (Pause / Suspend)
     const suspendBtn = createActionButton('media-playback-pause-symbolic', () => executeAction('suspend'));
     topRow.add_child(suspendBtn);
 
-    // 2. Jobb felső: Újraindítás (Reboot)
     const rebootBtn = createActionButton('view-refresh-symbolic', () => executeAction('reboot'));
     topRow.add_child(rebootBtn);
 
-    // 3. Bal alsó: Leállítás (Power Off)
     const shutdownBtn = createActionButton('system-shutdown-symbolic', () => executeAction('shutdown'));
     bottomRow.add_child(shutdownBtn);
 
-    // 4. Jobb alsó: Kijelentkezés (Logout)
     const logoutBtn = createActionButton('system-log-out-symbolic', () => executeAction('logout'));
     bottomRow.add_child(logoutBtn);
 
@@ -176,7 +167,6 @@ export function createPowerTogglesNode(config, width, height, xPosition, yPositi
         rebootBtn.style = getBtnStyle(false);
         rebootBtn.child.icon_size = iconSize;
 
-        // A leállítás és kijelentkezés kaphat egy nagyon finom pirosas hangsúlyt, vagy sima textRgb-t
         shutdownBtn.style = getBtnStyle(true);
         shutdownBtn.child.icon_size = iconSize;
 
@@ -195,9 +185,9 @@ export function createPowerTogglesNode(config, width, height, xPosition, yPositi
 
     applyScale(scale);
 
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_SIZE, BASE_CONTAINER_SIZE, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        applyScale(Math.min(w / REF_WIDTH_PX, h / REF_HEIGHT_PX));
+        applyScale(Math.max(0.65, Math.min(w, h) / BASE_CONTAINER_SIZE));
     });
 
     return container;

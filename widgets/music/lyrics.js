@@ -15,7 +15,7 @@ const LYRICS_CACHE_DIR = GLib.build_filenamev([
     'lyrics'
 ]);
 
-const REF_WIDTH = 240;
+const REF_WIDTH = 400;
 const REF_HEIGHT = 200;
 
 function sanitizeFilename(str) {
@@ -164,7 +164,7 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
         y_align: Clutter.ActorAlign.CENTER,
         x_expand: true,
         y_expand: true,
-        style: `${fontCss}color: ${textColor}; font-size: 13px; opacity: 0.6;`,
+        style: `${fontCss}color: ${textColor}; font-size: 15px; opacity: 0.6;`,
     });
     container.add_child(statusLabel);
 
@@ -257,7 +257,7 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
         state.activeLineIndex = -1;
         state.statusLabel.hide();
 
-        const baseFontSize = Math.max(10, Math.round(13 * state.scale));
+        const baseFontSize = Math.max(11, Math.round(13 * state.scale));
         const padY = Math.max(3, Math.round(4 * state.scale));
 
         state.lyricsBox.add_child(state.topSpacer);
@@ -297,8 +297,8 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
         if (index === state.activeLineIndex) return;
         state.activeLineIndex = index;
 
-        const baseFontSize = Math.max(10, Math.round(13 * state.scale));
-        const activeFontSize = Math.max(12, Math.round(15 * state.scale));
+        const baseFontSize = Math.max(11, Math.round(13 * state.scale));
+        const activeFontSize = Math.max(13, Math.round(15 * state.scale));
         const padY = Math.max(3, Math.round(4 * state.scale));
 
         for (let i = 0; i < state.lineActors.length; i++) {

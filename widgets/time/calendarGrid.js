@@ -4,15 +4,14 @@ import Clutter from 'gi://Clutter';
 import { resolveWidgetForegroundColor, resolveExplicitFontFamily, cssColorToRgba, resolveTextOnAccentColor } from '../../utils/widgetUtils.js';
 import { createWidgetContainer, attachResponsiveScaler, connectTimerCleanup, startPollingTimer, MONTH_NAMES_ABBREVIATED as MONTH_NAMES } from '../../shell/widgetUIUtils.js';
 
-const REF_SIZE_PX = 170;
-const REF_PADDING_PX = 16;
-const HEADER_FONT_SIZE_PX = 13;
-const WEEKDAY_FONT_SIZE_PX = 8;
-const DAY_FONT_SIZE_PX = 11;
+const REF_SIZE_PX = 200;
+const REF_PADDING_PX = 12;
+const HEADER_FONT_SIZE_PX = 13.5;
+const WEEKDAY_FONT_SIZE_PX = 9.5;
+const DAY_FONT_SIZE_PX = 11.5;
 
-// How often to re-check whether the date has rolled over.
 const DATE_POLL_INTERVAL_MS = 60000;
-const ROW_GAP_PX = 4;
+const ROW_GAP_PX = 3;
 
 const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -20,9 +19,7 @@ const WEEKS_IN_GRID = 6;
 
 const SECONDARY_TEXT_OPACITY = 0.3;
 const WEEKDAY_TEXT_OPACITY = 0.45;
-const WEEKEND_TEXT_OPACITY = 0.55;
-const HEADER_GAP_PX = 10;
-
+const HEADER_GAP_PX = 8;
 
 function getDaysInMonth(year, month) {
     if (month === 2 && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0))
@@ -36,9 +33,8 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-
     const state = {
-        scale: Math.min(width / REF_SIZE_PX, height / REF_SIZE_PX),
+        scale: Math.max(0.65, Math.min(width / REF_SIZE_PX, height / REF_SIZE_PX)),
         timerId: null,
         dayEntries: [],
         daySlots: [],
@@ -126,7 +122,7 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
 
         headerLabel.text = `${MONTH_NAMES[month - 1]} ${year}`;
 
-        const firstDayCol = (GLib.DateTime.new_local(year, month, 1, 12, 0, 0).get_day_of_week() +6) % 7;
+        const firstDayCol = (GLib.DateTime.new_local(year, month, 1, 12, 0, 0).get_day_of_week() + 6) % 7;
         const daysInMonth = getDaysInMonth(year, month);
         const fontSize = Math.round(DAY_FONT_SIZE_PX * state.scale);
 
@@ -141,23 +137,19 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
             }
 
             if (dayNumber === today) {
-                // Safe to pad the label now: columns are pinned in
-                // applyLayout(), and symmetric padding keeps the label
-                // centered inside its fixed-width slot, so alignment holds.
-                const pad = Math.round(4 * state.scale);
+                const pad = Math.round(3 * state.scale);
                 label.text = String(dayNumber);
                 const todayTextColor = resolveTextOnAccentColor(config.globalAccentColor || '#3584e4');
                 label.style = `${fontCss}font-size: ${fontSize}px; color: ${todayTextColor};`
                     + `background-color: ${cssColorToRgba(config.globalAccentColor || '#3584e4', 1)};`
                     + `border-radius: 999px;`
-                    + `padding: ${pad}px ${pad}px;`;
+                    + `padding: ${pad}px ${pad}px; font-weight: bold;`;
                 continue;
             }
 
             const isWeekend = cell % 7 === 5 || cell % 7 === 6;
             label.text = String(dayNumber);
             if (isWeekend) {
-                // A globális accent színt használja, így témaváltáskor is tökéletes
                 const accent = config.globalAccentColor || '#3584e4';
                 label.style = `${fontCss}font-size: ${fontSize}px; color: ${accent}; font-weight: 600;`;
             } else {
@@ -184,19 +176,17 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
             slot.width = colWidth;
         });
 
-        headerLabel.translation_y = -Math.round(3 * s);
+        headerLabel.translation_y = -Math.round(2 * s);
         headerLabel.style = `${fontCss}color: ${textColor};`
             + `font-size: ${Math.round(HEADER_FONT_SIZE_PX * s)}px; font-weight: 700;`
             + `margin-bottom: ${Math.round(HEADER_GAP_PX * s)}px;`;
 
         weekdaySlots.forEach(label => {
             label.style = `${fontCss}font-size: ${Math.round(WEEKDAY_FONT_SIZE_PX * s)}px; `
-                + `color: ${textColor}; opacity: ${WEEKDAY_TEXT_OPACITY};`;
+                + `color: ${textColor}; opacity: ${WEEKDAY_TEXT_OPACITY}; font-weight: 600;`;
         });
 
-        // A get_preferred_width() helyett a cella szélességéhez igazítjuk a pozíciót
         headerLabel.translation_x = Math.max(0, Math.floor(colWidth * 0.1));
-
         daysGrid.style = `spacing: ${Math.round(ROW_GAP_PX * s)}px;`;
 
         fillDays();
@@ -204,7 +194,6 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
 
     let lastRenderedDayKey = '';
 
-    // Refills the grid only when the calendar day actually rolled over.
     const refreshIfNewDay = () => {
         const now = GLib.DateTime.new_now_local();
         const dayKey = `${now.get_year()}-${now.get_month()}-${now.get_day_of_month()}`;
@@ -216,7 +205,7 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
 
     fillDays();
     attachResponsiveScaler(container, REF_SIZE_PX, REF_SIZE_PX, (_ratio, w, h) => {
-        state.scale = Math.min(w / REF_SIZE_PX, h / REF_SIZE_PX);
+        state.scale = Math.max(0.65, Math.min(w / REF_SIZE_PX, h / REF_SIZE_PX));
         applyLayout(w);
     });
     startPollingTimer(refreshIfNewDay, DATE_POLL_INTERVAL_MS, state);

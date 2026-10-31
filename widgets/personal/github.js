@@ -5,24 +5,34 @@ import Clutter from 'gi://Clutter';
 import Cogl from 'gi://Cogl';
 import GdkPixbuf from 'gi://GdkPixbuf';
 import Soup from 'gi://Soup?version=3.0';
-import { CAIRO_OPERATOR_CLEAR, CAIRO_OPERATOR_OVER, SECONDARY_OPACITY, cssColorToRgba, getGridgetsDataDir, loadJsonFromFileAsync, parseCssColor, resolveExplicitFontFamily, resolveWidgetForegroundColor, saveJsonToFile } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler, MONTH_NAMES_ABBREVIATED as MONTH_NAMES } from '../../shell/widgetUIUtils.js';
+import { 
+    CAIRO_OPERATOR_CLEAR, 
+    CAIRO_OPERATOR_OVER, 
+    SECONDARY_OPACITY, 
+    cssColorToRgba, 
+    getGridgetsDataDir, 
+    loadJsonFromFileAsync, 
+    parseCssColor, 
+    resolveExplicitFontFamily, 
+    resolveWidgetForegroundColor, 
+    saveJsonToFile 
+} from '../../utils/widgetUtils.js';
+import { 
+    createWidgetContainer, 
+    registerWidgetCleanup, 
+    attachResponsiveScaler, 
+    MONTH_NAMES_ABBREVIATED as MONTH_NAMES 
+} from '../../shell/widgetUIUtils.js';
 import { applyCornerMask, setImageContentBytes } from '../media/mediaCommon.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const REF_WIDTH_PX = 420;
-const REF_HEIGHT_PX = 200;
-const CONTAINER_PADDING_V_PX = 14;
-const CONTAINER_PADDING_H_PX = 18;
-const AVATAR_SIZE_PX = 28;
-const USERNAME_FONT_SIZE_PX = 13;
-const BADGE_FONT_SIZE_PX = 11;
-const LABEL_FONT_SIZE_PX = 9;
-const FOOTER_FONT_SIZE_PX = 11;
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
+
+const AVATAR_SIZE_PX = 24;
 const CELL_SIZE_PX = 11;
-const CELL_GAP_RATIO = 0.27;
-const MATRIX_PADDING_PX = 8;
-const DAY_LABELS_WIDTH_PX = 24;
+const CELL_GAP_RATIO = 0.25;
+const DAY_LABELS_WIDTH_PX = 22;
 const DAY_LABEL_ROWS = { 1: 'Mon', 3: 'Wed', 5: 'Fri' };
 const MIN_CONTRIBUTION_WEEKS = 8;
 const MAX_CONTRIBUTION_WEEKS = 30;
@@ -49,10 +59,9 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
     const textRgba = (alpha) => cssColorToRgba(textColor, alpha);
     const emptyCellColor = textRgba(0.15);
-  
 
     let username = typeof config.username === 'string' ? config.username : '';
-    let scale = Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX);
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
     const px = (v) => Math.max(1, Math.round(v * scale));
     let lastSyncTime = null;
     let latestByDate = new Map();
@@ -69,10 +78,10 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `spacing: 10px;`,
     });
     container.add_child(mainBox);
 
+    // ── Fejléc ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.FILL,
@@ -92,14 +101,11 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     const usernameLabel = new St.Label({
         text: '',
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}font-weight: 700; color: ${textColor};`,
     });
 
     const badgeLabel = new St.Label({
         text: '',
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}font-size: ${BADGE_FONT_SIZE_PX}px;`
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
     });
 
     const usernameEntry = new St.Entry({
@@ -117,6 +123,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     headerBox.add_child(badgeLabel);
     mainBox.add_child(headerBox);
 
+    // ── Mátrix ──
     const matrixBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -142,6 +149,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     gridCanvas.connect('repaint', drawMatrixCanvas);
     matrixBody.add_child(gridCanvas);
 
+    // ── Lábléc ──
     const footerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.FILL,
@@ -150,8 +158,6 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     const statusLabel = new St.Label({
         text: username ? 'Fetching…' : 'Click to set username',
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}font-size: ${FOOTER_FONT_SIZE_PX}px;`
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
     });
 
     const legendBox = new St.BoxLayout({
@@ -163,8 +169,6 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     const lessLabel = new St.Label({
         text: 'Less',
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}font-size: ${FOOTER_FONT_SIZE_PX - 1}px;`
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-right: 3px;`,
     });
     legendBox.add_child(lessLabel);
     const legendSquares = [emptyCellColor, ...LEVEL_COLORS.slice().reverse()].map(color => {
@@ -176,8 +180,6 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     const moreLabel = new St.Label({
         text: 'More',
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}font-size: ${FOOTER_FONT_SIZE_PX - 1}px;`
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-left: 3px;`,
     });
     legendBox.add_child(moreLabel);
 
@@ -188,22 +190,30 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     const persistUsername = () => saveJsonToFile(dataFilePath, { username });
 
     function applyLayout() {
-        mainBox.style = `padding: ${px(CONTAINER_PADDING_V_PX)}px ${px(CONTAINER_PADDING_H_PX)}px; spacing: ${px(10)}px;`;
-        avatarWidget.style = `background-color: ${textRgba(0.15)}; border-radius: 999px;`
+        const pad = Math.max(8, Math.round(10 * scale));
+        const usernameFontSize = Math.max(11, Math.round(13 * scale));
+        const badgeFontSize = Math.max(10, Math.round(11 * scale));
+        const footerFontSize = Math.max(9, Math.round(10 * scale));
+
+        mainBox.style = `padding: ${pad}px; spacing: ${Math.round(6 * scale)}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
+
+        avatarWidget.style = `background-color: ${textRgba(0.15)}; border-radius: 999px; `
             + `width: ${px(AVATAR_SIZE_PX)}px; height: ${px(AVATAR_SIZE_PX)}px;`;
-        initialsLabel.style = `${fontCss}font-size: ${px(11)}px;`
-            + `font-weight: 400; color: ${textColor};`;
-        usernameLabel.style = `${fontCss}font-size: ${px(USERNAME_FONT_SIZE_PX)}px;`
-            + `font-weight: 700; color: ${textColor}; margin-left: ${px(8)}px;`;
-        usernameEntry.style = `${fontCss}font-size: ${px(USERNAME_FONT_SIZE_PX)}px;`
-            + `color: ${textColor}; width: ${px(150)}px;`;
-        badgeLabel.style = `${fontCss}font-size: ${px(BADGE_FONT_SIZE_PX)}px;`
-            + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+        initialsLabel.style = `${fontCss}font-size: ${px(10)}px; font-weight: 400; color: ${textColor};`;
+        
+        usernameLabel.style = `${fontCss}font-size: ${usernameFontSize}px; font-weight: bold; color: ${textColor}; margin-left: ${px(8)}px;`;
+        usernameEntry.style = `${fontCss}font-size: ${usernameFontSize}px; color: ${textColor}; width: ${px(140)}px;`;
+        badgeLabel.style = `${fontCss}font-size: ${badgeFontSize}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; font-weight: 500;`;
+
+        statusLabel.style = `${fontCss}font-size: ${footerFontSize}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`;
+        lessLabel.style = `${fontCss}font-size: ${footerFontSize - 1}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-right: 3px;`;
+        moreLabel.style = `${fontCss}font-size: ${footerFontSize - 1}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-left: 3px;`;
 
         legendSquares.forEach(square => {
-            square.style = `background-color: ${square.legendColor};`
-                + `border-radius: ${Math.max(1, px(2))}px;`
-                + `width: ${px(8)}px; height: ${px(8)}px;`;
+            square.style = `background-color: ${square.legendColor}; `
+                + `border-radius: ${Math.max(1, px(2))}px; `
+                + `width: ${px(7)}px; height: ${px(7)}px;`;
         });
 
         renderMatrix();
@@ -218,8 +228,6 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
 
     function renderMonthLabels(weeks, startUnixSeconds) {
         if (!container.get_stage() || container.width <= 0) return;
-        // Must match the grid's column pitch exactly (cell + spacing), so the
-        // labels track the matrix through any resize.
         const columnPitch = cellSize() + cellGap();
         monthLabelsRow.destroy_all_children();
         monthLabelsRow.style = `margin-left: ${px(DAY_LABELS_WIDTH_PX)}px; height: ${px(12)}px;`;
@@ -228,18 +236,14 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
         for (let week = 0; week < weeks; week++) {
             const weekDate = GLib.DateTime.new_from_unix_local(startUnixSeconds + week * 7 * 86400);
             const month = weekDate.get_month() - 1;
-            if (month === currentMonth)
-                continue;
+            if (month === currentMonth) continue;
             currentMonth = month;
 
-            // BinLayout stacks children, so translation_x positions each label
-            // absolutely over its week column regardless of label text width.
             const label = new St.Label({
                 text: MONTH_NAMES[month],
                 x_align: Clutter.ActorAlign.START,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `${fontCss}font-size: ${px(LABEL_FONT_SIZE_PX)}px;`
-                    + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
+                style: `${fontCss}font-size: ${px(9)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
             });
             label.translation_x = week * columnPitch;
             monthLabelsRow.add_child(label);
@@ -254,8 +258,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
             const label = new St.Label({
                 text: DAY_LABEL_ROWS[row] || '',
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `${fontCss}font-size: ${px(LABEL_FONT_SIZE_PX)}px;`
-                    + `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
+                style: `${fontCss}font-size: ${px(9)}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
             });
             const slot = new St.Widget({
                 layout_manager: new Clutter.BinLayout(),
@@ -297,8 +300,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
 
         const radius = Math.min(2 * scale, size / 2);
         for (const cell of cells) {
-            if (cell.x + size > canvasWidth || cell.y + size > canvasHeight)
-                continue;
+            if (cell.x + size > canvasWidth || cell.y + size > canvasHeight) continue;
             const parsed = parseCssColor(cell.color);
             ctx.setSourceRGBA(parsed.r, parsed.g, parsed.b, parsed.a !== undefined ? parsed.a : 1);
             traceRoundedRect(ctx, cell.x, cell.y, size, size, radius);
@@ -316,24 +318,18 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
 
         const size = cellSize();
         const gap = cellGap();
-        // matrixBody spans the label column + canvas; only the remainder
-        // after the labels can hold week columns, or the tail gets clipped
-        const bodyWidth = matrixBody.width || (width - px(CONTAINER_PADDING_H_PX) * 2);
+        const pad = Math.max(8, Math.round(10 * scale));
+        const bodyWidth = matrixBody.width || (container.width ? container.width - (pad * 2) : 380);
         const availableWidth = bodyWidth - px(DAY_LABELS_WIDTH_PX);
         const weeks = Math.max(MIN_CONTRIBUTION_WEEKS, Math.min(MAX_CONTRIBUTION_WEEKS, Math.floor((availableWidth + gap) / (size + gap))));
 
-        // Rebuilding the matrix is only needed when geometry or data changed;
-        // skip redundant repaints during unrelated layout passes.
         const dataKey = `${size}|${gap}|${weeks}`;
-        if (dataKey === matrixGeometry.dataKey && contributionsByDate === undefined)
-            return;
+        if (dataKey === matrixGeometry.dataKey && contributionsByDate === undefined) return;
 
         renderDayLabels();
 
         const today = GLib.DateTime.new_now_local();
         const daysInGrid = weeks * 7;
-        // Anchor to the end of the current week (GLib dow: Mon=1..Sun=7) so
-        // the latest, partial week is always the last column on screen.
         const gridEnd = today.add_days(6 - (today.get_day_of_week() % 7));
         const alignedStart = gridEnd.add_days(-(daysInGrid - 1));
 
@@ -342,12 +338,11 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
         const cells = [];
         for (let index = 0; index < daysInGrid; index++) {
             const date = alignedStart.add_days(index);
-            if (date.compare(today) > 0)
-                break;
+            if (date.compare(today) > 0) break;
 
             const dateKey = date.format('%Y-%m-%d');
             const column = Math.floor(index / 7);
-            const row = date.get_day_of_week() % 7; // Sun=7 -> row 0
+            const row = date.get_day_of_week() % 7;
 
             cells.push({
                 x: column * (size + gap),
@@ -376,8 +371,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
         session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, state.cancellable, (s, res) => {
             try {
                 const bytes = s.send_and_read_finish(res);
-                if (message.get_status() !== HTTP_STATUS_OK)
-                    throw new Error(`HTTP ${message.get_status()}`);
+                if (message.get_status() !== HTTP_STATUS_OK) throw new Error(`HTTP ${message.get_status()}`);
                 callback(null, JSON.parse(decoder.decode(bytes.get_data())));
             } catch (err) {
                 const isCancelled = err.matches && err.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED);
@@ -401,11 +395,8 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
                     if (isActorDestroyed(container)) return;
                     try {
                         let pixbuf = GdkPixbuf.Pixbuf.new_from_stream_finish(result);
-                        if (!pixbuf.get_has_alpha())
-                            pixbuf = pixbuf.add_alpha(false, 0, 0, 0);
+                        if (!pixbuf.get_has_alpha()) pixbuf = pixbuf.add_alpha(false, 0, 0, 0);
 
-                        // Bake a circular alpha mask into the pixels; St only
-                        // rounds its background, not image content.
                         const pixels = pixbuf.get_pixels();
                         applyCornerMask(pixels, pixbuf.get_width(), pixbuf.get_height(),
                             Math.floor(pixbuf.get_width() / 2), pixbuf.get_rowstride());
@@ -419,13 +410,9 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
                             pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride());
                         avatarWidget.set_content(imageContent);
                         initialsLabel.hide();
-                    } catch (_err) {
-                        /* keep initials fallback */
-                    }
+                    } catch (_err) {}
                 });
-            } catch (_err) {
-                /* keep initials fallback */
-            }
+            } catch (_err) {}
         });
     }
 
@@ -442,8 +429,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
             const byDate = new Map();
             let latestYear = null;
             const yearKeys = Object.keys(data.total || {});
-            if (yearKeys.length > 0)
-                latestYear = yearKeys[yearKeys.length - 1];
+            if (yearKeys.length > 0) latestYear = yearKeys[yearKeys.length - 1];
 
             data.contributions.forEach(day => byDate.set(day.date, day.count || 0));
 
@@ -472,12 +458,10 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
         usernameEntry.text = '';
         usernameEntry.hide();
         usernameLabel.show();
-        if (global.stage.get_key_focus() === usernameEntry)
-            global.stage.set_key_focus(null);
+        if (global.stage.get_key_focus() === usernameEntry) global.stage.set_key_focus(null);
 
         if (!commit) return;
-        if (submitted === '' || submitted === username)
-            return;
+        if (submitted === '' || submitted === username) return;
         username = submitted;
         config.username = username;
         persistUsername();
@@ -489,8 +473,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
 
     usernameLabel.reactive = true;
     usernameLabel.connect('button-press-event', (_actor, event) => {
-        if (event.get_button() !== Clutter.BUTTON_PRIMARY)
-            return Clutter.EVENT_PROPAGATE;
+        if (event.get_button() !== Clutter.BUTTON_PRIMARY) return Clutter.EVENT_PROPAGATE;
         startEdit();
         return Clutter.EVENT_STOP;
     });
@@ -513,8 +496,7 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
     });
 
     state.timerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REFRESH_INTERVAL_SECONDS, () => {
-        if (isActorDestroyed(container))
-            return GLib.SOURCE_REMOVE;
+        if (isActorDestroyed(container)) return GLib.SOURCE_REMOVE;
         fetchContributions();
         return GLib.SOURCE_CONTINUE;
     });
@@ -527,15 +509,15 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
         }
         session.abort();
         persistUsername();
-        if (global.stage.get_key_focus() === usernameEntry)
-            global.stage.set_key_focus(null);
+        if (global.stage.get_key_focus() === usernameEntry) global.stage.set_key_focus(null);
     });
 
     updateHeader();
+    applyLayout();
 
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        scale = Math.min(w / REF_WIDTH_PX, h / REF_HEIGHT_PX);
+        scale = Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX));
         applyLayout();
     });
 
@@ -547,10 +529,8 @@ export function createGithubNode(config, width, height, xPosition, yPosition) {
             updateHeader();
             fetchContributions();
         } else {
-            if (username)
-                fetchContributions();
-            if (!loadError)
-                persistUsername();
+            if (username) fetchContributions();
+            if (!loadError) persistUsername();
         }
     });
 

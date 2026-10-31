@@ -5,7 +5,6 @@ import Pango from 'gi://Pango';
 import { 
     resolveWidgetForegroundColor, 
     resolveExplicitFontFamily, 
-    cssColorToRgba, 
     resolveUse24h, 
     SECONDARY_OPACITY 
 } from '../../utils/widgetUtils.js';
@@ -18,9 +17,8 @@ import {
 } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const REF_WIDTH = 220;
-const REF_HEIGHT = 220;
-
+const REF_WIDTH = 200;
+const REF_HEIGHT = 200;
 
 const DEFAULT_CITIES = [
     { name: 'London', timezone: 'Europe/London', country: 'GB', primary: true },
@@ -104,7 +102,6 @@ function buildWorldClockUI(layoutBox, fontCss, textColor, cities) {
     });
     layoutBox.add_child(mainContainer);
 
-    // ── 1. Felső sor (Főváros balra, nagy idő jobbra zárva) ──
     const topRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -148,13 +145,11 @@ function buildWorldClockUI(layoutBox, fontCss, textColor, cities) {
     });
     mainContainer.add_child(flexSpacer);
 
-    // ── 2. Másodlagos városok konténere ──
     const secondaryBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
     });
 
-    // 1. Másodlagos (Bal alsó)
     const sec1Box = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -176,7 +171,6 @@ function buildWorldClockUI(layoutBox, fontCss, textColor, cities) {
     sec1Box.add_child(sec1TimeBox);
     sec1Box.add_child(sec1GmtLabel);
 
-    // 2. Másodlagos (Jobb alsó)
     const sec2Box = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -231,7 +225,6 @@ function buildWorldClockUI(layoutBox, fontCss, textColor, cities) {
 function updateWorldTimes(ui, is24h, isCompact) {
     if (!ui) return;
 
-    // Főváros
     const primaryData = getFormattedTimeAndGmt(ui.primaryCity.timezone, is24h);
     ui.topCityLabel.set_text(isCompact ? getCityShortCode(ui.primaryCity.name) : ui.primaryCity.name);
     ui.topTimeLabel.set_text(primaryData.timeStr);
@@ -239,7 +232,6 @@ function updateWorldTimes(ui, is24h, isCompact) {
     ui.topAmpmLabel.visible = (!is24h && primaryData.ampmStr !== '');
     ui.topGmtLabel.set_text(primaryData.gmtStr);
 
-    // 1. Másodlagos
     const sec1Data = getFormattedTimeAndGmt(ui.sec1City.timezone, is24h);
     ui.sec1CityLabel.set_text(isCompact ? getCityShortCode(ui.sec1City.name) : ui.sec1City.name);
     ui.sec1TimeLabel.set_text(sec1Data.timeStr);
@@ -247,7 +239,6 @@ function updateWorldTimes(ui, is24h, isCompact) {
     ui.sec1AmpmLabel.visible = (!is24h && sec1Data.ampmStr !== '');
     ui.sec1GmtLabel.set_text(sec1Data.gmtStr);
 
-    // 2. Másodlagos
     const sec2Data = getFormattedTimeAndGmt(ui.sec2City.timezone, is24h);
     ui.sec2CityLabel.set_text(isCompact ? getCityShortCode(ui.sec2City.name) : ui.sec2City.name);
     ui.sec2TimeLabel.set_text(sec2Data.timeStr);
@@ -263,7 +254,6 @@ export function createWorldTimeNode(widgetData, width, height, xPosition, yPosit
 
     const widgetNode = createWidgetContainer(widgetData, width, height, xPosition, yPosition);
 
-
     const cities = widgetData.cities || DEFAULT_CITIES;
     const ui = buildWorldClockUI(widgetNode, fontCss, textColor, cities);
 
@@ -278,17 +268,17 @@ export function createWorldTimeNode(widgetData, width, height, xPosition, yPosit
     };
 
     function applyScale(scale, curWidth) {
-        isCompact = (curWidth < 190 || scale < 0.82);
+        isCompact = (curWidth < 190 || scale < 0.85);
 
-        const pad = Math.max(8, Math.round(14 * scale));
+        const pad = Math.max(8, Math.round(12 * scale));
         ui.mainContainer.style = `padding: ${pad}px;`;
 
         const topCitySize = Math.max(10, Math.round(14 * scale));
-        const topTimeSize = Math.max(22, Math.round(36 * scale));
+        const topTimeSize = Math.max(22, Math.round(34 * scale));
         const topGmtSize = Math.max(8, Math.round(11 * scale));
 
         const secCitySize = Math.max(9, Math.round(12 * scale));
-        const secTimeSize = Math.max(14, Math.round(19 * scale));
+        const secTimeSize = Math.max(14, Math.round(18 * scale));
         const secGmtSize = Math.max(8, Math.round(10 * scale));
 
         ui.topCityLabel.style = `${fontCss}font-size: ${topCitySize}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; font-weight: 500;`;
@@ -309,7 +299,6 @@ export function createWorldTimeNode(widgetData, width, height, xPosition, yPosit
             ui.sec1GmtLabel.visible = false;
             ui.sec2GmtLabel.visible = false;
 
-            // 1. Sor: balra kód, jobbra idő
             ui.sec1CityLabel.x_align = Clutter.ActorAlign.START;
             ui.sec1CityLabel.x_expand = true;
             ui.sec1CityLabel.style = `${fontCss}font-size: ${secCitySize}px; color: ${textColor}; font-weight: bold; opacity: 0.85; text-align: left;`;
@@ -317,7 +306,6 @@ export function createWorldTimeNode(widgetData, width, height, xPosition, yPosit
             ui.sec1TimeLabel.style = `${fontCss}font-size: ${secTimeSize}px; color: ${textColor}; font-weight: 400; text-align: right;`;
             ui.sec1AmpmLabel.style = `${fontCss}font-size: ${secGmtSize}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-left: 2px;`;
 
-            // 2. Sor: balra kód, jobbra idő (ugyanúgy START és FILL mint fent!)
             ui.sec2CityLabel.x_align = Clutter.ActorAlign.START;
             ui.sec2CityLabel.x_expand = true;
             ui.sec2CityLabel.style = `${fontCss}font-size: ${secCitySize}px; color: ${textColor}; font-weight: bold; opacity: 0.85; text-align: left;`;
@@ -359,11 +347,11 @@ export function createWorldTimeNode(widgetData, width, height, xPosition, yPosit
         updateDisplay();
     }
 
-    applyScale(Math.min(width / REF_WIDTH, height / REF_HEIGHT), width);
+    applyScale(Math.max(0.65, Math.min(width / REF_WIDTH, height / REF_HEIGHT)), width);
 
     attachResponsiveScaler(widgetNode, REF_WIDTH, REF_HEIGHT, (_ratio, w, h) => {
         if (isActorDestroyed(widgetNode)) return;
-        applyScale(Math.min(w / REF_WIDTH, h / REF_HEIGHT), w);
+        applyScale(Math.max(0.65, Math.min(w / REF_WIDTH, h / REF_HEIGHT)), w);
     });
 
     startMinuteAlignedTimer(state, widgetNode, updateDisplay);

@@ -1,18 +1,16 @@
 import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
-import { resolveWidgetForegroundColor, resolveExplicitFontFamily, cssColorToRgba, resolveUse24h, SECONDARY_OPACITY } from '../../utils/widgetUtils.js';
+import { resolveWidgetForegroundColor, resolveExplicitFontFamily, resolveUse24h, SECONDARY_OPACITY } from '../../utils/widgetUtils.js';
 import { attachResponsiveScaler, connectTimerCleanup, createWidgetContainer, formatTimeParts, startMinuteAlignedTimer } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CONTAINER_WIDTH = 180;
-const BASE_CONTAINER_HEIGHT = 100;
-const BASE_TIME_FONT_SIZE = 34;
-const BASE_AMPM_FONT_SIZE = 13;
+const BASE_CONTAINER_SIZE = 200;
+const BASE_TIME_FONT_SIZE = 42;
+const BASE_AMPM_FONT_SIZE = 14;
 const BASE_DATE_FONT_SIZE = 14;
-const TIME_MARGIN_RIGHT_PX = 5;
-const AMPM_MARGIN_BOTTOM_PX = 4;
-
+const TIME_MARGIN_RIGHT_PX = 4;
+const AMPM_MARGIN_BOTTOM_PX = 6;
 
 function buildTimeAndDateLabels({ timeFontSize, ampmFontSize, dateFontSize, fontCss, textColor }) {
     const timeRow = new St.BoxLayout({
@@ -27,7 +25,6 @@ function buildTimeAndDateLabels({ timeFontSize, ampmFontSize, dateFontSize, font
     });
     timeRow.add_child(timeLabel);
 
-    // Az ampmLabel mindig létrejön, a láthatóságát a formátum vezérli dinamikusan
     const ampmLabel = new St.Label({
         text: '',
         style: `${fontCss}color: ${textColor}; font-size: ${ampmFontSize}px; opacity: ${SECONDARY_OPACITY}; margin-bottom: ${AMPM_MARGIN_BOTTOM_PX}px;`
@@ -36,7 +33,7 @@ function buildTimeAndDateLabels({ timeFontSize, ampmFontSize, dateFontSize, font
 
     const dateLabel = new St.Label({
         text: 'Monday, Jan 1',
-        style: `${fontCss}color: ${textColor}; font-size: ${dateFontSize}px; opacity: ${SECONDARY_OPACITY};`,
+        style: `${fontCss}color: ${textColor}; font-size: ${dateFontSize}px; opacity: ${SECONDARY_OPACITY}; margin-top: 4px;`,
         x_align: Clutter.ActorAlign.CENTER
     });
 
@@ -65,7 +62,6 @@ export function createDigitalTimeNode(widgetData, width, height, xPosition, yPos
 
     const widgetNode = createWidgetContainer(widgetData, width, height, xPosition, yPosition);
 
-
     const textLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -75,7 +71,7 @@ export function createDigitalTimeNode(widgetData, width, height, xPosition, yPos
     });
     widgetNode.add_child(textLayout);
 
-    let currentScale = Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT);
+    let currentScale = Math.max(0.65, Math.min(width, height) / BASE_CONTAINER_SIZE);
     let timeElements = null;
 
     const applyScale = (scale) => {
@@ -102,7 +98,6 @@ export function createDigitalTimeNode(widgetData, width, height, xPosition, yPos
         }
         timeElements = nextElements;
 
-        // Mindig frissen kérdezzük le az aktuális beállítást:
         const is24h = resolveUse24h(widgetData);
         updateTimeAndDate(timeElements, is24h);
     };
@@ -113,7 +108,6 @@ export function createDigitalTimeNode(widgetData, width, height, xPosition, yPos
 
     const updateDisplay = () => {
         if (isActorDestroyed(widgetNode)) return GLib.SOURCE_REMOVE;
-        // Dinamikus lekérdezés minden frissítéskor
         const is24h = resolveUse24h(widgetData);
         updateTimeAndDate(timeElements, is24h);
         return GLib.SOURCE_CONTINUE;
@@ -123,12 +117,11 @@ export function createDigitalTimeNode(widgetData, width, height, xPosition, yPos
     startMinuteAlignedTimer(state, widgetNode, updateDisplay);
     connectTimerCleanup(widgetNode, state);
 
-    attachResponsiveScaler(widgetNode, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (scale) => {
+    attachResponsiveScaler(widgetNode, BASE_CONTAINER_SIZE, BASE_CONTAINER_SIZE, (scale) => {
         if (isActorDestroyed(widgetNode)) return;
-        applyScale(scale);
+        applyScale(Math.max(0.65, scale));
     });
 
-    // Beállításváltás azonnali lekövetése (ha a settings objektum elérhető)
     if (widgetData.settings && typeof widgetData.settings.connect === 'function') {
         const changeId = widgetData.settings.connect('changed', () => {
             if (!isActorDestroyed(widgetNode)) {

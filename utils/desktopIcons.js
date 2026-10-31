@@ -83,7 +83,7 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
     const directory = Gio.File.new_for_path(desktopPath);
 
     const showLabels = settings.get_boolean('desktop-icons-show-labels');
-    const size = 3;
+    const size = 2;
     const side = settings.get_string('desktop-icons-side') || 'left';
     const direction = settings.get_string('desktop-icons-direction') || 'vertical';
 

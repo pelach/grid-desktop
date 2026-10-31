@@ -7,11 +7,8 @@ import { BUTTON_PRIMARY } from '../../desktopGrid/constants.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
 const DEFAULT_NOTE_TEXT = 'Quick Note\n- [ ] Task 1\n- [x] Task 2\n\n**Click the pen icon to edit**';
-const BASE_TITLE_FONT_SIZE = 14;
-const BASE_CONTENT_FONT_SIZE = 14;
-const BASE_ICON_SIZE = 16;
-const MIN_FONT_SIZE = 11;
-const MIN_ICON_SIZE = 13;
+const BASE_CONTAINER_WIDTH_PX = 200;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
 const MARKDOWN_RULES = [
     [/\*\*(.*?)\*\*/g, '<b>$1</b>'],
@@ -22,9 +19,6 @@ const MARKDOWN_RULES = [
     [/^## (.*$)/gm, '<span size="x-large" weight="bold">$1</span>'],
     [/^# (.*$)/gm, '<span size="xx-large" weight="bold">$1</span>'],
 ];
-
-const REF_WIDTH_PX = 240;
-const REF_HEIGHT_PX = 160;
 
 function convertMarkdownToPango(text) {
     if (!text) return '';
@@ -37,17 +31,16 @@ function convertMarkdownToPango(text) {
 
 export function createNotesNode(config, width, height, xPosition, yPosition) {
     let rawFont = resolveExplicitFontFamily(config) || '';
-
     const cleanFontFamily = rawFont.replace(/['"]/g, '').split(',')[0].trim();
     const fontCss = cleanFontFamily ? `font-family: '${cleanFontFamily}'; ` : '';
 
-    const userFontSize = config.fontSize || 14;
-    const baseContentSize = userFontSize;
-    const baseTitleSize = Math.max(12, Math.round(userFontSize * 0.9));
+    // Egyéni fontméret a prefs-ből:
+    const userFontSize = config.fontSize || 13;
 
     const textColor = resolveWidgetForegroundColor(config);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
 
     const baseDir = getGridgetsDataDir('notes');
     const notesFilePath = GLib.build_filenamev([
@@ -61,24 +54,30 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: 'padding: 12px;',
     });
+    container.add_child(contentBox);
 
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
-        style: 'margin-bottom: 8px;',
+        x_expand: true,
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+
+    const headerIcon = new St.Icon({
+        icon_name: 'note-symbolic',
+        y_align: Clutter.ActorAlign.CENTER,
     });
 
     const titleLabel = new St.Label({
-        text: 'Quick Notes',
-        style: `${fontCss}color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
+        text: 'Notes',
+        style: `${fontCss}color: ${textColor}; opacity: 0.9;`,
         x_expand: true,
         y_align: Clutter.ActorAlign.CENTER,
     });
 
     const editIcon = new St.Icon({
         icon_name: 'document-edit-symbolic',
-        style: `color: ${textColor}; opacity: 0.6;`,
+        style: `color: ${textColor}; opacity: 0.75;`,
     });
 
     const editButton = new St.Button({
@@ -88,6 +87,7 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
         y_align: Clutter.ActorAlign.CENTER,
     });
 
+    headerBox.add_child(headerIcon);
     headerBox.add_child(titleLabel);
     headerBox.add_child(editButton);
     attachButtonFeedback(editButton);
@@ -114,7 +114,7 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
         const vadj = scrollView.vadjustment;
         if (!vadj) return Clutter.EVENT_PROPAGATE;
 
-        const step = vadj.step_increment || 28;
+        const step = vadj.step_increment || 24;
         const direction = event.get_scroll_direction();
 
         if (direction === Clutter.ScrollDirection.UP) {
@@ -134,9 +134,7 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
     scrollView.connect('scroll-event', handleScroll);
     scrollContent.connect('scroll-event', handleScroll);
 
-    
     const displayLabel = new Clutter.Text({
-        font_name: cleanFontFamily ? `${cleanFontFamily} ${baseContentSize}px` : `${baseContentSize}px`,
         editable: false,
         selectable: false,
         reactive: true,
@@ -151,7 +149,6 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
     displayLabel.connect('scroll-event', handleScroll);
     scrollContent.add_child(displayLabel);
 
-
     const editorContainer = new St.BoxLayout({
         style: `color: ${textColor};`,
         x_expand: true,
@@ -159,7 +156,6 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
     });
 
     let textEditor = new Clutter.Text({
-        font_name: cleanFontFamily ? `${cleanFontFamily} ${baseContentSize}px` : `${baseContentSize}px`,
         editable: true,
         selectable: true,
         reactive: true,
@@ -186,7 +182,7 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
         displayLabel.show();
         editIcon.set_icon_name('document-edit-symbolic');
         isEditingActive = false;
-    }
+    };
 
     const showNoteEditor = () => {
         textEditor.text = noteContent;
@@ -232,26 +228,35 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
         return Clutter.EVENT_PROPAGATE;
     });
 
-    showNoteViewer();
-    container.add_child(contentBox);
+    function applyScale(newScale) {
+        scale = newScale;
 
-    function applyScale(scale) {
-        const titleFontSize = Math.max(MIN_FONT_SIZE, Math.round(baseTitleSize * scale));
-        const iconSize = Math.max(MIN_ICON_SIZE, Math.round(BASE_ICON_SIZE * scale));
-        const contentFontSize = Math.max(MIN_FONT_SIZE, Math.round(baseContentSize));
+        const pad = Math.max(8, Math.round(10 * scale));
+        const iconSize = Math.round(14 * scale);
+        const titleFontSize = Math.max(10, Math.round(12 * scale));
 
-        titleLabel.set_style(`${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; opacity: ${SECONDARY_OPACITY};`);
-        editIcon.set_icon_size(iconSize);
+        // Tartalom betűmérete: a felhasználó által beállított userFontSize szorozva a skálával
+        const effectiveContentSize = Math.max(10, Math.round(userFontSize * scale));
 
-        const targetFontName = `${cleanFontFamily ? `${cleanFontFamily} ` : ''}${contentFontSize}px`;
+        contentBox.style = `padding: ${pad}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 5px; opacity: 0.85;`;
+        titleLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+
+        editIcon.icon_size = iconSize;
+
+        const targetFontName = `${cleanFontFamily ? `${cleanFontFamily} ` : ''}${effectiveContentSize}px`;
         displayLabel.font_name = targetFontName;
         textEditor.font_name = targetFontName;
     }
 
-    applyScale(Math.min(width / REF_WIDTH_PX, height / REF_HEIGHT_PX));
-    attachResponsiveScaler(container, REF_WIDTH_PX, REF_HEIGHT_PX, (_ratio, w, h) => {
+    applyScale(scale);
+    showNoteViewer();
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        applyScale(Math.min(w / REF_WIDTH_PX, h / REF_HEIGHT_PX));
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX)));
     });
 
     loadJsonFromFileAsync(notesFilePath, (savedData, loadError) => {

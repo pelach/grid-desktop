@@ -147,7 +147,7 @@ export function openAddImageDialog(parentWindow, settings) {
     const { window, group } = createModernWidgetAddDialog(parentWindow, 'Configure Image Widget', () => {
         const imagePath = imageRow.get_text().trim();
         if (imagePath) {
-            addImageWidget(settings, imagePath, captionRow.get_text().trim(), showCaptionRow.get_active(), 4, 3);
+            addImageWidget(settings, imagePath, captionRow.get_text().trim(), showCaptionRow.get_active(), 4, 4);
             return true;
         }
         return false;
@@ -207,7 +207,7 @@ export function openAddSlideshowDialog(parentWindow, settings) {
                 settings,
                 folderPath,
                 Math.round(intervalRow.get_value()),
-                4, 3,
+                4, 4,
                 captionRow.get_text().trim(),
                 showCaptionRow.get_active(),
                 selectedTransition

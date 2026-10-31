@@ -281,12 +281,14 @@ export const DesktopGrid = GObject.registerClass(
         }
 
         _resolveGridLayout() {
-            const currentW = (Number.isFinite(this.width) && this.width > 100) 
-                ? this.width 
-                : (global.stage.width || DEFAULT_STAGE_WIDTH);
-            const currentH = (Number.isFinite(this.height) && this.height > 100) 
-                ? this.height 
-                : (global.stage.height || DEFAULT_STAGE_HEIGHT);
+            const target = getTargetMonitor(this.targetMonitorIndex, this.settings);
+            const panelHeight = getPanelHeight();
+
+            let currentW = target ? target.geom.width : (global.stage.width || DEFAULT_STAGE_WIDTH);
+            let currentH = target ? (target.geom.height - ((target.index === global.display.get_primary_monitor()) ? panelHeight : 0)) : ((global.stage.height || DEFAULT_STAGE_HEIGHT) - panelHeight);
+
+            if (Number.isFinite(this.width) && this.width > 100) currentW = this.width;
+            if (Number.isFinite(this.height) && this.height > 100) currentH = this.height;
 
             const customCellSize = this.settings.get_int('grid-cell-size') || 34;
             const { cellSize, cellTotalWidth, cellTotalHeight, gridCols, gridRows } = calculateGridDimensions(

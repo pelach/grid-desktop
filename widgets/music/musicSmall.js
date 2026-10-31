@@ -9,18 +9,17 @@ import { resolveWidgetForegroundColor, resolveExplicitFontFamily } from '../../u
 import { attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CONTAINER_WIDTH = 240;
-const BASE_CONTAINER_HEIGHT = 140;
+const BASE_CONTAINER_WIDTH = 200;
+const BASE_CONTAINER_HEIGHT = 200;
 
-const BASE_CONTAINER_MARGIN_PX = 12;
+const BASE_CONTAINER_MARGIN_PX = 10;
 const MIN_CONTAINER_MARGIN_PX = 4;
 const NUM_BARS = 16;
 
-// Vinyl méretek a kompakt 4x4-es widgethez (140px magasságra skálázva)
-const BASE_VINYL_SIZE = 145;
-const BASE_CENTER_LABEL_SIZE = 64;
-const BASE_ARM_WIDTH = 38;
-const BASE_ARM_HEIGHT = 120;
+const BASE_VINYL_SIZE = 120;
+const BASE_CENTER_LABEL_SIZE = 53;
+const BASE_ARM_WIDTH = 32;
+const BASE_ARM_HEIGHT = 100;
 
 function getAssetPath(filename) {
     const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
@@ -169,8 +168,8 @@ export function buildSmallLayout(config, state) {
         state.stopSpinning = stopSpinning;
 
         const ARM_ANGLE_REST = 0;
-        const ARM_ANGLE_START = 14;
-        const ARM_ANGLE_END = 30;
+        const ARM_ANGLE_START = 11;
+        const ARM_ANGLE_END = 28;
 
         const calculateArmAngle = (progress) => {
             const p = Math.max(0, Math.min(1, progress || 0));
@@ -537,7 +536,7 @@ export function buildSmallLayout(config, state) {
             // Vízszintesen hajszálpontosan KÖZÉPRE rendezve:
             const vinylX = Math.round((w - vinylSize) / 2);
             // Függőlegesen enyhén felhúzva, hogy az alsó vezérlősávnak helyet hagyjon:
-            const vinylY = Math.max(0, Math.round((h - vinylSize) * 0.25));
+            const vinylY = Math.max(6, Math.round(10 * scale));
 
             discActor.set_size(vinylSize, vinylSize);
             discActor.set_position(vinylX, vinylY);

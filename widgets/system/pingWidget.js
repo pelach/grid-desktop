@@ -6,18 +6,26 @@ import {
     resolveExplicitFontFamily,
     parseCssColor,
     cssColorToRgba,
+    isDarkBackgroundColor,
+    resolveWidgetBackgroundColor,
     SECONDARY_OPACITY,
 } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, registerWidgetCleanup, drawSparkline, SPARK_SAMPLE_CAPACITY } from '../../shell/widgetUIUtils.js';
+import { 
+    createWidgetContainer, 
+    registerWidgetCleanup, 
+    attachResponsiveScaler, 
+    drawSparkline, 
+    SPARK_SAMPLE_CAPACITY 
+} from '../../shell/widgetUIUtils.js';
 import { pingEngine } from '../../utils/pingEngine.js';
 
-const BASE_CONTAINER_WIDTH = 130;
-const BASE_CONTAINER_HEIGHT = 130;
-const PADDING_PX = 14;
-const CHART_CONTAINER_BG_ALPHA = 0.08;
-const CHART_CONTAINER_BORDER_ALPHA = 0.08;
-const ICON_CONTAINER_BG_ALPHA = 0.08;
-const ICON_CONTAINER_BORDER_ALPHA = 0.08;
+const BASE_CONTAINER_WIDTH = 200;
+const BASE_CONTAINER_HEIGHT = 200;
+
+const CARD_BG_DARK_ALPHA = 0.05;
+const CARD_BG_LIGHT_ALPHA = 0.04;
+const CARD_BORDER_DARK_ALPHA = 0.06;
+const CARD_BORDER_LIGHT_ALPHA = 0.10;
 const PING_BASELINE_MS = 60;
 
 export function createPingNode(config, width, height, xPosition, yPosition) {
@@ -33,128 +41,104 @@ export function createPingNode(config, width, height, xPosition, yPosition) {
     const accentRgb = parseCssColor(config.globalAccentColor || '#3584e4');
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    const scale = Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT);
-    const pad = Math.max(8, Math.round(PADDING_PX * scale));
-
-    // Ha nincs chart, nagyobb betűméretet használunk, mint a 3. referencia widgetnél
-    const baseValueFont = showChart ? 24 : 32;
-    const baseLabelFont = showChart ? 11 : 12;
-
-    const valueFontSize = Math.max(14, Math.round(baseValueFont * scale));
-    const labelFontSize = Math.max(9, Math.round(baseLabelFont * scale));
-    const iconBoxSize = Math.max(22, Math.round(26 * scale));
-    const iconSize = Math.max(12, Math.round(14 * scale));
+    let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
+    const isDarkSurface = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
 
     // Fő konténer
-    const mainBox = new St.BoxLayout({
+    const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: `padding: ${pad}px;`,
+    });
+    container.add_child(mainLayout);
+
+    // ── 1. Egységes Fejléc: Bal felül ikon + címke ──
+    const headerBox = new St.BoxLayout({
+        orientation: Clutter.Orientation.HORIZONTAL,
+        x_expand: true,
+        y_align: Clutter.ActorAlign.START,
     });
 
-    // Értéksor (szám + ms + státusz pötty)
+    const headerIcon = new St.Icon({
+        icon_name: 'network-transmit-receive-symbolic',
+        style: `color: ${textColor};`,
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+
+    const headerLabel = new St.Label({
+        text: targetLabel,
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+    headerLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.END);
+
+    headerBox.add_child(headerIcon);
+    headerBox.add_child(headerLabel);
+    mainLayout.add_child(headerBox);
+
+    // ── Értéksor (szám + ms + státusz pötty) ──
     const valueRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
-        x_align: Clutter.ActorAlign.START,
         y_align: Clutter.ActorAlign.CENTER,
     });
 
     const valueLabel = new St.Label({
         text: '--',
-        style: `${fontCss}color: ${textColor}; font-size: ${valueFontSize}px; font-weight: 600;`,
     });
     valueLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
 
     const unitLabel = new St.Label({
         text: 'ms',
-        style: `${fontCss}color: ${textColor}; opacity: ${SECONDARY_OPACITY}; `
-            + `font-size: ${Math.round(valueFontSize * 0.42)}px; font-weight: 400; `
-            + `margin-left: ${Math.round(3 * scale)}px; margin-top: ${Math.round(4 * scale)}px;`,
     });
     unitLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
 
-    const dotSize = Math.max(5, Math.round(6 * scale));
     const statusDot = new St.Widget({
-        width: dotSize,
-        height: dotSize,
         y_align: Clutter.ActorAlign.CENTER,
-        style: `width: ${dotSize}px; height: ${dotSize}px; border-radius: 99px; `
-            + `background-color: #33d17a; margin-left: ${Math.round(6 * scale)}px; margin-top: ${Math.round(4 * scale)}px;`,
     });
 
     valueRow.add_child(valueLabel);
     valueRow.add_child(unitLabel);
     valueRow.add_child(statusDot);
 
-    const hostLabel = new St.Label({
-        text: targetLabel,
-        style: `${fontCss}color: ${textColor}; font-size: ${labelFontSize}px; opacity: ${SECONDARY_OPACITY}; margin-top: 1px;`,
-    });
-    hostLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.END);
-
-    // Jobb felső kis ikon doboz
-    const iconContainer = new St.BoxLayout({
-        width: iconBoxSize,
-        height: iconBoxSize,
-        y_align: Clutter.ActorAlign.START, // Ne nyúljon le, maradjon a tetején
-        y_expand: false,                   // Tiltjuk a függőleges terjeszkedést
-        x_expand: false,
-        style: `background-color: ${cssColorToRgba(textColor, ICON_CONTAINER_BG_ALPHA)}; `
-            + `border: 1px solid ${cssColorToRgba(textColor, ICON_CONTAINER_BORDER_ALPHA)}; `
-            + `border-radius: ${Math.round(6 * scale)}px;`,
-    });
-
-    const icon = new St.Icon({
-        icon_name: 'network-transmit-receive-symbolic',
-        icon_size: iconSize,
-        x_align: Clutter.ActorAlign.CENTER,
-        y_align: Clutter.ActorAlign.CENTER,
-        x_expand: true,
-        y_expand: true,
-        style: `color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
-    });
-    iconContainer.add_child(icon);
-
+    let chartCard = null;
     let sparkArea = null;
+    let centerBox = null;
     const samples = [];
+    let currentDotColor = '#33d17a';
 
-    if (showChart) {
-        // --- 1. VÁLTOZAT: Van grafikon (középső CPU kártya mintájára) ---
-        const topRow = new St.BoxLayout({
-            orientation: Clutter.Orientation.HORIZONTAL,
-            x_expand: true,
-            y_align: Clutter.ActorAlign.START,
-        });
-
-        const textColumn = new St.BoxLayout({
-            orientation: Clutter.Orientation.VERTICAL,
-            x_expand: true,
-        });
-        textColumn.add_child(valueRow);
-        textColumn.add_child(hostLabel);
-
-        topRow.add_child(textColumn);
-        topRow.add_child(iconContainer);
-        mainBox.add_child(topRow);
-
-        const chartWrapper = new St.BoxLayout({
+    if (!showChart) {
+        // ── NORMÁL NÉZET: Értéksor tökéletesen KÖZÉPRE zárva ──
+        centerBox = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
             x_expand: true,
             y_expand: true,
-            style: `background-color: ${cssColorToRgba(textColor, CHART_CONTAINER_BG_ALPHA)}; `
-                + `border: 1px solid ${cssColorToRgba(textColor, CHART_CONTAINER_BORDER_ALPHA)}; `
-                + `border-radius: ${Math.round(8 * scale)}px; `
-                + `margin-top: ${Math.round(8 * scale)}px; padding: 4px;`,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+
+        valueRow.x_align = Clutter.ActorAlign.CENTER;
+        centerBox.add_child(valueRow);
+        mainLayout.add_child(centerBox);
+    } else {
+        // ── CHART NÉZET: Értéksor balra zártan felül, alatta a chart ──
+        valueRow.x_align = Clutter.ActorAlign.START;
+        mainLayout.add_child(valueRow);
+
+        const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
+        const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
+
+        chartCard = new St.BoxLayout({
+            orientation: Clutter.Orientation.VERTICAL,
+            x_expand: true,
+            y_expand: true,
+            style: `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: 10px; padding: 6px; margin-top: 4px;`,
         });
 
         sparkArea = new St.DrawingArea({
             x_expand: true,
             y_expand: true,
+            x_align: Clutter.ActorAlign.FILL,
+            y_align: Clutter.ActorAlign.FILL,
         });
-
-        chartWrapper.add_child(sparkArea);
-        mainBox.add_child(chartWrapper);
 
         sparkArea.connect('repaint', (area) => {
             const context = area.get_context();
@@ -164,51 +148,82 @@ export function createPingNode(config, width, height, xPosition, yPosition) {
                 accentRgb.r, accentRgb.g, accentRgb.b, 1.0);
             context.$dispose();
         });
-    } else {
-        // --- 2. VÁLTOZAT: Nincs grafikon (3. CPU kártya mintájára) ---
-        // Fent csak a jobbra igazított ikon ül:
-        const iconRow = new St.BoxLayout({
-            orientation: Clutter.Orientation.HORIZONTAL,
-            x_expand: true,
-            x_align: Clutter.ActorAlign.END,
-            y_align: Clutter.ActorAlign.START,
-        });
-        iconRow.add_child(iconContainer);
-        mainBox.add_child(iconRow);
 
-        // Alulra lecsúsztatott szöveges blokk:
-        const bottomColumn = new St.BoxLayout({
-            orientation: Clutter.Orientation.VERTICAL,
-            x_expand: true,
-            y_expand: true,
-            y_align: Clutter.ActorAlign.END,
-        });
-        bottomColumn.add_child(valueRow);
-        bottomColumn.add_child(hostLabel);
-        mainBox.add_child(bottomColumn);
+        chartCard.add_child(sparkArea);
+        mainLayout.add_child(chartCard);
     }
 
-    container.add_child(mainBox);
+    function applyScale(newScale) {
+        scale = newScale;
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const iconSize = Math.round(16 * scale);
+        const dotSize = Math.max(6, Math.round(8 * scale));
+
+        mainLayout.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
+        headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+
+        statusDot.style = `width: ${dotSize}px; height: ${dotSize}px; border-radius: 99px; `
+            + `background-color: ${currentDotColor}; margin-left: ${Math.round(6 * scale)}px; margin-top: ${Math.round(2 * scale)}px;`;
+
+        if (!showChart) {
+            // NORMÁL NÉZET
+            const valSize = Math.max(32, Math.round(44 * scale));
+            valueLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.0;`;
+            unitLabel.style = `${fontCss}color: ${textColor}; opacity: ${SECONDARY_OPACITY}; `
+                + `font-size: ${Math.round(valSize * 0.42)}px; font-weight: 500; `
+                + `margin-left: ${Math.round(4 * scale)}px; margin-top: ${Math.round(6 * scale)}px;`;
+        } else {
+            // CHART NÉZET
+            const valSize = Math.max(15, Math.round(18 * scale));
+            const cardRadius = Math.max(6, Math.round(10 * scale));
+            const cardPad = Math.max(4, Math.round(6 * scale));
+            const cardMargin = Math.max(4, Math.round(6 * scale));
+
+            valueLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.1; margin-bottom: 2px;`;
+            unitLabel.style = `${fontCss}color: ${textColor}; opacity: ${SECONDARY_OPACITY}; `
+                + `font-size: ${Math.round(valSize * 0.65)}px; font-weight: 500; `
+                + `margin-left: ${Math.round(3 * scale)}px; margin-top: ${Math.round(2 * scale)}px; margin-bottom: 2px;`;
+
+            if (chartCard) {
+                const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
+                const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
+                chartCard.style = `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPad}px; margin-top: ${cardMargin}px;`;
+            }
+        }
+    }
+
+    applyScale(scale);
+
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
+    });
 
     const onDataUpdate = (data) => {
+        const dotSize = Math.max(6, Math.round(8 * scale));
+
         if (!data.isOnline || data.ms < 0) {
             valueLabel.set_text('--');
+            currentDotColor = '#e01b24';
             statusDot.style = `width: ${dotSize}px; height: ${dotSize}px; border-radius: 99px; `
-                + `background-color: #e01b24; margin-left: ${Math.round(6 * scale)}px; margin-top: ${Math.round(4 * scale)}px;`;
+                + `background-color: ${currentDotColor}; margin-left: ${Math.round(6 * scale)}px; margin-top: ${Math.round(2 * scale)}px;`;
             if (showChart) samples.push(PING_BASELINE_MS);
         } else {
             const roundedMs = Math.round(data.ms);
             valueLabel.set_text(String(roundedMs));
 
-            let dotColor = '#33d17a';
             if (roundedMs >= 150) {
-                dotColor = '#e01b24';
+                currentDotColor = '#e01b24';
             } else if (roundedMs >= 50) {
-                dotColor = '#f6d32d';
+                currentDotColor = '#f6d32d';
+            } else {
+                currentDotColor = '#33d17a';
             }
 
             statusDot.style = `width: ${dotSize}px; height: ${dotSize}px; border-radius: 99px; `
-                + `background-color: ${dotColor}; margin-left: ${Math.round(6 * scale)}px; margin-top: ${Math.round(4 * scale)}px;`;
+                + `background-color: ${currentDotColor}; margin-left: ${Math.round(6 * scale)}px; margin-top: ${Math.round(2 * scale)}px;`;
             if (showChart) samples.push(roundedMs);
         }
 

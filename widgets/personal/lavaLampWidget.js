@@ -190,7 +190,7 @@ export function createLavaLampNode(config, width, height, xPosition, yPosition) 
     let lastTime = GLib.get_monotonic_time() / 1000.0;
     let isDisposed = false;
 
-    // Időzítő (30 FPS)[cite: 5]
+    // Időzítő (30 FPS)
     const timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 33, () => {
         if (isDisposed || isActorDestroyed(container) || isActorDestroyed(drawingArea)) {
             return GLib.SOURCE_REMOVE;

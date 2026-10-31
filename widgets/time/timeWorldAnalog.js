@@ -15,8 +15,8 @@ import {
 } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_WIDTH = 240;
-const BASE_HEIGHT = 240;
+const BASE_WIDTH = 200;
+const BASE_HEIGHT = 200;
 const TICK_INTERVAL_MS = 1000;
 
 const DEFAULT_ANALOG_CITIES = [
@@ -60,9 +60,8 @@ function drawSingleClock(cr, size, city, fontFamily) {
 
     const cx = size / 2;
     const cy = size / 2;
-    const radius = Math.max(10, (size / 2) - 4);
+    const radius = Math.max(10, (size / 2) - 3);
 
-    // 1. Számlap kör háttér
     cr.arc(cx, cy, radius, 0, 2 * Math.PI);
     if (isDay) {
         setRgb(cr, 1.0, 1.0, 1.0);
@@ -75,12 +74,11 @@ function drawSingleClock(cr, size, city, fontFamily) {
     const numColor = isDay ? { r: 0.15, g: 0.15, b: 0.15 } : { r: 0.95, g: 0.95, b: 0.95 };
     const labelColor = isDay ? { r: 0.45, g: 0.45, b: 0.45 } : { r: 0.7, g: 0.7, b: 0.7 };
 
-    // 2. Városkód
     try {
         if (typeof cr.selectFontFace === 'function') {
             cr.selectFontFace(fontFamily || 'Sans', Cairo.FontSlant.NORMAL, Cairo.FontWeight.BOLD);
         }
-        setFontSize(cr, radius * 0.24);
+        setFontSize(cr, radius * 0.25);
         setRgb(cr, labelColor.r, labelColor.g, labelColor.b);
 
         const cityText = city?.code || (city?.name ? city.name.substring(0, 3).toUpperCase() : 'UTC');
@@ -88,7 +86,6 @@ function drawSingleClock(cr, size, city, fontFamily) {
         cr.moveTo(cx - (extCity.width / 2), cy - (radius * 0.35));
         cr.showText(cityText);
 
-        // 3. Fő óraszámok (12, 3, 6, 9)
         setFontSize(cr, radius * 0.22);
         setRgb(cr, numColor.r, numColor.g, numColor.b);
 
@@ -104,11 +101,8 @@ function drawSingleClock(cr, size, city, fontFamily) {
             cr.moveTo(item.x - (ext.width / 2), item.y);
             cr.showText(item.num);
         }
-    } catch (e) {
-        // Fallback ha a szövegrajzolás hibát dobna bizonyos fontoknál
-    }
+    } catch (e) {}
 
-    // 4. Óramutató
     const hourAngle = ((hours % 12) + (minutes / 60)) * 30 * (Math.PI / 180);
     const hourLen = radius * 0.48;
     cr.setLineWidth(Math.max(2, radius * 0.08));
@@ -118,7 +112,6 @@ function drawSingleClock(cr, size, city, fontFamily) {
     cr.lineTo(cx + Math.sin(hourAngle) * hourLen, cy - Math.cos(hourAngle) * hourLen);
     cr.stroke();
 
-    // 5. Percmutató
     const minAngle = minutes * 6 * (Math.PI / 180);
     const minLen = radius * 0.70;
     cr.setLineWidth(Math.max(1.5, radius * 0.055));
@@ -126,7 +119,6 @@ function drawSingleClock(cr, size, city, fontFamily) {
     cr.lineTo(cx + Math.sin(minAngle) * minLen, cy - Math.cos(minAngle) * minLen);
     cr.stroke();
 
-    // 6. Narancssárga másodpercmutató
     const secAngle = seconds * 6 * (Math.PI / 180);
     const secLen = radius * 0.80;
     const secBackLen = radius * 0.18;
@@ -136,22 +128,13 @@ function drawSingleClock(cr, size, city, fontFamily) {
     cr.lineTo(cx + Math.sin(secAngle) * secLen, cy - Math.cos(secAngle) * secLen);
     cr.stroke();
 
-    // Közép kör
     cr.arc(cx, cy, Math.max(2, radius * 0.06), 0, 2 * Math.PI);
     cr.fill();
 }
 
 export function createWorldTimeAnalogNode(config, width, height, xPosition, yPosition) {
-    const rawBgColor = resolveWidgetBackgroundColor(config);
-    const opacity = config.bgOpacity !== undefined ? config.bgOpacity : 100;
-    const finalBgColor = cssColorToRgba(rawBgColor, opacity / 100);
-
-    const textColor = resolveWidgetForegroundColor(config);
     const fontFamily = resolveExplicitFontFamily(config);
-    const borderRadius = config.appliedBorderRadius || 0;
-
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
-  ;
 
     const cities = config.cities || DEFAULT_ANALOG_CITIES;
 
@@ -169,9 +152,7 @@ export function createWorldTimeAnalogNode(config, width, height, xPosition, yPos
     mainBox.add_child(rowBottom);
 
     const clockAreas = [];
-
-    // Kiszámítjuk a kezdeti cellaméretet a kapott konténer alapján
-    const initialCellSize = Math.max(40, Math.floor((Math.min(width, height) - 24) / 2));
+    const initialCellSize = Math.max(40, Math.floor((Math.min(width, height) - 20) / 2));
 
     for (let i = 0; i < 4; i++) {
         const city = cities[i] || DEFAULT_ANALOG_CITIES[i];
@@ -213,7 +194,8 @@ export function createWorldTimeAnalogNode(config, width, height, xPosition, yPos
 
     attachResponsiveScaler(container, BASE_WIDTH, BASE_HEIGHT, (scale, w, h) => {
         if (isActorDestroyed(container)) return;
-        const pad = Math.max(4, Math.round(6 * scale));
+        const s = Math.max(0.65, scale);
+        const pad = Math.max(4, Math.round(6 * s));
         mainBox.style = `padding: ${pad}px;`;
 
         const newCellSize = Math.max(40, Math.floor((Math.min(w, h) - (pad * 4)) / 2));
@@ -224,7 +206,6 @@ export function createWorldTimeAnalogNode(config, width, height, xPosition, yPos
         });
     });
 
-    // Kezdeti kirajzolás kikényszerítése
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
         updateAll();
         return GLib.SOURCE_REMOVE;
