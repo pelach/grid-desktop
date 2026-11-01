@@ -350,3 +350,7 @@ export function addHardwerInfoWidget(settings, width = 8, height = 8) {
 export function addLyricsWidget(settings, width = 8, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'lyrics'), type: 'lyrics' }, width, height);
 }
+
+export function addCalendarWeatherWidget(settings, width = 8, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'calendarWeather'), type: 'calendarWeather' }, width, height);
+}

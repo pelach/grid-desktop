@@ -341,6 +341,20 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'time/calendarGrid.svg',
         fallbackIconName: 'x-office-calendar-symbolic',
     },
+    calendarGrid: {
+        title: 'Month Calendar',
+        description: 'A compact month grid with today highlighted and weekends colored.',
+        gridSize: '4x4',
+        thumbnail: 'time/calendarGrid.svg',
+        fallbackIconName: 'x-office-calendar-symbolic',
+    },
+    calendarWeather: {
+        title: 'Month Calendar with Weather',
+        description: 'A wide month grid paired with the current day overview and local weather forecast.',
+        gridSize: '8x4',
+        thumbnail: 'time/calendarWeather.svg',
+        fallbackIconName: 'weather-few-clouds-symbolic',
+    },
 
     // ── Personal ───────────────────────────────────────────────────────
     todayHistory: {
@@ -434,7 +448,7 @@ export const STORE_WIDGETS = Object.freeze({
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards', 'moonWidget'],
     music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget'],
-    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary'],
+    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
         'systemDashboard',

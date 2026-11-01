@@ -48,6 +48,7 @@ import {
     addStopWatchWidget,
     addTimeWidget,
     addTimerWidget,
+    addCalendarWeatherWidget,
 
     // Personal
     addCalendarTasksWidget,
@@ -277,6 +278,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 // Naptárak
                 def(STORE_WIDGETS.calendarWidget, () => addCalendarWidget(settings)),
                 def(STORE_WIDGETS.calendarGrid, () => addCalendarGridWidget(settings)),
+                def(STORE_WIDGETS.calendarWeather, () => addCalendarWeatherWidget(settings)),
             ]
         },
         {

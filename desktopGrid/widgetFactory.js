@@ -53,7 +53,8 @@ import {
     createStopwatchNode,
     createTimeNode,
     createTimerNode,
-    createWorldTimeAnalogNode
+    createWorldTimeAnalogNode,
+    createCalendarWeatherNode
 } from '../widgets/time/index.js';
 
 // Focus & Productivity
@@ -152,6 +153,7 @@ const WIDGET_CREATORS = {
     'updates': (data, w, h, x, y) => createUpdatesNode(data, w, h, x, y),
     'hardwerinfo': (data, w, h, x, y) => createHardwareInfoNode(data, w, h, x, y),
     'lyrics': (data, w, h, x, y) => createLyricsNode(data, w, h, x, y),
+    'calendarWeather': (data, w, h, x, y) => createCalendarWeatherNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {
