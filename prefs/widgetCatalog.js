@@ -355,6 +355,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'time/calendarWeather.svg',
         fallbackIconName: 'weather-few-clouds-symbolic',
     },
+    calendarEvents: {
+        title: 'Calendar with Events & Weather',
+        description: 'Interactive month grid with day-by-day task inspection and weather.',
+        gridSize: '8x4',
+        thumbnail: 'time/calendarEvents.svg',
+        fallbackIconName: 'x-office-calendar-symbolic',
+    },
 
     // ── Personal ───────────────────────────────────────────────────────
     todayHistory: {
@@ -448,7 +455,7 @@ export const STORE_WIDGETS = Object.freeze({
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards', 'moonWidget'],
     music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget'],
-    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather'],
+    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather', 'calendarEvents'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
         'systemDashboard',

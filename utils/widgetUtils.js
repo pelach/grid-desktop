@@ -50,6 +50,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'sun-schedule': { minCols: 4, minRows: 4 },
     'moon': { minCols: 8, minRows: 4 },
     'calendarWeather': { minCols: 8, minRows: 4 },
+    'calendarEvents': { minCols: 8, minRows: 4 },
 
     // --- 3. HARDVER ÉS MONITORING ---
     'system-info': { minCols: 4, minRows: 4 },
@@ -551,6 +552,7 @@ const SIZE_PRESETS = {
     'sun-schedule': [[4, 4], [5, 5], [6, 6]],
     'moon': [[8, 4], [10, 5], [12, 6]],
     'calendarWeather': [[8, 4], [10, 5], [12, 6]],
+    'calendarEvents': [[8, 4], [10, 5], [12, 6]],
     // --- 3. HARDVER ÉS MONITORING ---
     'system-info': [[4, 4], [5, 5], [6, 6]],
     'ping-monitor':[[4, 4], [5, 5], [6, 6]],

@@ -49,6 +49,7 @@ import {
     addTimeWidget,
     addTimerWidget,
     addCalendarWeatherWidget,
+    addCalendarEventsWidget,
 
     // Personal
     addCalendarTasksWidget,
@@ -279,6 +280,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 def(STORE_WIDGETS.calendarWidget, () => addCalendarWidget(settings)),
                 def(STORE_WIDGETS.calendarGrid, () => addCalendarGridWidget(settings)),
                 def(STORE_WIDGETS.calendarWeather, () => addCalendarWeatherWidget(settings)),
+                def(STORE_WIDGETS.calendarEvents, () => addCalendarEventsWidget(settings)),
             ]
         },
         {
