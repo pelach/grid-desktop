@@ -12,7 +12,8 @@ import {
     addCountdownWidget,
     addWorldAnalogWidget,
     addMoonWidget,
-    addWatermindWidget
+    addWatermindWidget,
+    addCommandRunnerWidget,
 } from './widgetAdders.js';
 import { createAppSelectionControls } from './appSelection.js';
 import { createLiveCitySearchRow, buildOpenMeteoCitySearchRow } from './citySearch.js';
@@ -478,5 +479,142 @@ export function openAddMoonDialog(parentWindow, settings) {
     locationPicker = buildOpenMeteoCitySearchRow(box, 'City Location:', defaultLoc, 0);
 
     group.add(box);
+    window.present();
+}
+
+export function openAddCommandRunnerDialog(parentWindow, settings) {
+    let titleRow;
+    let items = [
+        { id: 'cmd_1', label: 'Drop Caches', command: 'sync && echo 3 | sudo tee /proc/sys/vm/drop_caches', inTerminal: false },
+        { id: 'cmd_2', label: 'SSH Server', command: 'ssh user@192.168.1.50', inTerminal: true },
+    ];
+
+    const { window, group } = createModernWidgetAddDialog(parentWindow, 'Configure Command Runner Widget', () => {
+        const title = titleRow.get_text().trim() || 'Command Runner';
+        const validCommands = items.filter(it => it.label || it.command);
+        addCommandRunnerWidget(settings, title, validCommands, 8, 4);
+        return true;
+    });
+
+    window.set_default_size(520, 560);
+
+    titleRow = new Adw.EntryRow({
+        title: 'Widget Title',
+        text: 'Command Runner',
+    });
+    group.add(titleRow);
+
+    const cmdSectionGroup = new Adw.PreferencesGroup({
+        title: 'Commands & Actions',
+        description: 'Add commands to run in the background or launch in a terminal.',
+    });
+    group.add(cmdSectionGroup);
+
+    const listContainer = new Gtk.Box({
+        orientation: Gtk.Orientation.VERTICAL,
+        spacing: 10,
+        margin_top: 6,
+        margin_bottom: 6,
+    });
+    cmdSectionGroup.add(listContainer);
+
+    const rebuildListUI = () => {
+        let child = listContainer.get_first_child();
+        while (child) {
+            const next = child.get_next_sibling();
+            listContainer.remove(child);
+            child = next;
+        }
+
+        items.forEach((item, index) => {
+            const cardBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 6,
+                css_classes: ['card'],
+                margin_start: 2,
+                margin_end: 2,
+            });
+
+            const headerRow = new Adw.ActionRow({
+                title: `Action #${index + 1}`,
+            });
+
+            const termSwitch = new Gtk.Switch({
+                active: item.inTerminal === true,
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Open in Terminal (for SSH or interactive commands)',
+            });
+            termSwitch.connect('notify::active', () => {
+                item.inTerminal = termSwitch.get_active();
+            });
+
+            const termBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                valign: Gtk.Align.CENTER,
+            });
+            termBox.append(new Gtk.Label({ label: 'Terminal:', css_classes: ['dim-label'] }));
+            termBox.append(termSwitch);
+
+            const deleteBtn = new Gtk.Button({
+                icon_name: 'user-trash-symbolic',
+                valign: Gtk.Align.CENTER,
+                css_classes: ['flat', 'destructive-action'],
+                tooltip_text: 'Remove Action',
+            });
+            deleteBtn.connect('clicked', () => {
+                items.splice(index, 1);
+                rebuildListUI();
+            });
+
+            headerRow.add_suffix(termBox);
+            headerRow.add_suffix(deleteBtn);
+            cardBox.append(headerRow);
+
+            const labelEntry = new Adw.EntryRow({
+                title: 'Button Label',
+                text: item.label || '',
+            });
+            labelEntry.connect('changed', () => {
+                item.label = labelEntry.get_text().trim();
+            });
+            cardBox.append(labelEntry);
+
+            const commandEntry = new Adw.EntryRow({
+                title: 'Bash Command',
+                text: item.command || '',
+            });
+            commandEntry.connect('changed', () => {
+                item.command = commandEntry.get_text().trim();
+            });
+            cardBox.append(commandEntry);
+
+            listContainer.append(cardBox);
+        });
+    };
+
+    rebuildListUI();
+
+    const addActionRow = new Adw.ActionRow();
+    const addBtn = new Gtk.Button({
+        label: '+ Add Action',
+        css_classes: ['suggested-action'],
+        halign: Gtk.Align.CENTER,
+        hexpand: true,
+        margin_top: 6,
+    });
+    addBtn.connect('clicked', () => {
+        items.push({
+            id: `cmd_${Date.now()}`,
+            label: 'New Action',
+            command: 'echo "Done"',
+            inTerminal: false,
+        });
+        rebuildListUI();
+    });
+
+    addActionRow.set_child(addBtn);
+    cmdSectionGroup.add(addActionRow);
+
     window.present();
 }

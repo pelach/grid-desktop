@@ -85,7 +85,8 @@ import {
     // Personal
     openAddGithubDialog,
     openAddRssHeadlinesDialog,
-    openAddWatermindDialog
+    openAddWatermindDialog,
+    openAddCommandRunnerDialog,
 } from './widgetAddDialogs.js';
 
 import { STORE_CATEGORIES, STORE_WIDGETS } from './widgetCatalog.js';
@@ -249,6 +250,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 
                 // Fájlgyorselérés
                 def(STORE_WIDGETS.downloads, () => addDownloadsWidget(settings)),
+                def(STORE_WIDGETS.commandRunner, () => openAddCommandRunnerDialog(window, settings)),
             ]
         },
         {

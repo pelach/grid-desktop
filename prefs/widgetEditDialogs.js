@@ -27,6 +27,7 @@ import {
     buildMoonSettings,
     buildDownloadsSettings,
     buildAudioVisualizerSettings,
+    buildCommandRunnerSettings
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -127,8 +128,12 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
         case 'audioVisualizer':
             buildAudioVisualizerSettings(group, widget, saveHandlers);
             break;
+        case 'commandRunner':
+            buildCommandRunnerSettings(group, widget, saveHandlers);
+            break;
     }
 
+    const saveGroup = new Adw.PreferencesGroup();
     const saveRow = new Adw.ActionRow({
         title: 'Apply Settings',
         subtitle: 'Save changes made to this widget',
@@ -160,6 +165,8 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
 
     saveRow.add_suffix(saveButton);
     saveRow.set_activatable_widget(saveButton);
-    group.add(saveRow);
+    saveGroup.add(saveRow);
+
+    box.append(saveGroup);
     return box;
 }

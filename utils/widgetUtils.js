@@ -68,6 +68,8 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'storageBar': { minCols: 8, minRows: 4 },
     'hardwerinfo': { minCols: 8, minRows: 8 },
 
+    'commandRunner': { minCols: 8, minRows: 4 },
+
     // --- 4. MÉDIA ÉS HANG ---
     'music': { minCols: 4, minRows: 4 },
     'musicSmall': { minCols: 4, minRows: 4 },
@@ -567,6 +569,7 @@ const SIZE_PRESETS = {
     'resource-wheel': [[4, 4], [5, 5], [6, 6]],
     'storageBar': [[8, 4], [10, 5], [12, 6]],
     'hardwerinfo': [[8, 8], [10, 10], [12, 12]],
+    'commandRunner': [[8, 4], [10, 5], [12, 6]],
     // --- 4. MÉDIA ÉS HANG ---
     'musicSmall': [[4, 4], [5, 5], [6, 6]],
     'musicWide': [[8, 4], [10, 5], [12, 6]],

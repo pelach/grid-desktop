@@ -362,3 +362,13 @@ export function addCalendarEventsWidget(settings, width = 8, height = 4) {
 export function addAudioVisualizerWidget(settings, width = 8, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'audioVisualizer'), type: 'audioVisualizer' }, width, height);
 }
+
+export function addCommandRunnerWidget(settings, title = 'Command Runner', commands = [], width = 8, height = 4) {
+    const config = {
+        id: nextWidgetId(settings, 'command-runner'),
+        type: 'commandRunner',
+        customTitle: title,
+        commands: commands || [],
+    };
+    addWidget(settings, config, width, height);
+}

@@ -225,6 +225,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system/hardwerinfo.svg',
         fallbackIconName: 'preferences-system-symbolic',
     },
+    commandRunner: {
+        title: 'Command Runner',
+        description: 'Quick action dashboard to run bash commands, scripts, or launch SSH terminal sessions.',
+        gridSize: '8x4',
+        thumbnail: 'system/command-runner.svg',
+        fallbackIconName: 'utilities-terminal-symbolic',
+    },
 
     // ── Focus & Productivity ───────────────────────────────────────────
     pomodoroTimer: {
@@ -501,7 +508,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'downloads',
         'uptime',
         'updates',
-        'hardwerinfo'
+        'hardwerinfo',
+        'commandRunner'
 
     ],
 });
@@ -655,6 +663,8 @@ function getStoreWidgetKey(widget) {
             return 'calendarWeather';
         case 'audioVisualizer':
             return 'audioVisualizer';
+        case 'commandRunner':
+            return 'commandRunner';
         default:
             return null;
     }
@@ -735,6 +745,10 @@ export function getWidgetDetailText(widget) {
         }
         case 'moon':
             return `Location: ${widget.city || 'Unknown'}`;
+        case 'commandRunner': {
+            const count = Array.isArray(widget.commands) ? widget.commands.length : 0;
+            return `Commands: ${count}`;
+        }
         default:
             return '';
     }

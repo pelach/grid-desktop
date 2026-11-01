@@ -43,7 +43,8 @@ import {
     createDownloadsNode,
     createUptimeNode,
     createUpdatesNode,
-    createHardwareInfoNode
+    createHardwareInfoNode,
+    createCommandRunnerNode
 } from '../widgets/system/index.js';
 
 // Time & Calendar
@@ -159,6 +160,7 @@ const WIDGET_CREATORS = {
     'calendarWeather': (data, w, h, x, y) => createCalendarWeatherNode(data, w, h, x, y),
     'calendarEvents': (data, w, h, x, y) => createCalendarEventsNode(data, w, h, x, y),
     'audioVisualizer': (data, w, h, x, y) => createAudioVisualizerNode(data, w, h, x, y),
+    'commandRunner': (data, w, h, x, y) => createCommandRunnerNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

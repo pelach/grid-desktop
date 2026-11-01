@@ -1126,3 +1126,148 @@ export function buildAudioVisualizerSettings(container, widget, saveHandlers) {
         target.visualizerMode = vizModes[vizModeRow.get_selected()] || 'bars';
     });
 }
+
+
+export function buildCommandRunnerSettings(container, widget, saveHandlers) {
+    // 1. Cím beállítása
+    const titleRow = new Adw.EntryRow({
+        title: 'Widget Title',
+        text: widget.customTitle || 'Command Runner',
+    });
+    container.add(titleRow);
+
+    // 2. Dinamikus lista csoport
+    const cmdGroup = new Adw.PreferencesGroup({
+        title: 'Configured Commands',
+        description: 'Commands will be executed directly via Bash or launched in a terminal window.',
+    });
+    container.add(cmdGroup);
+
+    // Helyi klón a parancsok tömbjéből
+    let items = Array.isArray(widget.commands) && widget.commands.length > 0
+        ? JSON.parse(JSON.stringify(widget.commands))
+        : [
+            { id: 'cmd_1', label: 'Drop Caches', command: 'sync && echo 3 | sudo tee /proc/sys/vm/drop_caches', inTerminal: false },
+            { id: 'cmd_2', label: 'SSH Home Server', command: 'ssh user@192.168.1.50', inTerminal: true },
+        ];
+
+    // Sorok kirajzolásáért felelős belső doboz
+    const listContainer = new Gtk.Box({
+        orientation: Gtk.Orientation.VERTICAL,
+        spacing: 10,
+        margin_top: 6,
+        margin_bottom: 6,
+    });
+    cmdGroup.add(listContainer);
+
+    const rebuildListUI = () => {
+        // Korábbi sorok törlése
+        let child = listContainer.get_first_child();
+        while (child) {
+            const next = child.get_next_sibling();
+            listContainer.remove(child);
+            child = next;
+        }
+
+        items.forEach((item, index) => {
+            // Egy parancs blokkja egy beágyazott kártya
+            const cardBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 6,
+                css_classes: ['card'],
+                margin_start: 2,
+                margin_end: 2,
+            });
+
+            // --- Fejléc: Gomb neve + Terminál kapcsoló + Törlés gomb ---
+            const headerRow = new Adw.ActionRow({
+                title: `Command #${index + 1}`,
+            });
+
+            const termSwitch = new Gtk.Switch({
+                active: item.inTerminal === true,
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Open in Terminal (for SSH or interactive scripts)',
+            });
+            termSwitch.connect('notify::active', () => {
+                item.inTerminal = termSwitch.get_active();
+            });
+
+            const termBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                valign: Gtk.Align.CENTER,
+            });
+            termBox.append(new Gtk.Label({ label: 'Terminal:', css_classes: ['dim-label'] }));
+            termBox.append(termSwitch);
+
+            const deleteBtn = new Gtk.Button({
+                icon_name: 'user-trash-symbolic',
+                valign: Gtk.Align.CENTER,
+                css_classes: ['flat', 'destructive-action'],
+                tooltip_text: 'Remove Command',
+            });
+            deleteBtn.connect('clicked', () => {
+                items.splice(index, 1);
+                rebuildListUI();
+            });
+
+            headerRow.add_suffix(termBox);
+            headerRow.add_suffix(deleteBtn);
+            cardBox.append(headerRow);
+
+            // --- Mező 1: Gomb felirata ---
+            const labelEntry = new Adw.EntryRow({
+                title: 'Button Label',
+                text: item.label || '',
+            });
+            labelEntry.connect('changed', () => {
+                item.label = labelEntry.get_text().trim();
+            });
+            cardBox.append(labelEntry);
+
+            // --- Mező 2: Bash parancs ---
+            const commandEntry = new Adw.EntryRow({
+                title: 'Bash Command',
+                text: item.command || '',
+            });
+            commandEntry.connect('changed', () => {
+                item.command = commandEntry.get_text().trim();
+            });
+            cardBox.append(commandEntry);
+
+            listContainer.append(cardBox);
+        });
+    };
+
+    rebuildListUI();
+
+    // 3. "Add Command" gomb a lista alá
+    const addRow = new Adw.ActionRow();
+    const addBtn = new Gtk.Button({
+        label: '+ Add Command',
+        css_classes: ['suggested-action'],
+        halign: Gtk.Align.CENTER,
+        hexpand: true,
+        margin_top: 6,
+    });
+    addBtn.connect('clicked', () => {
+        items.push({
+            id: `cmd_${Date.now()}`,
+            label: 'New Action',
+            command: 'echo "Done"',
+            inTerminal: false,
+        });
+        rebuildListUI();
+    });
+
+    addRow.set_child(addBtn);
+    cmdGroup.add(addRow);
+
+    // Mentési callback
+    saveHandlers.push((target) => {
+        target.customTitle = titleRow.get_text().trim() || 'Command Runner';
+        // Kiszűrjük az üres sorokat
+        target.commands = items.filter(it => it.label || it.command);
+    });
+}
