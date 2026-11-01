@@ -727,8 +727,8 @@ export function buildImageSettings(container, widget, settings, saveHandlers, pa
 }
 
 export function buildSystemInfoSettings(container, widget, saveHandlers) {
-    const types = ['cpu', 'ram', 'disk', 'thermal', 'gpu'];
-    const typeNames = ['CPU Usage', 'RAM Usage', 'Disk Usage', 'Thermal (CPU)', 'GPU Temp'];
+    const types = ['cpu', 'ram', 'disk', 'disk-io', 'thermal', 'gpu'];
+    const typeNames = ['CPU Usage', 'RAM Usage', 'Disk Usage','Disk I/O', 'Thermal (CPU)', 'GPU Temp'];
 
     const typeRow = new Adw.ComboRow({
         title: 'Monitor Metric',
@@ -1104,5 +1104,25 @@ export function buildDownloadsSettings(container, widget, saveHandlers, parentWi
     saveHandlers.push((target) => {
         const selected = pathRow.get_text().trim();
         target.folderPath = selected || defaultDownloads;
+    });
+}
+
+export function buildAudioVisualizerSettings(container, widget, saveHandlers) {
+    const vizModes = ['bars', 'wave'];
+    const vizLabels = ['32-Bar Equalizer', 'Fluid Sine Wave'];
+
+    const vizModeRow = new Adw.ComboRow({
+        title: 'Visualizer Pattern',
+        subtitle: 'Select bars or wave spectrum pattern',
+        model: new Gtk.StringList({ strings: vizLabels }),
+    });
+
+    const currentVizMode = widget.visualizerMode || 'bars';
+    const vizIdx = vizModes.indexOf(currentVizMode);
+    vizModeRow.set_selected(vizIdx >= 0 ? vizIdx : 0);
+    container.add(vizModeRow);
+
+    saveHandlers.push((target) => {
+        target.visualizerMode = vizModes[vizModeRow.get_selected()] || 'bars';
     });
 }

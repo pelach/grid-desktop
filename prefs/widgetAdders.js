@@ -358,3 +358,7 @@ export function addCalendarWeatherWidget(settings, width = 8, height = 4) {
 export function addCalendarEventsWidget(settings, width = 8, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'calendarEvents'), type: 'calendarEvents' }, width, height);
 }
+
+export function addAudioVisualizerWidget(settings, width = 8, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'audioVisualizer'), type: 'audioVisualizer' }, width, height);
+}

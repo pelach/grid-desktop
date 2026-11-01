@@ -21,7 +21,9 @@ import {
 import { 
     createLyricsNode 
 } from '../widgets/music/lyrics.js';
-
+import { 
+    createAudioVisualizerNode 
+} from '../widgets/music/audioVisualizer.js';
 // System
 import {
     createAudioOutputNode,
@@ -156,6 +158,7 @@ const WIDGET_CREATORS = {
     'lyrics': (data, w, h, x, y) => createLyricsNode(data, w, h, x, y),
     'calendarWeather': (data, w, h, x, y) => createCalendarWeatherNode(data, w, h, x, y),
     'calendarEvents': (data, w, h, x, y) => createCalendarEventsNode(data, w, h, x, y),
+    'audioVisualizer': (data, w, h, x, y) => createAudioVisualizerNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

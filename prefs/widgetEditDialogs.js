@@ -26,6 +26,7 @@ import {
     buildLavaLampSettings,
     buildMoonSettings,
     buildDownloadsSettings,
+    buildAudioVisualizerSettings,
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -122,6 +123,9 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
         case 'system-downloads':
         case 'downloads':
             buildDownloadsSettings(group, widget, saveHandlers, parentWindow);
+            break;
+        case 'audioVisualizer':
+            buildAudioVisualizerSettings(group, widget, saveHandlers);
             break;
     }
 

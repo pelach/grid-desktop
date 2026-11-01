@@ -88,6 +88,9 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     } else if (monitorType === 'disk') {
         iconName = 'drive-harddisk-symbolic';
         defaultLabel = 'Disk';
+    } else if (monitorType === 'disk-io' || monitorType === 'disk_io') {
+        iconName = 'drive-multidisk-symbolic';
+        defaultLabel = 'Disk I/O';
     } else if (monitorType === 'thermal') {
         iconName = 'sensors-temperature-symbolic';
         defaultLabel = 'Thermal';
@@ -105,7 +108,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     });
     container.add_child(mainLayout);
 
-    // ── 1. Egységes Fejléc: KIZÁRÓLAG az IKON és a NÉV ──
+    // ── 1. Egységes Fejléc ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -135,7 +138,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     let samples = [];
 
     if (!showChart) {
-        // ── NORMÁL NÉZET: Érték tökéletesen KÖZÉPRE zárva ──
         centerBox = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
             x_expand: true,
@@ -145,7 +147,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         });
 
         percentLabel = new St.Label({
-            text: '--%',
+            text: (monitorType === 'disk-io' || monitorType === 'disk_io') ? '0 MB/s' : '--%',
             x_align: Clutter.ActorAlign.CENTER,
             y_align: Clutter.ActorAlign.CENTER,
         });
@@ -153,9 +155,8 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         centerBox.add_child(percentLabel);
         mainLayout.add_child(centerBox);
     } else {
-        // ── CHART NÉZET: Érték a fejléc alatt balra, alatta a grafikon ──
         percentLabel = new St.Label({
-            text: '--%',
+            text: (monitorType === 'disk-io' || monitorType === 'disk_io') ? '0 MB/s' : '--%',
             x_expand: true,
             x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.CENTER,
@@ -191,33 +192,37 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     }
 
     function applyScale(newScale) {
-    scale = newScale;
-    const titleFontSize = Math.max(11, Math.round(13 * scale));
-    const iconSize = Math.round(16 * scale);
+        scale = newScale;
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const iconSize = Math.round(16 * scale);
 
-    mainLayout.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
-    headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
-    headerIcon.icon_size = iconSize;
-    headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
-    headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
+        mainLayout.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
+        headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
 
-    if (!showChart) {
-        const valSize = Math.max(32, Math.round(44 * scale));
-        percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.0;`;
-    } else {
-        const valSize = Math.max(15, Math.round(18 * scale));
-        percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.1; margin-bottom: 2px;`;
-        if (chartCard) {
-            const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
-            const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
-            const cardRadius = Math.max(6, Math.round(10 * scale));
-            const cardPad = Math.max(4, Math.round(6 * scale));
-            const cardMargin = Math.max(4, Math.round(6 * scale));
+        if (!showChart) {
+            // Ha Disk I/O (ahol hosszabb a szöveg: pl. "12.4 MB/s"), kicsit finomabb fontméret
+            const isDiskIo = (monitorType === 'disk-io' || monitorType === 'disk_io');
+            const valSize = isDiskIo 
+                ? Math.max(24, Math.round(32 * scale))
+                : Math.max(32, Math.round(44 * scale));
+            percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.0;`;
+        } else {
+            const valSize = Math.max(15, Math.round(18 * scale));
+            percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.1; margin-bottom: 2px;`;
+            if (chartCard) {
+                const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
+                const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
+                const cardRadius = Math.max(6, Math.round(10 * scale));
+                const cardPad = Math.max(4, Math.round(6 * scale));
+                const cardMargin = Math.max(4, Math.round(6 * scale));
 
-            chartCard.style = `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPad}px; margin-top: ${cardMargin}px;`;
+                chartCard.style = `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPad}px; margin-top: ${cardMargin}px;`;
+            }
         }
     }
-}
 
     applyScale(scale);
 
@@ -238,7 +243,11 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     let prevIdle = 0;
     let prevTotal = 0;
 
-    // --- GPU Szenzor felderítés (teljesen aszinkron) ---
+    // --- Disk I/O állapotváltozók ---
+    let prevDiskSectors = -1;
+    let prevDiskTimeMs = 0;
+
+    // --- GPU Szenzor felderítés ---
     let gpuHwmonTempPath = null;
     let hasNvidiaSmi = false;
     let gpuDetectionStarted = false;
@@ -389,6 +398,66 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         } catch (e) {}
     };
 
+    const readDiskIo = () => {
+        try {
+            const file = Gio.File.new_for_path('/proc/diskstats');
+            file.load_contents_async(null, (f, res) => {
+                try {
+                    const [, contents] = f.load_contents_finish(res);
+                    if (isDisposed || !contents) return;
+
+                    const text = new TextDecoder().decode(contents);
+                    let totalSectors = 0;
+
+                    // Csak a fizikai lemezeket számoljuk össze (nvme0n1, sda, sdb stb., loop és ram kizárva)
+                    for (const line of text.split('\n')) {
+                        const parts = line.trim().split(/\s+/);
+                        if (parts.length >= 14) {
+                            const devName = parts[2];
+                            // Kizárjuk a partíciókat (pl. sda1, nvme0n1p1) és virtuális eszközöket
+                            const isPhysicalDisk = (/^(sd[a-z]|nvme[0-9]+n[0-9]+|vd[a-z]|xvd[a-z]|mmcblk[0-9]+)$/.test(devName));
+                            if (isPhysicalDisk) {
+                                const sectorsRead = Number(parts[5]) || 0;
+                                const sectorsWritten = Number(parts[9]) || 0;
+                                totalSectors += (sectorsRead + sectorsWritten);
+                            }
+                        }
+                    }
+
+                    const nowMs = GLib.get_monotonic_time() / 1000;
+
+                    if (prevDiskSectors >= 0 && prevDiskTimeMs > 0) {
+                        const deltaSectors = Math.max(0, totalSectors - prevDiskSectors);
+                        const deltaSec = Math.max(0.1, (nowMs - prevDiskTimeMs) / 1000);
+
+                        // 1 szektor = 512 bájt
+                        const bytesPerSec = (deltaSectors * 512) / deltaSec;
+                        const mbPerSec = bytesPerSec / (1024 * 1024);
+
+                        let textVal = '';
+                        if (mbPerSec >= 100) {
+                            textVal = `${Math.round(mbPerSec)} MB/s`;
+                        } else if (mbPerSec >= 1) {
+                            textVal = `${mbPerSec.toFixed(1)} MB/s`;
+                        } else {
+                            const kbPerSec = bytesPerSec / 1024;
+                            textVal = `${Math.round(kbPerSec)} KB/s`;
+                        }
+
+                        percentLabel.set_text(textVal);
+
+                        // Chart mintavétel: 0 és 50 MB/s közé skálázva
+                        const ratio = Math.min(1, mbPerSec / 50);
+                        pushSample(ratio);
+                    }
+
+                    prevDiskSectors = totalSectors;
+                    prevDiskTimeMs = nowMs;
+                } catch (e) {}
+            });
+        } catch (e) {}
+    };
+
     const readThermal = () => {
         try {
             const file = Gio.File.new_for_path('/sys/class/thermal/thermal_zone0/temp');
@@ -459,6 +528,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     const updateData = () => {
         if (monitorType === 'ram') readRam();
         else if (monitorType === 'disk') readDisk();
+        else if (monitorType === 'disk-io' || monitorType === 'disk_io') readDiskIo();
         else if (monitorType === 'thermal') readThermal();
         else if (monitorType === 'gpu') readGpu();
         else readCpu();
@@ -466,7 +536,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
 
     updateData();
 
-    const intervalSec = (monitorType === 'cpu' || monitorType === 'gpu') ? 2 : 5;
+    const intervalSec = (monitorType === 'cpu' || monitorType === 'gpu' || monitorType === 'disk-io' || monitorType === 'disk_io') ? 2 : 5;
     const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, intervalSec, () => {
         if (isDisposed) return GLib.SOURCE_REMOVE;
         updateData();

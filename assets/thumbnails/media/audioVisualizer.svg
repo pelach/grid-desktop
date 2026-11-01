@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200">
+  <defs>
+    <!-- Oszlop színátmenet: alul lágyabb kék, felül ragyogó akcentuskék -->
+    <linearGradient id="bar-grad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#3584e4" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#3584e4" stop-opacity="0.95" />
+    </linearGradient>
+
+    <!-- Halvány derengés a hullámvonal aljához -->
+    <linearGradient id="glow-grad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#3584e4" stop-opacity="0.02" />
+      <stop offset="100%" stop-color="#3584e4" stop-opacity="0.18" />
+    </linearGradient>
+  </defs>
+
+  <!-- Kártya háttér -->
+  <rect width="400" height="200" rx="24" ry="24" fill="#212126" />
+
+  <!-- Finom keret -->
+  <rect width="400" height="200" rx="24" ry="24" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" />
+
+  <!-- ================= FEJLÉC ================= -->
+  <g transform="translate(20, 20)">
+    <!-- Bal: Hangszóró ikon -->
+    <path d="M2 7v6h4l5 5V2L6 7H2zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM13 1.07v2.06c3.01.86 5.2 3.65 5.2 6.87s-2.19 6.01-5.2 6.87v2.06c4.13-.91 7.2-4.57 7.2-8.93 0-4.37-3.07-8.03-7.2-8.93z" fill="#3584e4" transform="scale(0.85) translate(0, -2)" />
+
+    <!-- Cím -->
+    <text x="24" y="14" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" opacity="0.9">Audio Spectrum</text>
+
+    <!-- Jobb: LIVE felirat -->
+    <text x="360" y="14" fill="#3584e4" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="800" text-anchor="end" letter-spacing="1.5" opacity="0.85">LIVE</text>
+  </g>
+
+  <!-- ================= SPEKTRUM SÁVOK (32 OSZLOP) ================= -->
+  <g transform="translate(18, 178)">
+    <!-- Sávok: y értéke a magasság negatívja, a magasság megegyezik a h értékkel -->
+    <!-- 1-4 -->
+    <rect x="0" y="-12" width="6.5" height="12" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="11.3" y="-18" width="6.5" height="18" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="22.6" y="-15" width="6.5" height="15" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="33.9" y="-22" width="6.5" height="22" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+
+    <!-- 5-8 -->
+    <rect x="45.2" y="-16" width="6.5" height="16" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="56.5" y="-28" width="6.5" height="28" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="67.8" y="-36" width="6.5" height="36" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="79.1" y="-48" width="6.5" height="48" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+
+    <!-- 9-12 -->
+    <rect x="90.4" y="-34" width="6.5" height="34" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="101.7" y="-55" width="6.5" height="55" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="113.0" y="-72" width="6.5" height="72" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="124.3" y="-96" width="6.5" height="96" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+
+    <!-- 13-16 (Középső kiugró csúcsok) -->
+    <rect x="135.6" y="-124" width="6.5" height="124" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.8" stroke-width="0.8" />
+    <rect x="146.9" y="-108" width="6.5" height="108" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.8" stroke-width="0.8" />
+    <rect x="158.2" y="-68" width="6.5" height="68" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="169.5" y="-85" width="6.5" height="85" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+
+    <!-- 17-20 (Második középső csúcs) -->
+    <rect x="180.8" y="-120" width="6.5" height="120" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.8" stroke-width="0.8" />
+    <rect x="192.1" y="-102" width="6.5" height="102" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.8" stroke-width="0.8" />
+    <rect x="203.4" y="-74" width="6.5" height="74" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="214.7" y="-58" width="6.5" height="58" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+
+    <!-- 21-24 -->
+    <rect x="226.0" y="-46" width="6.5" height="46" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="237.3" y="-38" width="6.5" height="38" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="248.6" y="-32" width="6.5" height="32" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="259.9" y="-24" width="6.5" height="24" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+
+    <!-- 25-28 -->
+    <rect x="271.2" y="-20" width="6.5" height="20" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="282.5" y="-16" width="6.5" height="16" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="293.8" y="-18" width="6.5" height="18" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="305.1" y="-14" width="6.5" height="14" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+
+    <!-- 29-32 -->
+    <rect x="316.4" y="-12" width="6.5" height="12" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="327.7" y="-15" width="6.5" height="15" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="339.0" y="-10" width="6.5" height="10" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+    <rect x="350.3" y="-8" width="6.5" height="8" rx="3.25" fill="url(#bar-grad)" stroke="#3584e4" stroke-opacity="0.7" stroke-width="0.8" />
+  </g>
+</svg>

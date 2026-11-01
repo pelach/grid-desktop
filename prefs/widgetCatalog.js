@@ -76,6 +76,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'media/lyrics.svg', 
         fallbackIconName: 'text-editor-symbolic',
     },
+    audioVisualizer: {
+        title: 'Audio Visualizer Spectrum',
+        description: 'Real-time multi-bar fluid audio spectrum visualizer powered by CAVA.',
+        gridSize: '8x4',
+        thumbnail: 'media/audioVisualizer.svg',
+        fallbackIconName: 'audio-volume-high-symbolic',
+    },
     imageGif: {
         title: 'Image / GIF',
         description: 'Display an image or animated GIF directly on your desktop.',
@@ -108,7 +115,7 @@ export const STORE_WIDGETS = Object.freeze({
     },
     systemInfo: {
         title: 'System Info',
-        description: 'Compact tile showing real-time CPU, RAM, or Disk utilization.',
+        description: 'Compact tile showing real-time CPU, RAM, Disk I/O or Disk utilization.',
         gridSize: '4x4',
         thumbnail: 'system/system-info.svg',
         fallbackIconName: 'utilities-system-monitor-symbolic',
@@ -454,7 +461,7 @@ export const STORE_WIDGETS = Object.freeze({
 
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards', 'moonWidget'],
-    music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget'],
+    music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget', 'audioVisualizer'],
     time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather', 'calendarEvents'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
@@ -646,6 +653,8 @@ function getStoreWidgetKey(widget) {
             return 'calendarEvents';
         case 'calendarWeather':
             return 'calendarWeather';
+        case 'audioVisualizer':
+            return 'audioVisualizer';
         default:
             return null;
     }
