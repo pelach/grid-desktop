@@ -289,7 +289,7 @@ export function buildSmallLayout(config, state) {
             const confPath = GLib.build_filenamev([runtimeDir, `gridgets_cava_${GLib.get_user_name()}.conf`]);
 
             const initCavaConfig = () => {
-                const confContent = `[general]\nbars = ${NUM_BARS}\nframerate = 30\n[input]\nmethod = pulse\nsource = auto\n[output]\nmethod = raw\nraw_target = ${fifoPath}\ndata_format = binary\nbit_format = 8bit\n`;
+                const confContent = `[general]\nbars = ${NUM_BARS}\nframerate = 22\n[input]\nmethod = pulse\nsource = auto\n[output]\nmethod = raw\nraw_target = ${fifoPath}\ndata_format = binary\nbit_format = 8bit\n`;
                 GLib.file_set_contents(confPath, confContent);
             };
 
@@ -393,36 +393,34 @@ export function buildSmallLayout(config, state) {
                     const baseBarY = h;
                     const maxBarH = Math.min(46, Math.round(h * 0.35));
 
-                    // Margó nélkül, a teljes szélességhez igazítva
                     const totalBarW = w / NUM_BARS;
                     const barWidth = Math.max(3, Math.round(totalBarW * 0.58));
                     const barRadius = barWidth / 2;
 
+                    // 1. Egyszer hozzuk létre a gradienst a ciklus előtt:
+                    const barGrad = new Cairo.LinearGradient(0, baseBarY, 0, baseBarY - maxBarH);
+                    barGrad.addColorStopRGBA(0.0, r, g, b, 0.45);
+                    barGrad.addColorStopRGBA(1.0, r, g, b, 0.15);
+                    cr.setSource(barGrad);
+
+                    // 2. Csak a körvonalakat fűzzük fel a path-ra:
                     for (let i = 0; i < NUM_BARS; i++) {
                         const rawH = Math.min(maxBarH, Math.max(barWidth, heights[i] * 0.6));
                         const bx = Math.round(i * totalBarW + (totalBarW - barWidth) / 2);
                         const by = baseBarY - rawH;
 
-                        // Kapszula alakú oszlop (felül lekerekített ívvel)
                         cr.newSubPath();
-                        cr.arc(bx + barRadius, by + barRadius, barRadius, Math.PI, 0); // Felső félkör
-                        cr.lineTo(bx + barWidth, baseBarY); // Jobb oldal le az aljáig
-                        cr.lineTo(bx, baseBarY);             // Bal oldal
+                        cr.arc(bx + barRadius, by + barRadius, barRadius, Math.PI, 0);
+                        cr.lineTo(bx + barWidth, baseBarY);
+                        cr.lineTo(bx, baseBarY);
                         cr.closePath();
-
-                        // Lágy függőleges átmenet oszloponként (alul lágyabb derengés)
-                        const barGrad = new Cairo.LinearGradient(0, baseBarY, 0, by);
-                        barGrad.addColorStopRGBA(0.0, r, g, b, 0.45);
-                        barGrad.addColorStopRGBA(1.0, r, g, b, 0.15);
-
-                        cr.setSource(barGrad);
-                        cr.fillPreserve();
-
-                        // Finom felső körvonalfény
-                        cr.setSourceRGBA(r, g, b, 0.6);
-                        cr.setLineWidth(1.0);
-                        cr.stroke();
                     }
+
+                    // 3. Egyetlen kitöltés és körvonalazás az összes oszlopra:
+                    cr.fillPreserve();
+                    cr.setSourceRGBA(r, g, b, 0.6);
+                    cr.setLineWidth(1.0);
+                    cr.stroke();
                 } else {
                     const baseWaveY = h;
                     const maxWaveH = Math.min(48, Math.round(h * 0.35));
@@ -470,7 +468,7 @@ export function buildSmallLayout(config, state) {
             });
 
             if (!hasCava) {
-                fallbackTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 35, () => {
+                fallbackTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
                     if (state.playbackStatus === 'Playing') {
                         wavePhase = (wavePhase + 0.12) % (Math.PI * 2);
                         visualizerCanvas.queue_repaint();

@@ -111,7 +111,7 @@ export function createAudioVisualizerNode(config, width, height, xPosition, yPos
 
     const initCavaConfig = () => {
         // source = @DEFAULT_MONITOR@ gondoskodik róla, hogy ne a fizikai mikrofont nyissa meg PipeWire alatt!
-        const confContent = `[general]\nbars = ${NUM_BARS}\nframerate = 35\n[input]\nmethod = pulse\nsource = @DEFAULT_MONITOR@\n[output]\nmethod = raw\nraw_target = ${fifoPath}\ndata_format = binary\nbit_format = 8bit\n`;
+        const confContent = `[general]\nbars = ${NUM_BARS}\nframerate = 22\n[input]\nmethod = pulse\nsource = @DEFAULT_MONITOR@\n[output]\nmethod = raw\nraw_target = ${fifoPath}\ndata_format = binary\nbit_format = 8bit\n`;
         GLib.file_set_contents(confPath, confContent);
     };
 
@@ -189,6 +189,7 @@ export function createAudioVisualizerNode(config, width, height, xPosition, yPos
 
         const heights = [];
 
+
         for (let i = 0; i < NUM_BARS; i++) {
             if (isPlaying && cavaSubproc) {
                 heights.push(Math.max(4, (barValues[i] / 255.0) * maxH));
@@ -206,6 +207,12 @@ export function createAudioVisualizerNode(config, width, height, xPosition, yPos
             const barWidth = Math.max(4, Math.round(totalBarW * 0.65));
             const barRadius = barWidth / 2;
 
+            const barGrad = new Cairo.LinearGradient(0, h, 0, 0);
+            barGrad.addColorStopRGBA(0.0, r, g, b, 0.25);
+            barGrad.addColorStopRGBA(1.0, r, g, b, 0.95);
+
+            cr.setSource(barGrad);
+
             for (let i = 0; i < NUM_BARS; i++) {
                 const rawH = Math.min(maxH, heights[i]);
                 const bx = Math.round(i * totalBarW + (totalBarW - barWidth) / 2);
@@ -216,18 +223,12 @@ export function createAudioVisualizerNode(config, width, height, xPosition, yPos
                 cr.lineTo(bx + barWidth, baseBarY);
                 cr.lineTo(bx, baseBarY);
                 cr.closePath();
-
-                const barGrad = new Cairo.LinearGradient(0, baseBarY, 0, by);
-                barGrad.addColorStopRGBA(0.0, r, g, b, isPlaying ? 0.4 : 0.2);
-                barGrad.addColorStopRGBA(1.0, r, g, b, isPlaying ? 0.95 : 0.6);
-
-                cr.setSource(barGrad);
-                cr.fillPreserve();
-
-                cr.setSourceRGBA(r, g, b, isPlaying ? 0.8 : 0.4);
-                cr.setLineWidth(1.0);
-                cr.stroke();
             }
+            cr.fillPreserve();
+            cr.setSourceRGBA(r, g, b, 0.7);
+            cr.setLineWidth(1.0);
+            cr.stroke();
+
         } else {
             const baseWaveY = h;
             const stepX = w / (NUM_BARS - 1);
@@ -270,7 +271,7 @@ export function createAudioVisualizerNode(config, width, height, xPosition, yPos
     });
 
     // ── Folyamatos Idle Animáció ──
-    idleAnimTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 33, () => {
+    idleAnimTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
         if (isDisposed) return GLib.SOURCE_REMOVE;
         if (!isPlaying || !hasCava) {
             wavePhase = (wavePhase + 0.05) % (Math.PI * 2);
