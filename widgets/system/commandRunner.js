@@ -78,7 +78,6 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
     const scrollView = new St.ScrollView({
         x_expand: true,
         y_expand: true,
-        style_class: 'vfade',
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
     });
@@ -101,16 +100,6 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
 
     const rowActors = [];
 
-    const updateHeaderStatus = () => {
-        if (isDisposed) return;
-        if (activeCommandsCount > 0) {
-            statusLabel.set_text('RUNNING...');
-            statusLabel.style = `${fontCss}color: ${accentHex}; font-size: 10px; font-weight: 800; opacity: 1.0; letter-spacing: 1px;`;
-        } else {
-            statusLabel.set_text('READY');
-            statusLabel.style = `${fontCss}color: ${accentHex}; font-size: 10px; font-weight: 800; opacity: 0.7; letter-spacing: 1px;`;
-        }
-    };
 
     // ── 3. Parancssorok létrehozása ──
     commandList.forEach((cmdItem) => {
