@@ -642,6 +642,10 @@ function getStoreWidgetKey(widget) {
             return 'hardwerinfo';
         case 'lyrics':
             return 'lyricsWidget';
+        case 'calendarEvents':
+            return 'calendarEvents';
+        case 'calendarWeather':
+            return 'calendarWeather';
         default:
             return null;
     }

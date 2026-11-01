@@ -247,24 +247,42 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
     function applyLayout(currentWidth, currentHeight) {
         if (!currentWidth || currentWidth <= 0) return;
         const s = state.scale;
-        const pad = Math.round(14 * s);
+        const pad = Math.round(16 * s);
 
-        rootLayout.style = `padding: ${pad}px; spacing: ${Math.round(16 * s)}px;`;
-        leftColumn.width = Math.round(120 * s);
+        rootLayout.style = `padding: ${pad}px; spacing: ${Math.round(18 * s)}px;`;
+        
+        // 1. Bal oszlop szélessége
+        leftColumn.width = Math.round(130 * s);
+        leftColumn.set_width(Math.round(130 * s));
         divider.width = 1;
 
         monthLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(11 * s)}px; font-weight: 800; opacity: 0.6;`;
         weekdayLabel.style = `${fontCss}color: ${accentColor}; font-size: ${Math.round(16 * s)}px; font-weight: 700; margin-bottom: 2px;`;
-        bigDayLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(52 * s)}px; font-weight: 300; line-height: 1;`;
+        bigDayLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(54 * s)}px; font-weight: 300; line-height: 1;`;
 
-        weatherIcon.icon_size = Math.round(18 * s);
+        weatherIcon.icon_size = Math.round(16 * s);
         weatherTempLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(12 * s)}px; font-weight: 600;`;
 
-        const rightWidth = currentWidth - (pad * 2) - leftColumn.width - Math.round(16 * s) - 1;
-        const colWidth = Math.max(1, Math.floor(rightWidth / 7));
+        // 2. Jobb oszlop kompakt cellamérete (nem nyújtjuk szét a végtelenbe)
+        const cellWidth = Math.round(25 * s);
+        const cellHeight = Math.round(21 * s);
+        const gridTotalWidth = cellWidth * 7;
 
-        state.weekdayCells.forEach(slot => { slot.width = colWidth; });
-        state.daySlots.forEach(slot => { slot.width = colWidth; });
+        // A jobb oszlop teljes tartalma kerüljön vízszintesen középre a fennmaradó helyen:
+        rightColumn.set_x_align(Clutter.ActorAlign.CENTER);
+        rightColumn.width = gridTotalWidth;
+
+        state.weekdayCells.forEach(slot => {
+            slot.width = cellWidth;
+            slot.set_width(cellWidth);
+        });
+
+        state.daySlots.forEach(slot => {
+            slot.width = cellWidth;
+            slot.height = cellHeight;
+            slot.set_width(cellWidth);
+            slot.set_height(cellHeight);
+        });
 
         const now = GLib.DateTime.new_now_local();
         const currentMondayIndex = now.get_day_of_week() - 1;

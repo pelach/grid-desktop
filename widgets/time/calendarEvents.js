@@ -227,7 +227,7 @@ export function createCalendarEventsNode(config, width, height, xPosition, yPosi
     const scrollView = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
-        overlay_scrollbars: true, // Ne foglaljon fix helyet a layoutban!
+        overlay_scrollbars: false, 
         x_expand: true,
         y_expand: true,
     });
@@ -346,7 +346,7 @@ export function createCalendarEventsNode(config, width, height, xPosition, yPosi
         const cardPadding = Math.max(4, Math.round(5 * scale));
         const cardRadius = Math.max(4, Math.round(6 * scale));
         const rowGap = Math.max(2, Math.round(4 * scale));
-        const rightScrollGap = Math.max(2, Math.round(4 * scale));
+        const rightScrollGap = Math.max(6, Math.round(8 * scale));
         const titleFontSize = Math.max(9, Math.round(10.5 * scale));
         const timeFontSize = Math.max(8, Math.round(9.5 * scale));
 
