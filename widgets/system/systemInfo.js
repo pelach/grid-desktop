@@ -158,8 +158,9 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         percentLabel = new St.Label({
             text: (monitorType === 'disk-io' || monitorType === 'disk_io') ? '0 MB/s' : '--%',
             x_expand: true,
+            y_expand: true,
             x_align: Clutter.ActorAlign.START,
-            y_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER, // Kitölti a teret a fejléc és a chart között
         });
         mainLayout.add_child(percentLabel);
 
@@ -169,8 +170,8 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         chartCard = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
             x_expand: true,
-            y_expand: true,
-            style: `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: 10px; padding: 6px; margin-top: 4px;`,
+            y_expand: false,
+            y_align: Clutter.ActorAlign.END, // Teljesen az aljára igazítva
         });
 
         chartArea = new St.DrawingArea({
@@ -210,16 +211,23 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                 : Math.max(32, Math.round(44 * scale));
             percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.0;`;
         } else {
-            const valSize = Math.max(15, Math.round(18 * scale));
-            percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.1; margin-bottom: 2px;`;
+            const isDiskIo = (monitorType === 'disk-io' || monitorType === 'disk_io');
+            // Sokkal nagyobb betűméret, mert van hely a chart felett:
+            const valSize = isDiskIo 
+                ? Math.max(20, Math.round(26 * scale))
+                : Math.max(28, Math.round(36 * scale));
+
+            percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.0;`;
+
             if (chartCard) {
                 const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
                 const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
-                const cardRadius = Math.max(6, Math.round(10 * scale));
-                const cardPad = Math.max(4, Math.round(6 * scale));
-                const cardMargin = Math.max(4, Math.round(6 * scale));
+                const cardRadius = Math.max(6, Math.round(8 * scale));
+                const cardPad = Math.max(2, Math.round(4 * scale));
+                // Kompakt alsó magasság (kb. 38-42px alapon)
+                const chartHeight = Math.round(50 * scale);
 
-                chartCard.style = `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPad}px; margin-top: ${cardMargin}px;`;
+                chartCard.style = `height: ${chartHeight}px; background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPad}px; margin-top: 0px;`;
             }
         }
     }
