@@ -31,6 +31,8 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 - **Image / GIF**: Displays static images or animated GIFs directly on the desktop grid, with support for custom image captions.
 - **Image Slideshow**: Cycles smoothly through local images from a selected folder using crossfade transitions, with support for captions.
 - **Lyrics**: Synchronized real-time song lyrics for currently playing media.
+- **Audio Spectrum**: Standalone real-time audio visualizer bar displaying fluid frequency spectrum bars for desktop media playback with smooth idle falloff animations.
+
 ---
 
 #### Weather & Sun
@@ -74,6 +76,7 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 - **System Dashboard & Monitor**: Comprehensive side-by-side graphs for CPU, RAM, disk throughput, and thermal metrics.
 - **Storage Bar & Resource Wheel**: Circular telemetry and multi-category disk breakdown across system partitions.
 - **Desktop Controls & Power**: Dedicated sliders for volume and display brightness, power mode profiles (Balanced, Performance, Saver), audio sink toggles, and session controls.
+- **Command Runner**: Quick desktop execution panel for custom shell commands, system actions (e.g. drop caches), and terminal shortcuts with real-time status output.
 
 ---
 
@@ -122,6 +125,8 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 - **World Clocks**: Multi-timezone digital and quad-analog dial displays.
 - **Calendars & Agenda**: Standalone day calendar, compact month grid, and aggregated daily calendar tasks.
 - **Time Tracking Tools**: Standard countdown gauges, stopwatch counters, and BCD binary clock rendering.
+- **Calendar & Agenda (Tasks)**: Modern month grid paired with a daily agenda pane displaying current weather glance and daily name days / milestones.
+- **Calendar Weather & Day Split**: Split view featuring an expanded daily date, live weather telemetry, and full-month interactive schedule grid.
 
 ---
 
