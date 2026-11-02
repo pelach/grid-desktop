@@ -26,6 +26,10 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 | :---: | :---: | :---: |
 | ![Music Player Wide](assets/screenshot/music_wide.png) | ![Music Player Vinyl](assets/screenshot/music_vinyl.png) | ![Lyrics](assets/screenshot/lyrics.png) |
 
+| Audio Spectrum |
+| :---: |
+| ![Audio Spectrum](assets/screenshot/audio_spectrum.png) |
+
 - **Music Player**: Compact media player featuring album artwork, track details, and playback controls. Features a vintage vinyl turntable view with an animated tonearm synchronized to track playback and seeking, alongside a real-time fluid audio spectrum visualizer (CAVA / 16-Bar Equalizer).
 - **Music Player (Wide)**: Expanded horizontal layout displaying album artwork alongside track info, artist details, and playback controls. Automatically adapts its background accent to match the active album artwork palette.
 - **Image / GIF**: Displays static images or animated GIFs directly on the desktop grid, with support for custom image captions.
@@ -67,9 +71,10 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 | :---: | :---: | :---: |
 | ![System Info Cards](assets/screenshot/system_info_cards.png) | ![Resource Wheel](assets/screenshot/resource_wheel.png) | ![Storage Bar](assets/screenshot/storage_bar.png) |
 
-| Battery Status | Bluetooth Devices |
-| :---: | :---: |
-| ![Battery Status](assets/screenshot/battery_status.png) | ![Bluetooth Devices](assets/screenshot/bluetooth_devices.png) |
+| Battery Status | Bluetooth Devices | Command Runner |
+| :---: | :---: | :---: |
+| ![Battery Status](assets/screenshot/battery_status.png) | ![Bluetooth Devices](assets/screenshot/bluetooth_devices.png) | ![Command Runner](/assets/screenshot/command_runner.png) |
+
 
 - **Hardware Info**: Complete system and hardware overview displaying CPU model, GPU architecture, total RAM, motherboard, and OS distribution details.
 - **System Uptime & Updates**: Real-time system boot uptime tracking and pending package updates count (APT, DNF, Pacman, Flatpak).
@@ -113,13 +118,17 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 | :---: | :---: | :---: |
 | ![Time Date](assets/screenshot/time_date.png) | ![World Clock](assets/screenshot/world_clock.png) | ![Binary Time](assets/screenshot/binary_time.png) |
 
-| Calendar (Day View) | Month Calendar | Calendar Tasks |
+| Calendar (Day View) | Month Calendar | Tasks |
 | :---: | :---: | :---: |
-| ![Calendar](assets/screenshot/calendar.png) | ![Month Calendar](assets/screenshot/month_calendar.png) | ![Calendar Tasks](assets/screenshot/calendar_tasks.png) |
+| ![Calendar](assets/screenshot/calendar.png) | ![Month Calendar](assets/screenshot/month_calendar.png) | ![Tasks](assets/screenshot/calendar_tasks.png) |
 
 | Timer | Countdown | Stopwatch |
 | :---: | :---: | :---: |
 | ![Timer](assets/screenshot/timer.png) | ![Countdown](assets/screenshot/countdown.png) | ![Stopwatch](assets/screenshot/stopwatch.png) |
+
+| Calendar Tasks | Calendar Weather |
+| :---: | :---: |
+| ![Calendar Tasks](assets/screenshot/calendar_task.png) | ![Calendar Weather](assets/screenshot/calendar_weather.png) |
 
 - **Analog Clock Skins**: Multiple built-in faces (Basic, Rolex, Sensa) with smooth sweeping second hand and floating canvas mode.
 - **World Clocks**: Multi-timezone digital and quad-analog dial displays.
