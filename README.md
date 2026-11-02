@@ -4,19 +4,16 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 
 ### Core Architecture & Highlights
 
-- **Dynamic Grid Scaling**: Automatically adapts cell sizing and layout to any display resolution and aspect ratio — full native support for standard 16:9 displays and Ultrawide (21:9 / 32:9) monitors.
-- **Smart Multi-Monitor Support**: Cleanly handles display topology changes (docking, undocking, laptop lid open/close) across Wayland and X11 sessions, with per-widget monitor pinning (e.g. pinned to Primary Monitor or Follow Global).
-- **Precision Alignment & Grid Overlay**: Snap-to-grid placement with dynamic collision avoidance and interactive resizing across up to 3 widget sizes. Includes a toggleable on-screen grid overlay to make layout designing effortless.
+- **Modern 1x1 Logical Grid**: Redesigned from the ground up on a true 1x1 base unit. Offers selectable base cell sizes (Compact 68px, Standard 80px, Large 96px, HiDPI 112px) and fully configurable grid spacing (`grid-gap-size` from 4px to 32px) directly from Preferences.
+- **Dynamic Grid Scaling**: Automatically adapts cell sizing and layout to any display resolution and aspect ratio — full native support for standard 16:9 displays and Ultrawide (21:9 / 32:9) monitors with seamless v2 layout migration.
+- **Precision Alignment & Cleaner Drag-and-Drop**: Snap-to-grid placement with dynamic collision avoidance and interactive resizing across widget size tiers. Features a clean, color-coded drop placeholder without intrusive full-screen grid flashes.
 - **Pure Clutter Engine**: High-performance, lightweight rendering directly via Clutter without external CSS dependencies, built for GNOME 48, 49, 50, and 51.
-- **Integrated Desktop Icon Manager & Context Actions**:
-  - Native desktop icon support snapped cleanly to the adaptive grid with customizable alignment (Left / Right) and sort orientation (Vertical / Horizontal)
-  - Native desktop context menu with **Paste to Desktop** functionality for file clipboard transfers
-  - Toggle icon labels, auto-layout reorganization, and quick shortcuts for Home folder, Trash, and mounted/network drives
-- **Modernized Libadwaita Preferences**:
-  - Fully overhauled settings window utilizing native `Adw.PreferencesRow` and `Adw.ActionRow` lists rather than card layouts
-  - Streamlined appearance controls: unified system theming, Adwaita light/dark support, and curated color palettes without redundant styling overrides where they don't belong
-  - Global preferences and selective per-widget styling (background color, 0–100% opacity slider, custom typography)
-- **Dedicated Insights & Data Export**: Built-in tracking hub with detailed day-by-day breakdowns for active Screen Time and Mood trends, featuring one-click JSON data export.
+- **macOS-Inspired Desktop Icon Manager**:
+  - Native desktop icons snapped cleanly to the 1x1 grid with customizable alignment (Left / Right) and layout flow (Vertical / Horizontal).
+  - Proportional icon scaling and typography tied directly to the active grid cell size.
+  - Multi-line label wrapping (`Pango.WrapMode.WORD_CHAR`) with subtle contrast-enhancing text shadows for readability on any wallpaper.
+  - Native desktop context menu with **Paste to Desktop** functionality for file clipboard transfers.
+  - Toggle icon labels, auto-layout reorganization, and quick shortcuts for Home folder, Trash, and mounted/network drives.
 
 ---
 
@@ -137,7 +134,7 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 
 | GitHub Activity | Watermind Hydration |
 | :---: | :---: |
-| ![GitHub Activity](assets/screenshot/github_acivity.png) | ![Watermind](assets/screenshot/watermind.png) |
+| ![GitHub Activity](assets/screenshot/github_activity.png) | ![Watermind](assets/screenshot/watermind.png) |
 
 | Habit Tracker | Screen Time Monitor | Mood Logger |
 | :---: | :---: | :---: |
