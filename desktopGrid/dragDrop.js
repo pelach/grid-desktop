@@ -204,7 +204,7 @@ function endDrag(state, grid, node, widgetData) {
                 }
             }
         }
-        grid.constructor.toggleAllGridOverlays(false);
+       // grid.constructor.toggleAllGridOverlays(false);
     }
 }
 
@@ -267,7 +267,7 @@ export function attachDragHandlers(grid, node, widgetData) {
 
                 if (!state.isDragging && (Math.abs(dx) > DRAG_MOTION_THRESHOLD_PX || Math.abs(dy) > DRAG_MOTION_THRESHOLD_PX)) {
                     state.isDragging = true;
-                    grid.constructor.toggleAllGridOverlays(true);
+                    //grid.constructor.toggleAllGridOverlays(true);
                 }
 
                 if (state.isDragging) {
