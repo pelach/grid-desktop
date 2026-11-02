@@ -1,6 +1,7 @@
 import St from 'gi://St';
 import Gio from 'gi://Gio';
 import Clutter from 'gi://Clutter';
+import Pango from 'gi://Pango';
 import { WidgetActor } from '../shell/widgetUIUtils.js';
 import { watchActorLifecycle } from '../utils/actorLifecycle.js';
 import { launchFileUri } from '../desktopGrid/contextMenu.js';
@@ -13,6 +14,7 @@ export function createDesktopIconNode(data, w, h, x, y) {
         y: y || 0,
         width: w,
         height: h,
+        clip_to_allocation: false, // ne vágja le az árnyékot vagy az alsó túlnyúlást
         reactive: true,
         can_focus: true,
         track_hover: true,
@@ -28,7 +30,14 @@ export function createDesktopIconNode(data, w, h, x, y) {
         reactive: false,
     });
 
-    const iconSize = data.showLabel ? 48 : 64;
+    // DINAMIKUS IKONMÉRET A CELLÁHOZ KÖTVE:
+    // Felirattal a cella kb. 55%-a (68px-nél ~38px, 80px-nél ~44px, 96px-nél ~52px)
+    // Felirat nélkül a cella kb. 75%-a (68px-nél ~50px, 80px-nél ~60px)
+    const baseCell = Math.min(w, h);
+    const iconSize = data.showLabel
+        ? Math.round(baseCell * 0.55)
+        : Math.round(baseCell * 0.75);
+
     let gicon;
     try {
         gicon = Gio.Icon.new_for_string(data.icon || 'text-x-generic');
@@ -44,12 +53,24 @@ export function createDesktopIconNode(data, w, h, x, y) {
     box.add_child(icon);
 
     if (data.showLabel) {
+        // Dinamikus betűméret: 68px alatt 10px, 68-80px között 11px, felette 12px
+        const fontSize = baseCell <= 68 ? 10 : (baseCell <= 80 ? 11 : 12);
+
         const label = new St.Label({
             text: data.name || '',
             style_class: 'desktop-icon-label',
+            style: `font-size: ${fontSize}px; font-weight: 500; color: #ffffff; text-align: center; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85); margin-top: 2px;`,
             x_align: Clutter.ActorAlign.CENTER,
             reactive: false,
         });
+
+        label.clutter_text.set_line_wrap(true);
+        label.clutter_text.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR);
+        label.clutter_text.set_ellipsize(Pango.EllipsizeMode.END);
+
+        // Picit szélesebb lehet, mint maga a cella, hogy kényelmesen tördeljen:
+        label.set_width(w + 12);
+
         box.add_child(label);
     }
 
