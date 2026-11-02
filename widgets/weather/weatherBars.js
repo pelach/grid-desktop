@@ -142,10 +142,6 @@ export function buildBarsLayout(layout, widgetData, extensionPath) {
     const accentColor = widgetData.accentColor || widgetData.globalAccentColor || '#5b8cbd';
 
     for (let i = 0; i < FORECAST_DAYS_COUNT; i++) {
-        // Ha nem az első elem, húzunk egy elválasztó vonalat a napok KÖZÉ is
-        if (i > 0) {
-            dailyContainer.add_child(createDivider());
-        }
 
         const row = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
