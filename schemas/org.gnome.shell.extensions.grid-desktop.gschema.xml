@@ -141,7 +141,7 @@
       <range min="0" max="100"/>
     </key>
     <key name="grid-cell-size" type="i">
-       <default>34</default>
+       <default>80</default>
        <summary>Base grid cell size in pixels</summary>
    </key>
    <key name="weather-lat" type="d">
@@ -159,6 +159,16 @@
         <summary>Global widget corner radius</summary>
         <description>Corner radius for desktop widgets in pixels.</description>
         <range min="0" max="32"/>
+    </key>
+    <key name="grid-gap-size" type="i">
+      <default>16</default>
+      <summary>Grid gap spacing in pixels</summary>
+      <description>Spacing between desktop grid cells and widgets in pixels.</description>
+    </key>
+    <key name="grid-migrated-v2" type="b">
+      <default>false</default>
+      <summary>Grid layout v2 migration flag</summary>
+      <description>Indicates whether existing widget dimensions have been migrated to the 1x1 base grid.</description>
     </key>
   </schema>
 

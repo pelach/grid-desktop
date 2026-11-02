@@ -83,7 +83,7 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
     const directory = Gio.File.new_for_path(desktopPath);
 
     const showLabels = settings.get_boolean('desktop-icons-show-labels');
-    const size = 2;
+    const size = 1;
     const side = settings.get_string('desktop-icons-side') || 'left';
     const direction = settings.get_string('desktop-icons-direction') || 'vertical';
 
@@ -98,7 +98,11 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
 
     const stageWidth = global.stage ? global.stage.width : 1920;
     const stageHeight = global.stage ? global.stage.height : 1080;
-    const gridDimensions = calculateGridDimensions(stageWidth, stageHeight);
+
+
+    const cellSize = settings.get_int('grid-cell-size') || 80;
+    const gridGap = settings.get_int('grid-gap-size') || 16;
+    const gridDimensions = calculateGridDimensions(stageWidth, stageHeight, 100, cellSize, gridGap);
     const cols = gridDimensions.gridCols;
     const rows = gridDimensions.gridRows;
 

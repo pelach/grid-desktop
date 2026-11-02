@@ -14,16 +14,38 @@ import { screenTimeEngine } from './utils/screenTimeEngine.js';
 import { enableDashContextMenu, disableDashContextMenu } from './utils/dashIntegration.js';
 import { clearStorageEngine } from './utils/storageEngine.js';
 import { monitorDesktop, stopMonitor, syncDesktopIcons } from './utils/desktopIcons.js';
-
+import { getWidgets, saveWidgets } from './utils/widgetUtils.js';
 
 export default class GridgetsExtension extends Extension {
     enable() {
+
+        this._settings = this.getSettings();
+
+        const isMigrated = this._settings.get_boolean('grid-migrated-v2');
+        if (!isMigrated) {
+            let widgets = getWidgets(this._settings);
+            widgets.forEach(w => {
+                if (!w.isDesktopIcon) {
+                    w.x = Math.floor(w.x / 2);
+                    w.y = Math.floor(w.y / 2);
+                    w.width = Math.max(1, Math.round(w.width / 2));
+                    w.height = Math.max(1, Math.round(w.height / 2));
+                } else {
+                    w.x = Math.floor(w.x / 2);
+                    w.y = Math.floor(w.y / 2);
+                    w.width = 1;
+                    w.height = 1;
+                }
+            });
+            saveWidgets(this._settings, widgets);
+            this._settings.set_boolean('grid-migrated-v2', true);
+        }
+
         this._desktopGrids = [];
         this._monitorsChangedId = 0;
         this._settingSignalIds = [];
         this._interfaceSignalId = 0;
         this._accentSignalId = 0;
-        this._settings = this.getSettings();
         this._interfaceSettings = Gio.Settings.new('org.gnome.desktop.interface');
 
         this._settingSignalIds.push(
@@ -48,6 +70,7 @@ export default class GridgetsExtension extends Extension {
         this._settingSignalIds.push(
             this._settings.connect('changed::global-border-radius', () => this._rebuildGrids())
         );
+
         
         this._screenTimeRelease = screenTimeEngine.acquire();
 
@@ -86,6 +109,9 @@ export default class GridgetsExtension extends Extension {
 
         this._settingSignalIds.push(
             this._settings.connect('changed::grid-cell-size', () => this._rebuildGrids())
+        );
+        this._settingSignalIds.push(
+            this._settings.connect('changed::grid-gap-size', () => this._rebuildGrids())
         );
 
         enableDashContextMenu();

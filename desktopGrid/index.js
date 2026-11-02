@@ -245,6 +245,7 @@ export const DesktopGrid = GObject.registerClass(
             connectSetting('weather-dynamic-color', () => this._rebuildGrid());
             connectSetting('weather-dynamic-image', () => this._rebuildGrid());
             connectSetting('grid-cell-size', () => this._rebuildGrid());
+            connectSetting('grid-gap-size', () => this._rebuildGrid());
             connectSetting('show-grid', () => this._toggleGridLines());
         }
 
@@ -270,9 +271,10 @@ export const DesktopGrid = GObject.registerClass(
             const node = this.widgetNodes.get(widgetId);
             if (!node || isActorDestroyed(node)) return;
 
-            const cellSize = this.cellTotalWidth - GRID_GAP_PX;
-            const widgetWidth = (newCols * cellSize) + ((newCols - 1) * GRID_GAP_PX);
-            const widgetHeight = (newRows * cellSize) + ((newRows - 1) * GRID_GAP_PX);
+            const currentGap = this.settings.get_int('grid-gap-size') || 16;
+            const cellSize = this.cellTotalWidth - currentGap;
+            const widgetWidth = (newCols * cellSize) + ((newCols - 1) * currentGap);
+            const widgetHeight = (newRows * cellSize) + ((newRows - 1) * currentGap);
             const posX = GRID_MARGIN_PX + (newX * this.cellTotalWidth);
             const posY = GRID_MARGIN_PX + (newY * this.cellTotalHeight);
 
@@ -290,12 +292,15 @@ export const DesktopGrid = GObject.registerClass(
             if (Number.isFinite(this.width) && this.width > 100) currentW = this.width;
             if (Number.isFinite(this.height) && this.height > 100) currentH = this.height;
 
-            const customCellSize = this.settings.get_int('grid-cell-size') || 34;
+            const customCellSize = this.settings.get_int('grid-cell-size') || 80; 
+            const customGap = this.settings.get_int('grid-gap-size') || 16;       
+
             const { cellSize, cellTotalWidth, cellTotalHeight, gridCols, gridRows } = calculateGridDimensions(
                 currentW, 
                 currentH, 
                 COLUMNS_COUNT, 
-                customCellSize
+                customCellSize,
+                customGap 
             );
             return { gridCols, gridRows, cellSize, cellTotalWidth, cellTotalHeight };
         }
@@ -340,17 +345,20 @@ export const DesktopGrid = GObject.registerClass(
         }
 
         _createAndAttachWidget(widgetData, cellSize, cellTotalWidth, cellTotalHeight, globalSettings) {
-            const safeCellSize = (Number.isFinite(cellSize) && cellSize > 0) ? cellSize : 50;
-            const safeCellW = (Number.isFinite(cellTotalWidth) && cellTotalWidth > 0) ? cellTotalWidth : (safeCellSize + GRID_GAP_PX);
-            const safeCellH = (Number.isFinite(cellTotalHeight) && cellTotalHeight > 0) ? cellTotalHeight : (safeCellSize + GRID_GAP_PX);
+            const safeCellSize = (Number.isFinite(cellSize) && cellSize > 0) ? cellSize : 80;
+            // A gap a teljes cellaszélesség és a belső méret különbsége:
+            const currentGap = (cellTotalWidth && cellSize) ? (cellTotalWidth - cellSize) : 16;
+            const safeCellW = (Number.isFinite(cellTotalWidth) && cellTotalWidth > 0) ? cellTotalWidth : (safeCellSize + currentGap);
+            const safeCellH = (Number.isFinite(cellTotalHeight) && cellTotalHeight > 0) ? cellTotalHeight : (safeCellSize + currentGap);
 
             const wUnits = Math.max(1, widgetData.width || 1);
             const hUnits = Math.max(1, widgetData.height || 1);
             const xUnits = Math.max(0, widgetData.x || 0);
             const yUnits = Math.max(0, widgetData.y || 0);
 
-            const widgetWidth = Math.round((wUnits * safeCellSize) + ((wUnits - 1) * GRID_GAP_PX));
-            const widgetHeight = Math.round((hUnits * safeCellSize) + ((hUnits - 1) * GRID_GAP_PX));
+            // GRID_GAP_PX helyett currentGap!
+            const widgetWidth = Math.round((wUnits * safeCellSize) + ((wUnits - 1) * currentGap));
+            const widgetHeight = Math.round((hUnits * safeCellSize) + ((hUnits - 1) * currentGap));
             const posX = Math.round(GRID_MARGIN_PX + (xUnits * safeCellW));
             const posY = Math.round(GRID_MARGIN_PX + (yUnits * safeCellH));
 

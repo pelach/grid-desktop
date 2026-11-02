@@ -135,21 +135,21 @@ export function buildAppearancePage(settings) {
     });
 
     const CELL_SIZES = [
-        { label: 'Compact (30 px)', size: 30 },
-        { label: 'Default (34 px)', size: 34 },
-        { label: 'Large (42 px)', size: 42 },
-        { label: 'Extra Large / HiDPI (50 px)', size: 50 },
+        { label: 'Compact (68 px)', size: 68 },
+        { label: 'Standard (80 px)', size: 80 },
+        { label: 'Large (96 px)', size: 96 },
+        { label: 'Extra Large / HiDPI (112 px)', size: 112 },
     ];
 
     const cellSizeModel = new Gtk.StringList();
     CELL_SIZES.forEach(opt => cellSizeModel.append(opt.label));
 
-    const currentCellSize = settings.get_int('grid-cell-size') || 34;
+    const currentCellSize = settings.get_int('grid-cell-size') || 80;
     const matchedCellIdx = CELL_SIZES.findIndex(opt => opt.size === currentCellSize);
 
     const cellSizeRow = new Adw.ComboRow({
         title: 'Grid Cell Size',
-        subtitle: 'Scales widgets and their text proportionally across the grid.',
+        subtitle: 'Base dimensions for desktop icons and proportional widget bounds.',
         model: cellSizeModel,
         selected: matchedCellIdx !== -1 ? matchedCellIdx : 1,
     });
@@ -162,9 +162,52 @@ export function buildAppearancePage(settings) {
         }
     });
     gridGroup.add(cellSizeRow);
+
+    // --- RÁCSTÉRKÖZ CSÚSZKA (4 px-es lépésekkel: 4, 8, 12, 16, 20, 24, 28, 32 px) ---
+    const currentGap = settings.get_int('grid-gap-size') || 16;
+    const gapAdjustment = new Gtk.Adjustment({
+        lower: 4,
+        upper: 32,
+        step_increment: 4,
+        page_increment: 4,
+        value: currentGap,
+    });
+
+    const gapScale = new Gtk.Scale({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        adjustment: gapAdjustment,
+        draw_value: true,
+        value_pos: Gtk.PositionType.RIGHT,
+        hexpand: true,
+        width_request: 140,
+        valign: Gtk.Align.CENTER,
+        round_digits: 0,
+    });
+    gapScale.set_digits(0);
+
+    // Vizuális jelölők a skálán a főbb macOS megállókhoz
+    [8, 16, 24].forEach(tick => {
+        gapScale.add_mark(tick, Gtk.PositionType.BOTTOM, null);
+    });
+
+    gapScale.connect('value-changed', () => {
+        const rawVal = gapScale.get_value();
+        const snappedVal = Math.round(rawVal / 4) * 4;
+        if (rawVal !== snappedVal) {
+            gapScale.set_value(snappedVal);
+            return;
+        }
+        settings.set_int('grid-gap-size', snappedVal);
+    });
+
+    const gapRow = new Adw.ActionRow({
+        title: 'Grid Spacing',
+        subtitle: 'Distance between icons and widgets in pixels.',
+    });
+    gapRow.add_suffix(gapScale);
+    gridGroup.add(gapRow);
     
     gridGroup.add(createSwitchRow('Visualize Grid Overlay', 'Show grid lines on the desktop for easier widget alignment.', settings, 'show-grid').row);
     page.add(gridGroup);
-
     return page;
 }
