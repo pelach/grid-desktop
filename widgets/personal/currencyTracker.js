@@ -122,23 +122,25 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
         scale = newScale;
 
         const pad = Math.max(8, Math.round(10 * scale));
-        const titleFontSize = Math.max(11, Math.round(13 * scale));
-        const rateFontSize = Math.max(18, Math.round(26 * scale));
+        const titleFontSize = Math.max(12, Math.round(14 * scale));
+        // 26 helyett 34px-es bázisméret a domináns árfolyamkijelzéshez:
+        const rateFontSize = Math.max(22, Math.round(34 * scale));
         const pillFontSize = Math.max(10, Math.round(12 * scale));
-        const unitFontSize = Math.max(10, Math.round(12 * scale));
+        const unitFontSize = Math.max(11, Math.round(13 * scale));
         const footerFontSize = Math.max(8, Math.round(9 * scale));
 
-        mainLayout.style = `padding: ${pad}px; spacing: ${Math.round(6 * scale)}px;`;
-        headerBox.style = `margin-bottom: ${Math.round(6 * scale)}px;`;
+        mainLayout.style = `padding: ${pad}px; spacing: ${Math.round(4 * scale)}px;`;
+        headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
         headerIcon.icon_size = Math.round(16 * scale);
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
 
         const effectiveW = (currentWidth || container.width || 400) - (pad * 2);
-        leftCol.width = Math.floor(effectiveW * 0.48);
+        // 0.48 helyett 0.58 szélességet kap a bal oszlop, így a nagy szám kényelmesen elfér:
+        leftCol.width = Math.floor(effectiveW * 0.58);
         leftCol.style = `spacing: ${Math.round(4 * scale)}px;`;
 
         rateLabel.style = `${fontCss}color: ${textColor}; font-size: ${rateFontSize}px; font-weight: bold;`;
-        targetUnitLabel.style = `${fontCss}color: ${textColor}; font-size: ${unitFontSize}px; opacity: 0.6; margin-left: 6px;`;
+        targetUnitLabel.style = `${fontCss}color: ${textColor}; font-size: ${unitFontSize}px; opacity: 0.7; margin-left: 6px; font-weight: 600;`;
         footerLabel.style = `${fontCss}color: ${textColor}; font-size: ${footerFontSize}px; opacity: 0.45;`;
 
         // Pill színstílus frissítése a trendnek megfelelően
@@ -166,16 +168,17 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
             return;
         }
 
-        const padX = 2 * scale;
+        const padX = Math.round(6 * scale);
         const plotW = Math.max(10, w - (padX * 2));
-        const plotH = Math.max(10, Math.min(h * 0.45, 36 * scale));
+        // h * 0.45 helyett h * 0.32 és 24 * scale maximum magasság:
+        const plotH = Math.max(8, Math.min(h * 0.32, 24 * scale));
         const padBottom = (h - plotH) / 2;
 
         const minVal = Math.min(...historyRates);
         const maxVal = Math.max(...historyRates);
         const range = (maxVal - minVal) === 0 ? 1 : (maxVal - minVal);
 
-        ctx.setLineWidth(Math.max(2.0, 2.5 * scale));
+        ctx.setLineWidth(Math.max(1.8, 2.2 * scale));
         ctx.setLineCap(CAIRO_LINE_CAP_ROUND);
 
         if (isPositiveTrend) {
