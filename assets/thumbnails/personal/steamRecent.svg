@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 200" width="140" height="200">
+  <defs>
+    <linearGradient id="steamCard1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a475e" />
+      <stop offset="100%" stop-color="#1b2838" />
+    </linearGradient>
+    <linearGradient id="steamCard2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4f3b59" />
+      <stop offset="100%" stop-color="#231b28" />
+    </linearGradient>
+    <linearGradient id="steamCard3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b5259" />
+      <stop offset="100%" stop-color="#192528" />
+    </linearGradient>
+  </defs>
+
+  <!-- Teljes widget háttér (#212126) -->
+  <rect width="140" height="200" rx="16" ry="16" fill="#212126" />
+
+  <!-- Fejléc: Gamepad ikon + Steam Recent cím csík -->
+  <g transform="translate(14, 14)">
+    <!-- Gamepad ikon -->
+    <path fill="#ffffff" opacity="0.9" d="M3.5 1C1.6 1 0 2.6 0 4.5c0 1.4.9 2.6 2.1 3.1l-.8 3.5c-.1.6.3 1.1.9 1.1.3 0 .6-.2.8-.4l1.9-2.8h6.2l1.9 2.8c.2.3.5.4.8.4.6 0 1-.5.9-1.1l-.8-3.5C15.1 7.1 16 5.9 16 4.5 16 2.6 14.4 1 12.5 1h-9zm1.5 2h2v1.5h1.5v2H7v1.5H5V6.5H3.5V5H5V3zm7 1.5a1 1 0 110 2 1 1 0 010-2zm-1.5 2a1 1 0 110 2 1 1 0 010-2zm3 0a1 1 0 110 2 1 1 0 010-2zm-1.5 2a1 1 0 110 2 1 1 0 010-2z" />
+    <!-- Cím csík -->
+    <rect x="22" y="3" width="76" height="7" rx="3.5" fill="#ffffff" opacity="0.8" />
+  </g>
+
+  <!-- 1. Játékbanner (széles, lekerekített kártya) -->
+  <g transform="translate(14, 38)">
+    <rect width="112" height="42" rx="6" fill="url(#steamCard1)" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
+    <rect x="10" y="14" width="36" height="4" rx="2" fill="#ffffff" opacity="0.5" />
+    <rect x="10" y="22" width="22" height="3" rx="1.5" fill="#ffffff" opacity="0.3" />
+    <circle cx="88" cy="21" r="10" fill="#ffffff" opacity="0.08" />
+  </g>
+
+  <!-- 2. Játékbanner -->
+  <g transform="translate(14, 88)">
+    <rect width="112" height="42" rx="6" fill="url(#steamCard2)" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
+    <rect x="10" y="14" width="42" height="4" rx="2" fill="#ffffff" opacity="0.5" />
+    <rect x="10" y="22" width="28" height="3" rx="1.5" fill="#ffffff" opacity="0.3" />
+    <rect x="76" y="12" width="24" height="18" rx="3" fill="#ffffff" opacity="0.08" />
+  </g>
+
+  <!-- 3. Játékbanner -->
+  <g transform="translate(14, 138)">
+    <rect width="112" height="42" rx="6" fill="url(#steamCard3)" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
+    <rect x="10" y="14" width="32" height="4" rx="2" fill="#ffffff" opacity="0.5" />
+    <rect x="10" y="22" width="20" height="3" rx="1.5" fill="#ffffff" opacity="0.3" />
+    <circle cx="88" cy="21" r="9" fill="#ffffff" opacity="0.08" />
+  </g>
+</svg>

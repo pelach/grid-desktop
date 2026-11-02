@@ -372,3 +372,12 @@ export function addCommandRunnerWidget(settings, title = 'Command Runner', comma
     };
     addWidget(settings, config, width, height);
 }
+
+export function addSteamRecentWidget(settings, steamId = '', width = 2, height = 4) {
+    if (!steamId) return;
+    addWidget(settings, {
+        id: nextWidgetId(settings, 'steamRecent'),
+        type: 'steamRecent',
+        steamId,
+    }, width, height);
+}

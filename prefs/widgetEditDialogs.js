@@ -27,7 +27,8 @@ import {
     buildMoonSettings,
     buildDownloadsSettings,
     buildAudioVisualizerSettings,
-    buildCommandRunnerSettings
+    buildCommandRunnerSettings,
+    buildSteamRecentSettings
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -130,6 +131,9 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
             break;
         case 'commandRunner':
             buildCommandRunnerSettings(group, widget, saveHandlers);
+            break;
+        case 'steamRecent':
+            buildSteamRecentSettings(group, widget, saveHandlers);
             break;
     }
 

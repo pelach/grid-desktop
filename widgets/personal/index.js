@@ -10,3 +10,4 @@ export { createRssHeadlinesNode } from './rssHeadlines.js';
 export { createScreenTimeNode } from './screenTimeWidget.js';
 export { createTodayHistoryNode } from './todayHistory.js';
 export { createWatermindNode } from './watermind.js';
+export { createSteamRecentNode } from './steamRecent.js';

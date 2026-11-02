@@ -85,7 +85,8 @@ import {
     createRssHeadlinesNode,
     createScreenTimeNode,
     createTodayHistoryNode,
-    createWatermindNode
+    createWatermindNode,
+    createSteamRecentNode
 } from '../widgets/personal/index.js';
 
 const weatherCreator = (data, w, h, x, y) => {
@@ -161,6 +162,7 @@ const WIDGET_CREATORS = {
     'calendarEvents': (data, w, h, x, y) => createCalendarEventsNode(data, w, h, x, y),
     'audioVisualizer': (data, w, h, x, y) => createAudioVisualizerNode(data, w, h, x, y),
     'commandRunner': (data, w, h, x, y) => createCommandRunnerNode(data, w, h, x, y),
+    'steamRecent': (data, w, h, x, y) => createSteamRecentNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

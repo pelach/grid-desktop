@@ -14,6 +14,7 @@ import {
     addMoonWidget,
     addWatermindWidget,
     addCommandRunnerWidget,
+    addSteamRecentWidget,
 } from './widgetAdders.js';
 import { createAppSelectionControls } from './appSelection.js';
 import { createLiveCitySearchRow, buildOpenMeteoCitySearchRow } from './citySearch.js';
@@ -615,6 +616,37 @@ export function openAddCommandRunnerDialog(parentWindow, settings) {
 
     addActionRow.set_child(addBtn);
     cmdSectionGroup.add(addActionRow);
+
+    window.present();
+}
+
+export function openAddSteamRecentDialog(parentWindow, settings) {
+    let idRow;
+
+    const { window, group } = createModernWidgetAddDialog(parentWindow, 'Configure Steam Recent Widget', () => {
+        const steamId = idRow.get_text().trim();
+        if (steamId) {
+            addSteamRecentWidget(settings, steamId, 4, 2);
+            return true;
+        }
+        return false;
+    });
+
+    idRow = new Adw.EntryRow({
+        title: 'Steam ID or Vanity Name',
+        text: '',
+    });
+
+    const hintLabel = new Gtk.Label({
+        label: 'Enter your 64-bit Steam ID (e.g. 76561198...) or custom profile URL name. Note: Your profile and game details must be set to Public.',
+        xalign: 0,
+        css_classes: ['dim-label'],
+        wrap: true,
+        margin_top: 8,
+    });
+
+    group.add(idRow);
+    group.add(hintLabel);
 
     window.present();
 }

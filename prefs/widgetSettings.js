@@ -1271,3 +1271,18 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
         target.commands = items.filter(it => it.label || it.command);
     });
 }
+
+export function buildSteamRecentSettings(container, widget, saveHandlers) {
+    const idRow = new Adw.EntryRow({
+        title: 'Steam ID or Vanity Name',
+        text: widget.steamId || '',
+    });
+    container.add(idRow);
+
+    saveHandlers.push((target) => {
+        const val = idRow.get_text().trim();
+        if (val) {
+            target.steamId = val;
+        }
+    });
+}

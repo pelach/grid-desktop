@@ -87,6 +87,7 @@ import {
     openAddRssHeadlinesDialog,
     openAddWatermindDialog,
     openAddCommandRunnerDialog,
+    openAddSteamRecentDialog
 } from './widgetAddDialogs.js';
 
 import { STORE_CATEGORIES, STORE_WIDGETS } from './widgetCatalog.js';
@@ -302,6 +303,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 def(STORE_WIDGETS.cryptoWidget, () => addCryptoWidget(settings)),
                 def(STORE_WIDGETS.githubWidget, () => openAddGithubDialog(window, settings)),
                 def(STORE_WIDGETS.lavaLamp, () => addLavaLampWidget(settings)),
+                def(STORE_WIDGETS.steamRecent, () => openAddSteamRecentDialog(window, settings)),
             ]
         }
     ];
