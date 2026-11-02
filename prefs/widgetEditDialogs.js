@@ -150,7 +150,20 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
         for (const handler of saveHandlers) {
             handler(target);
         }
-
+        // --- APPLAUNCHER AUTOMATIKUS SKÁLÁZÁS AZ APPOK SZÁMA ALAPJÁN ---
+        if (target.type === 'app-launcher') {
+            const apps = Array.isArray(target.apps) ? target.apps : [];
+            if (apps.length > 4 && target.width < 4) {
+                // Ha átlépte a 4-et, automatikusan váltson 4x2-es széles nézetre:
+                target.width = 4;
+                target.height = 2;
+            } else if (apps.length <= 4 && target.width === 4 && target.height === 2) {
+                // Ha visszacsökkentették 4 alá, visszaállhat 2x2-es kompakttá:
+                target.width = 2;
+                target.height = 2;
+            }
+        }
+        // ----------------------------------------------------------------
         const widgets = getWidgets(settings);
         const idx = widgets.findIndex(w => w.id === widget.id);
         if (idx !== -1) {

@@ -806,6 +806,16 @@ export function nextWidgetId(settings, prefix) {
 /** Finds an empty grid spot, assigns position/size, and persists the widget. */
 export function addWidget(settings, widgetData, defaultWidth, defaultHeight) {
     const widgets = getWidgets(settings);
+
+    if (widgetData.type === 'app-launcher') {
+        const appCount = Array.isArray(widgetData.apps) ? widgetData.apps.length : 0;
+        if (appCount > 4) {
+            defaultWidth = 4;
+            defaultHeight = 2;
+        }
+    }
+    
+
     const defaultPreset = supportsSizePresets(widgetData)
         ? resolveWidgetSizePreset(widgetData, 0)
         : null;
@@ -818,6 +828,11 @@ export function addWidget(settings, widgetData, defaultWidth, defaultHeight) {
 
     let screenWidth = 2560; // Biztonságos fallback a korábbi 1920 helyett!
 
+    if (widgetData.type === 'app-launcher' && defaultWidth > spawnWidth) {
+        spawnWidth = defaultWidth;
+        spawnHeight = defaultHeight;
+    }
+    
     try {
         try {
             if (typeof global !== 'undefined' && global.stage && global.stage.width) {
