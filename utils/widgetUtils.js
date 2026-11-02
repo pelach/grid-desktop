@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GioUnix from 'gi://GioUnix';
-import Gdk from 'gi://Gdk';
+
 
 /** Empty string means no font-family override; widgets inherit the system theme font. */
 export const DEFAULT_FONT_FAMILY = '';
@@ -819,24 +819,18 @@ export function addWidget(settings, widgetData, defaultWidth, defaultHeight) {
     let screenWidth = 2560; // Biztonságos fallback a korábbi 1920 helyett!
 
     try {
-        if (typeof global !== 'undefined' && global.stage && global.stage.width) {
-            screenWidth = global.stage.width;
-        } else if (typeof Gdk !== 'undefined') {
-            const display = Gdk.Display.get_default();
-            const monitors = display ? display.get_monitors() : null;
-            if (monitors) {
-                // GTK4 GListModel kompatibilitás:
-                const n = typeof monitors.get_n_items === 'function' ? monitors.get_n_items() : 0;
-                if (n > 0) {
-                    const mon = monitors.get_item(0);
-                    if (mon && typeof mon.get_geometry === 'function') {
-                        const geom = mon.get_geometry();
-                        if (geom && geom.width > 0) {
-                            screenWidth = geom.width;
-                        }
-                    }
+        try {
+            if (typeof global !== 'undefined' && global.stage && global.stage.width) {
+                screenWidth = global.stage.width;
+            } else if (typeof global !== 'undefined' && global.display) {
+                const primaryMonIdx = global.display.get_primary_monitor();
+                const geom = global.display.get_monitor_geometry(primaryMonIdx);
+                if (geom && geom.width > 0) {
+                    screenWidth = geom.width;
                 }
             }
+        } catch (e) {
+            screenWidth = 1920;
         }
     } catch (e) {
         screenWidth = 2560;
