@@ -237,7 +237,7 @@ export const STORE_WIDGETS = Object.freeze({
         description: 'Circular memory telemetry',
         gridSize: '4x2',
         thumbnail: 'system/memory-donut.svg',
-        fallbackIconName: 'utilities-terminal-symbolic',
+        fallbackIconName: 'media-memory-symbolic',
     },
     // ── Focus & Productivity ───────────────────────────────────────────
     pomodoroTimer: {

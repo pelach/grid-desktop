@@ -62,7 +62,7 @@ export function createMemoryDonutNode(config, width, height, xPosition, yPositio
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerIcon = new St.Icon({
-        icon_name: 'drive-harddisk-symbolic',
+        icon_name: 'media-memory-symbolic',
         style: `color: ${textColor}; margin-right: 6px; opacity: 0.85;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
