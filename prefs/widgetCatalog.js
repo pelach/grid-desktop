@@ -323,7 +323,7 @@ export const STORE_WIDGETS = Object.freeze({
         title: 'Dual Clock',
         description: 'Dual digital and analog clock for any selected global city.',
         gridSize: '4x2',
-        thumbnail: 'time/worldDual.svg',
+        thumbnail: 'time/wordDual.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
     },
     binary: {
