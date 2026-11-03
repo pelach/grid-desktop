@@ -82,6 +82,7 @@ import {
     openAddCountdownDialog,
     openAddWorldAnalogDialog,
     openAddWorldClockDialog,
+    openAddDualClockDialog,
 
     // Personal
     openAddGithubDialog,
@@ -277,6 +278,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 def(STORE_WIDGETS.worldClock, () => openAddWorldClockDialog(window, settings)),
                 def(STORE_WIDGETS.worldAnalog, () => openAddWorldAnalogDialog(window, settings)),
                 def(STORE_WIDGETS.binary, () => addBinaryWidget(settings)),
+                def(STORE_WIDGETS.timeDual, () => openAddDualClockDialog(window, settings)),
 
                 // Időzítők
                 def(STORE_WIDGETS.stopwatch, () => addStopWatchWidget(settings)),

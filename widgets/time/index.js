@@ -5,6 +5,7 @@ import { createAnalogTimeNode } from './timeAnalog.js';
 import { createTimerNode } from './timerWidget.js';
 import { createCountdownNode } from './countdownWidget.js';
 import { createBinaryNode } from './binary.js';
+import { createCityDualTimeNode } from './timeCityDual.js';
 
 export {
     createDigitalTimeNode,
@@ -13,7 +14,8 @@ export {
     createAnalogTimeNode,
     createTimerNode,
     createCountdownNode,
-    createBinaryNode
+    createBinaryNode,
+    createCityDualTimeNode
 };
 
 export { createCalendarNode } from './calendar.js';
@@ -24,6 +26,9 @@ export { createCalendarEventsNode } from './calendarEvents.js';
 
 
 export function createTimeNode(widgetData, width, height, xPosition, yPosition) {
+    if (widgetData.layout === 'dualClock' || widgetData.type === 'timeCityDual' || widgetData.type === 'dualClock') {
+        return createCityDualTimeNode(widgetData, width, height, xPosition, yPosition);
+    }
     if (widgetData.layout === 'analog' || widgetData.type === 'analogClock') {
         return createAnalogTimeNode(widgetData, width, height, xPosition, yPosition);
     }

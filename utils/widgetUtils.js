@@ -37,6 +37,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'calendar-grid': { minCols: 2, minRows: 2 },
     'calendarTasks': { minCols: 2, minRows: 2 },
     'todayHistory': { minCols: 2, minRows: 2 },
+    'timeDual':  { minCols: 4, minRows: 2 },
 
     // --- 2. IDŐJÁRÁS ÉS KÖRNYEZET ---
     'weather': { minCols: 2, minRows: 2 },
@@ -553,6 +554,7 @@ const SIZE_PRESETS = {
     'calendar-grid': [[2, 2], [3, 3], [4, 4]],
     'calendarTasks': [[2, 2], [3, 3], [4, 4]],
     'todayHistory': [[2, 2], [3, 3], [4, 4]],
+    'timeDual': [[4, 2], [5, 3], [6, 4]],
     // --- 2. IDŐJÁRÁS ÉS KÖRNYEZET ---
     'weatherStandard': [[2, 2], [3, 3], [4, 4]],
     'weatherSimple': [[2, 2], [3, 3], [4, 4]],
@@ -618,6 +620,9 @@ function resolveSizePresetTable(widgetData) {
         case 'worldAnalog':
             return SIZE_PRESETS.worldAnalog;
         case 'time':
+            if (widgetData.layout === 'dualClock' || widgetData.layout === 'timeDual') {
+                return SIZE_PRESETS.timeDual;
+            }
             if (widgetData.layout === 'worldAnalog' || widgetData.layout === 'worldClockAnalog') {
                 return SIZE_PRESETS.worldAnalog;
             }

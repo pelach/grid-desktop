@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 176" width="360" height="176">
+  <defs>
+    <style>
+      .bg { fill: #212126; stroke: rgba(0, 0, 0, 0.75); stroke-width: 1.5; rx: 16px; }
+      .time { font-family: 'Cantarell', 'Ubuntu', sans-serif; font-size: 38px; font-weight: 300; fill: #ffffff; }
+      .city { font-family: 'Cantarell', 'Ubuntu', sans-serif; font-size: 13.5px; font-weight: 500; fill: #ffffff; opacity: 0.75; }
+      .offset { font-family: 'Cantarell', 'Ubuntu', sans-serif; font-size: 12.5px; font-weight: 400; fill: #ffffff; opacity: 0.6; }
+      .dial-num { font-family: 'Cantarell', 'Ubuntu', sans-serif; font-size: 9px; font-weight: bold; fill: #ffffff; text-anchor: middle; dominant-baseline: central; }
+      .hand-main { stroke: #ffffff; stroke-linecap: round; }
+      .hand-sec { stroke: #ffa726; stroke-linecap: round; }
+      .center-dot { fill: #ffa726; }
+    </style>
+  </defs>
+
+  <!-- Kártya háttér -->
+  <rect width="358.5" height="174.5" x="0.75" y="0.75" class="bg" />
+
+  <!-- Bal oldali szöveges blokk -->
+  <g transform="translate(24, 46)">
+    <!-- Digitális idő (16:37) -->
+    <text x="0" y="34" class="time">16:37</text>
+
+    <!-- Helyszín és zóna -->
+    <text x="0" y="58" class="city">Bur Dubai, AE (+04)</text>
+
+    <!-- Relatív eltolódás -->
+    <text x="0" y="76" class="offset">Today, +3hrs</text>
+  </g>
+
+  <!-- Jobb oldali analóg óra (cx=270, cy=88, r=54) -->
+  <g transform="translate(270, 88)">
+    <!-- 12 számlap pozíció körben (r = 44) -->
+    <text x="0" y="-44" class="dial-num">12</text>
+    <text x="22" y="-38.1" class="dial-num">1</text>
+    <text x="38.1" y="-22" class="dial-num">2</text>
+    <text x="44" y="0" class="dial-num">3</text>
+    <text x="38.1" y="22" class="dial-num">4</text>
+    <text x="22" y="38.1" class="dial-num">5</text>
+    <text x="0" y="44" class="dial-num">6</text>
+    <text x="-22" y="38.1" class="dial-num">7</text>
+    <text x="-38.1" y="22" class="dial-num">8</text>
+    <text x="-44" y="0" class="dial-num">9</text>
+    <text x="-38.1" y="-22" class="dial-num">10</text>
+    <text x="-22" y="-38.1" class="dial-num">11</text>
+
+    <!-- Óramutató (4 óra 37 perc -> ~138.5 fok, hossz: 24px) -->
+    <line x1="0" y1="0" x2="15.9" y2="18.0" class="hand-main" stroke-width="4.2" />
+
+    <!-- Percmutató (37 perc -> 222 fok, hossz: 37px) -->
+    <line x1="0" y1="0" x2="-24.8" y2="27.5" class="hand-main" stroke-width="3.2" />
+
+    <!-- Másodpercmutató (kb. 57 másodperc -> -18 fok, hossz: 45px, ellensúly: 8px) -->
+    <line x1="2.5" y1="7.6" x2="-13.9" y2="-42.8" class="hand-sec" stroke-width="1.6" />
+
+    <!-- Tengelyközép pötty -->
+    <circle cx="0" cy="0" r="2.8" class="center-dot" />
+  </g>
+</svg>

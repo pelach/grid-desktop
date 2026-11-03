@@ -59,7 +59,8 @@ import {
     createTimerNode,
     createWorldTimeAnalogNode,
     createCalendarWeatherNode,
-    createCalendarEventsNode
+    createCalendarEventsNode,
+    createCityDualTimeNode
 } from '../widgets/time/index.js';
 
 // Focus & Productivity
@@ -165,6 +166,7 @@ const WIDGET_CREATORS = {
     'commandRunner': (data, w, h, x, y) => createCommandRunnerNode(data, w, h, x, y),
     'steamRecent': (data, w, h, x, y) => createSteamRecentNode(data, w, h, x, y),
     'memoryDonut': (data, w, h, x, y) => createMemoryDonutNode(data, w, h, x, y),
+    'timeDual': (data, w, h, x, y) => createCityDualTimeNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

@@ -15,6 +15,7 @@ import {
     addWatermindWidget,
     addCommandRunnerWidget,
     addSteamRecentWidget,
+    addDualClockWidget
 } from './widgetAdders.js';
 import { createAppSelectionControls } from './appSelection.js';
 import { createLiveCitySearchRow, buildOpenMeteoCitySearchRow } from './citySearch.js';
@@ -648,5 +649,25 @@ export function openAddSteamRecentDialog(parentWindow, settings) {
     group.add(idRow);
     group.add(hintLabel);
 
+    window.present();
+}
+
+export function openAddDualClockDialog(parentWindow, settings) {
+    let cityPicker;
+
+    const { window, group } = createModernWidgetAddDialog(parentWindow, 'Configure City Clock Widget', () => {
+        const city = cityPicker.getSelectedCity();
+        if (city && city.timezone) {
+            addDualClockWidget(settings, [city], 4, 2); // <-- addDualClockWidget hívása!
+            return true;
+        }
+        return false;
+    });
+
+    const defaultCity = { name: 'Pensacola', timezone: 'America/Chicago', country: 'US', admin1: 'Florida' };
+    const box = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL, spacing: 12 });
+    cityPicker = createLiveCitySearchRow(box, 'Target City / Timezone:', defaultCity, 0);
+
+    group.add(box);
     window.present();
 }

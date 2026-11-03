@@ -1286,3 +1286,39 @@ export function buildSteamRecentSettings(container, widget, saveHandlers) {
         }
     });
 }
+
+export function buildDualClockSettings(container, widget, settings, saveHandlers) {
+    // 1. 24-órás formátum kapcsoló
+    const formatRow = new Adw.SwitchRow({
+        title: 'Use 24-Hour Format',
+        active: widget.use24h !== undefined ? widget.use24h : settings.get_boolean('time-format-24h'),
+    });
+    container.add(formatRow);
+
+    // 2. Másodpercmutató mutatása
+    const secondHandRow = new Adw.SwitchRow({
+        title: 'Show Second Hand',
+        active: widget.showSecondHand !== false,
+    });
+    container.add(secondHandRow);
+
+    // 3. Egyetlen város választó (a widget.cities[0] vagy widget.city alapján)
+    const currentCity = (widget.cities && widget.cities[0]) || widget.city || {
+        name: 'Pensacola',
+        timezone: 'America/Chicago',
+        country: 'US',
+        admin1: 'Florida'
+    };
+
+    const cityPicker = createLiveCitySearchRow(container, 'Target City / Timezone', currentCity, 0);
+
+    saveHandlers.push((target) => {
+        target.use24h = formatRow.get_active();
+        target.showSecondHand = secondHandRow.get_active();
+        const selected = cityPicker.getSelectedCity();
+        if (selected) {
+            target.cities = [selected];
+            target.city = selected;
+        }
+    });
+}

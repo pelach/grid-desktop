@@ -385,3 +385,14 @@ export function addSteamRecentWidget(settings, steamId = '', width = 2, height =
 export function addMemoryDonutWidget(settings, width = 4, height = 2) {
     addWidget(settings, { id: nextWidgetId(settings, 'memoryDonut'), type: 'memoryDonut' }, width, height);
 }
+
+export function addDualClockWidget(settings, cities = null, width = 4, height = 2) {
+    const config = {
+        id: nextWidgetId(settings, 'timeDual'),
+        type: 'timeDual',
+    };
+    if (cities && Array.isArray(cities)) {
+        config.cities = cities;
+    }
+    addWidget(settings, config, width, height);
+}

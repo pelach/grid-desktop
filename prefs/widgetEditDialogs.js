@@ -28,7 +28,8 @@ import {
     buildDownloadsSettings,
     buildAudioVisualizerSettings,
     buildCommandRunnerSettings,
-    buildSteamRecentSettings
+    buildSteamRecentSettings,
+    buildDualClockSettings
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -134,6 +135,10 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
             break;
         case 'steamRecent':
             buildSteamRecentSettings(group, widget, saveHandlers);
+            break;
+        case 'dualClock':
+        case 'timeDual':
+            buildDualClockSettings(group, widget, settings, saveHandlers);
             break;
     }
 

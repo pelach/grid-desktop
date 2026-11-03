@@ -319,6 +319,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'time/worldAnalog.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
     },
+    timeDual: {
+        title: 'Dual Clock',
+        description: 'Dual digital and analog clock for any selected global city.',
+        gridSize: '4x2',
+        thumbnail: 'time/worldDual.svg',
+        fallbackIconName: 'preferences-system-time-symbolic',
+    },
     binary: {
         title: 'Binary Time',
         description: 'A clean BCD binary clock display.',
@@ -482,7 +489,7 @@ export const STORE_WIDGETS = Object.freeze({
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards', 'moonWidget'],
     music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget', 'audioVisualizer'],
-    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather', 'calendarEvents'],
+    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather', 'calendarEvents', 'timeDual'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
         'systemDashboard',
@@ -684,6 +691,8 @@ function getStoreWidgetKey(widget) {
             return 'steamRecent';
         case 'memoryDonut':
             return 'memoryDonut';
+        case 'timeDual':
+            return 'timeDual';
         default:
             return null;
     }
@@ -770,6 +779,8 @@ export function getWidgetDetailText(widget) {
         }
         case 'steamRecent':
             return `User: ${widget.steamId || 'Not configured'}`;
+        case 'timeDual':
+            return `Location: ${widget.city || 'Unknown'}`;
         default:
             return '';
     }
