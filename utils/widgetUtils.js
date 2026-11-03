@@ -586,8 +586,8 @@ const SIZE_PRESETS = {
     'musicWide': [[4, 2], [5, 3], [6, 4]],
     'audioOutput': [[2, 2], [3, 3], [4, 4]],
     'lyrics': [[4, 2], [5, 3], [6, 4]],
-    'audioVisualizer': [[4, 2], [10, 4], [12, 4]],
-    'audioMixer': [[4, 2], [10, 4], [12, 4]],
+    'audioVisualizer': [[4, 2], [5, 3], [6, 4]],
+    'audioMixer': [[4, 2], [5, 3], [6, 4]],
     // --- 5. KAPCSOLÓK ÉS VEZÉRLÉS ---
     'battery-status': [[2, 2], [3, 3], [4, 4]],
     'powerProfiles': [[2, 2], [3, 3], [4, 4]],
