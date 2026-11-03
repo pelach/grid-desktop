@@ -79,6 +79,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'audioOutput': { minCols: 2, minRows: 2 },
     'lyrics': { minCols: 4, minRows: 2 },
     'audioVisualizer': { minCols: 4, minRows: 2 },
+    'audioMixer': { minCols: 4, minRows: 2 },
 
     // --- 5. KAPCSOLÓK ÉS VEZÉRLÉS ---
     'battery-status': { minCols: 2, minRows: 2 },
@@ -586,6 +587,7 @@ const SIZE_PRESETS = {
     'audioOutput': [[2, 2], [3, 3], [4, 4]],
     'lyrics': [[4, 2], [5, 3], [6, 4]],
     'audioVisualizer': [[4, 2], [10, 4], [12, 4]],
+    'audioMixer': [[4, 2], [10, 4], [12, 4]],
     // --- 5. KAPCSOLÓK ÉS VEZÉRLÉS ---
     'battery-status': [[2, 2], [3, 3], [4, 4]],
     'powerProfiles': [[2, 2], [3, 3], [4, 4]],

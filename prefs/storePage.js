@@ -33,6 +33,7 @@ import {
     addUpdatesWidget,
     addHardwerInfoWidget,  
     addMemoryDonutWidget, 
+    addAudioMixerWidget,
 
     // Focus & Productivity
     addClipboardWidget,
@@ -221,6 +222,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 def(STORE_WIDGETS[STORE_CATEGORIES.music[1]], () => addMusicWidget(settings, 4, 2)),
                 def(STORE_WIDGETS.lyricsWidget, () => addLyricsWidget(settings, 4, 2)),
                 def(STORE_WIDGETS.audioVisualizer, () => addAudioVisualizerWidget(settings, 4, 2)),
+                def(STORE_WIDGETS.audioMixer, () => addAudioMixerWidget(settings, 4, 2)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.media[0]], () => openAddImageDialog(window, settings)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.media[1]], () => openAddSlideshowDialog(window, settings)),
             ]

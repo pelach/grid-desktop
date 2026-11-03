@@ -83,6 +83,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'media/audioVisualizer.svg',
         fallbackIconName: 'audio-volume-high-symbolic',
     },
+    audioMixer: {
+        title: 'Audio Mixer',
+        description: 'Per-app volume mixer with master audio output control.',
+        gridSize: '4x2',
+        thumbnail: 'media/audio-mixer.svg',
+        fallbackIconName: 'audio-volume-high-symbolic',
+    },
     imageGif: {
         title: 'Image / GIF',
         description: 'Display an image or animated GIF directly on your desktop.',
@@ -531,7 +538,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'hardwerinfo',
         'commandRunner',
         'steamRecent',
-        'memoryDonut'
+        'memoryDonut',
+        'audioMixer'
 
     ],
 });
@@ -693,6 +701,8 @@ function getStoreWidgetKey(widget) {
             return 'memoryDonut';
         case 'timeDual':
             return 'timeDual';
+        case 'audioMixer':
+            return 'audioMixer';
         default:
             return null;
     }

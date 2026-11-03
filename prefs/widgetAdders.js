@@ -396,3 +396,10 @@ export function addDualClockWidget(settings, cities = null, width = 4, height = 
     }
     addWidget(settings, config, width, height);
 }
+
+export function addAudioMixerWidget(settings, width = 2, height = 4) {
+    addWidget(settings, {
+        id: nextWidgetId(settings, 'audioMixer'),
+        type: 'audioMixer',
+    }, width, height);
+}

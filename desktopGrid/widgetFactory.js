@@ -45,7 +45,8 @@ import {
     createUpdatesNode,
     createHardwareInfoNode,
     createCommandRunnerNode,
-    createMemoryDonutNode
+    createMemoryDonutNode,
+    createAudioMixerNode
 } from '../widgets/system/index.js';
 
 // Time & Calendar
@@ -167,6 +168,7 @@ const WIDGET_CREATORS = {
     'steamRecent': (data, w, h, x, y) => createSteamRecentNode(data, w, h, x, y),
     'memoryDonut': (data, w, h, x, y) => createMemoryDonutNode(data, w, h, x, y),
     'timeDual': (data, w, h, x, y) => createCityDualTimeNode(data, w, h, x, y),
+    'audioMixer': (data, w, h, x, y) => createAudioMixerNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

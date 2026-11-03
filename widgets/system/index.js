@@ -18,3 +18,4 @@ export { createUpdatesNode } from './updates.js';
 export { createHardwareInfoNode } from './hardwerinfo.js';
 export { createCommandRunnerNode } from './commandRunner.js';
 export { createMemoryDonutNode } from './memoryDonut.js';
+export { createAudioMixerNode } from './audioMixer.js';
