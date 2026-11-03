@@ -780,7 +780,8 @@ export function getWidgetDetailText(widget) {
         case 'steamRecent':
             return `User: ${widget.steamId || 'Not configured'}`;
         case 'timeDual':
-            return `Location: ${widget.city || 'Unknown'}`;
+            const cityName = widget.city?.name || (widget.cities && widget.cities[0]?.name) || widget.city || 'Unknown';
+            return `Location: ${cityName}`;
         default:
             return '';
     }
