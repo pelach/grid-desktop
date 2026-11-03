@@ -22,8 +22,8 @@ import {
 
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CONTAINER_WIDTH_PX = 200;
-const BASE_CONTAINER_HEIGHT_PX = 400;
+const BASE_CONTAINER_WIDTH_PX = 400;
+const BASE_CONTAINER_HEIGHT_PX = 200;
 
 // ── Tisztán Cairo-alapú kapszula csúszka a controlsSliders mintájára ──
 class CapsuleSlider {
