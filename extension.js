@@ -113,6 +113,9 @@ export default class GridgetsExtension extends Extension {
         this._settingSignalIds.push(
             this._settings.connect('changed::grid-gap-size', () => this._rebuildGrids())
         );
+        this._settingSignalIds.push(
+            this._settings.connect('changed::show-widget-border', () => this._rebuildGrids())
+        );
 
         enableDashContextMenu();
     }

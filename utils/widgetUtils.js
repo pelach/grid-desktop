@@ -168,6 +168,7 @@ export function resolveWidgetOverrides(widgetData, globalSettings) {
         globalBgOpacity,
         globalFontFamily,
         globalBorderRadius,
+        globalShowBorder,
     } = globalSettings;
 
     const borderRadius = widgetData.borderRadius !== undefined 
@@ -180,6 +181,7 @@ export function resolveWidgetOverrides(widgetData, globalSettings) {
         globalForegroundColor: globalFgColor,
         globalBackgroundOpacity: globalBgOpacity !== undefined ? globalBgOpacity : 100, 
         globalFontFamily: globalFontFamily,
+        showBorder: widgetData.showBorder !== undefined ? widgetData.showBorder : (globalShowBorder ?? true),
     });
 }
 
@@ -239,6 +241,7 @@ export function readGlobalSettings(settings, interfaceSettings = null) {
         globalWeatherDynamicImage: settings.get_boolean('weather-dynamic-image'),
         globalWeatherCity: settings.get_string('weather-city'),
         globalUse24h: settings.get_boolean('time-format-24h'),
+        globalShowBorder: settings.get_boolean('show-widget-border'),
     };
 }
 

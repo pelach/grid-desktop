@@ -170,6 +170,11 @@
       <summary>Grid layout v2 migration flag</summary>
       <description>Indicates whether existing widget dimensions have been migrated to the 1x1 base grid.</description>
     </key>
+    <key name="show-widget-border" type="b">
+      <default>true</default>
+      <summary>Show Widget Border</summary>
+      <description>Whether to render a glass highlight border around widgets.</description>
+    </key>
   </schema>
 
 </schemalist>

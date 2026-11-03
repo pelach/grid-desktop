@@ -105,16 +105,15 @@ export function registerWidgetCleanup(widgetNode, cleanupFn) {
 
 
 export function resolveWidgetGlassHighlight(config) {
+    if (!config?.followSystemTheme && config?.showBorder === false) {
+        return '';
+    }
     const bgColor = resolveWidgetBackgroundColor(config);
     const isDark = isDarkBackgroundColor(bgColor);
 
     if (isDark) {
-        // Pontosan mint a macOS Dockon: mély, határozott sötét kontúr
-        // A widget 0.8-as feketéje mellett ez egy tömör, éles sötét peremet ad
         return 'border: 1.5px solid rgba(0, 0, 0, 0.75);';
     }
-
-    // Világos/színes (pl. sárga jegyzet)
     const match = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (match) {
         const r = Math.max(0, Math.round(parseInt(match[1], 10) * 0.70));

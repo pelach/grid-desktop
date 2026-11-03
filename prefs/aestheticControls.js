@@ -166,6 +166,13 @@ export function buildGlobalAestheticsGroup(settings) {
 
     group.add(createRadiusRow('Global Corner Radius', 'Corner rounding for all widgets in pixels (0–32px).', settings, 'global-border-radius'));
  
+    group.add(createSwitchRow(
+        'Widget Border Highlight',
+        'Show a contrasting glass contour border around widgets.',
+        settings,
+        'show-widget-border'
+    ).row);
+    
     group.add(createColorRow('Global Foreground/Text Color', 'Global default text color.', settings, 'global-foreground-color', DEFAULT_FG_COLOR));
 
     const fontRow = new Adw.ActionRow({
