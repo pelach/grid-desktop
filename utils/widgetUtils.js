@@ -544,6 +544,7 @@ export function resolveExplicitFontFamily(config) {
  */
 export const SIZE_PRESET_TIERS = ['Small', 'Medium', 'Large'];
 const SIZE_PRESETS = {
+    // --- 1. IDŐ ÉS DÁTUM ---
     'time': [[2, 2], [3, 3], [4, 4]],
     'timeAnalog': [[2, 2], [3, 3], [4, 4]],
     'countdown': [[2, 2], [3, 3], [4, 4]],
@@ -555,65 +556,70 @@ const SIZE_PRESETS = {
     'calendar-grid': [[2, 2], [3, 3], [4, 4]],
     'calendarTasks': [[2, 2], [3, 3], [4, 4]],
     'todayHistory': [[2, 2], [3, 3], [4, 4]],
-    'timeDual': [[4, 2], [5, 3], [6, 4]],
+    'timeDual': [[4, 2], [6, 3], [8, 4]],
+
     // --- 2. IDŐJÁRÁS ÉS KÖRNYEZET ---
     'weatherStandard': [[2, 2], [3, 3], [4, 4]],
     'weatherSimple': [[2, 2], [3, 3], [4, 4]],
     'weatherCards': [[2, 2], [3, 3], [4, 4]],
-    'weatherForecast': [[4, 2], [5, 3], [6, 4]],
-    'weatherBars': [[4, 4], [5, 5], [6, 6]],
+    'weatherForecast': [[4, 2], [6, 3], [8, 4]],
+    'weatherBars': [[4, 4], [6, 6], [8, 8]],
     'sun-schedule': [[2, 2], [3, 3], [4, 4]],
-    'moon': [[4, 2], [5, 3], [6, 4]],
-    'calendarWeather': [[4, 2], [5, 3], [6, 4]],
-    'calendarEvents': [[4, 2], [5, 3], [6, 4]],
+    'moon': [[4, 2], [6, 3], [8, 4]],
+    'calendarWeather': [[4, 2], [6, 3], [8, 4]],
+    'calendarEvents': [[4, 2], [6, 3], [8, 4]],
+
     // --- 3. HARDVER ÉS MONITORING ---
     'system-info': [[2, 2], [3, 3], [4, 4]],
-    'ping-monitor':[[2, 2], [3, 3], [4, 4]],
+    'ping-monitor': [[2, 2], [3, 3], [4, 4]],
     'updates': [[2, 2], [3, 3], [4, 4]],
     'mailGoa': [[2, 2], [3, 3], [4, 4]],
-    'cpu-ram': [[4, 2], [5, 3], [6, 4]],
-    'network-speed': [[4, 2], [5, 3], [6, 4]],
-    'binary': [[4, 2], [5, 3], [6, 4]],
-    'uptime': [[4, 2], [5, 3], [6, 4]],
+    'cpu-ram': [[4, 2], [6, 3], [8, 4]],
+    'network-speed': [[4, 2], [6, 3], [8, 4]],
+    'binary': [[4, 2], [6, 3], [8, 4]],
+    'uptime': [[4, 2], [6, 3], [8, 4]],
     'system-dashboard': [[2, 2], [6, 5], [8, 6]],
-    'resource-wheel': [[4, 2], [5, 3], [6, 4]],
-    'storageBar': [[4, 2], [5, 3], [6, 4]],
-    'hardwerinfo': [[4, 4], [5, 5], [6, 6]],
-    'commandRunner': [[4, 2], [5, 3], [6, 4]],
-    'memoryDonut': [[4, 2], [5, 3], [6, 4]],
+    'resource-wheel': [[4, 2], [6, 3], [8, 4]],
+    'storageBar': [[4, 2], [6, 3], [8, 4]],
+    'hardwerinfo': [[4, 4], [6, 6], [8, 8]],
+    'commandRunner': [[4, 2], [6, 3], [8, 4]],
+    'memoryDonut': [[4, 2], [6, 3], [8, 4]],
+
     // --- 4. MÉDIA ÉS HANG ---
     'musicSmall': [[2, 2], [3, 3], [4, 4]],
-    'musicWide': [[4, 2], [5, 3], [6, 4]],
+    'musicWide': [[4, 2], [6, 3], [8, 4]],
     'audioOutput': [[2, 2], [3, 3], [4, 4]],
-    'lyrics': [[4, 2], [5, 3], [6, 4]],
-    'audioVisualizer': [[4, 2], [5, 3], [6, 4]],
-    'audioMixer': [[4, 2], [5, 3], [6, 4]],
+    'lyrics': [[4, 2], [6, 3], [8, 4]],
+    'audioVisualizer': [[4, 2], [6, 3], [8, 4]],
+    'audioMixer': [[4, 2], [6, 3], [8, 4]],
+
     // --- 5. KAPCSOLÓK ÉS VEZÉRLÉS ---
     'battery-status': [[2, 2], [3, 3], [4, 4]],
     'powerProfiles': [[2, 2], [3, 3], [4, 4]],
     'powerToggles': [[2, 2], [3, 3], [4, 4]],
     'quickToggles': [[2, 2], [3, 3], [4, 4]],
-    'controlsSliders': [[4, 2], [5, 3], [6, 4]],
+    'controlsSliders': [[4, 2], [6, 3], [8, 4]],
     'bluetoothDevices': [[2, 2], [3, 3], [4, 4]],
     'lavaLamp': [[2, 4], [3, 5], [4, 6]],
+
     // --- 6. PRODUKTIVITÁS ÉS PÉNZÜGY ---
     'notes': [[2, 2], [3, 3], [4, 4]],
     'clipboard': [[2, 2], [3, 3], [4, 4]],
     'quotes': [[2, 2], [3, 3], [4, 4]],
     'pomodoro': [[2, 2], [3, 3], [4, 4]],
     'watermind': [[2, 2], [3, 3], [4, 4]],
-    'downloads': [[4, 2], [5, 3], [6, 4]],
-    'pomodoro-focus': [[4, 2], [5, 3], [6, 4]],
+    'downloads': [[4, 2], [6, 3], [8, 4]],
+    'pomodoro-focus': [[4, 2], [6, 3], [8, 4]],
     'todo': [[2, 2], [3, 3], [4, 4]],
-    'github': [[4, 2], [5, 3], [6, 4]],
-    'mood': [[4, 2], [5, 3], [6, 4]],
-    'currency-tracker': [[4, 2], [5, 3], [6, 4]],
-    'cryptoWidget': [[4, 2], [5, 3], [6, 4]],
-    'habitTracker': [[4, 2], [5, 3], [6, 4]],
-    'screen-time': [[4, 2], [5, 3], [6, 4]],
+    'github': [[4, 2], [6, 3], [8, 4]],
+    'mood': [[4, 2], [6, 3], [8, 4]],
+    'currency-tracker': [[4, 2], [6, 3], [8, 4]],
+    'cryptoWidget': [[4, 2], [6, 3], [8, 4]],
+    'habitTracker': [[4, 2], [6, 3], [8, 4]],
+    'screen-time': [[4, 2], [6, 3], [8, 4]],
     'rss-headlines': [[2, 2], [3, 3], [4, 4]],
     'steamRecent': [[2, 4], [3, 5], [4, 6]],
-}; 
+};
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];
 
