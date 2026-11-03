@@ -177,7 +177,7 @@ export function addSystemInfoWidget(settings, systemInfoType = 'cpu', width = 2,
     }, width, height);
 }
 
-export function addResourceWheelWidget(settings, width = 2, height = 2) {
+export function addResourceWheelWidget(settings, width = 4, height = 2) {
     addWidget(settings, {
         id: nextWidgetId(settings, 'resource-wheel'),
         type: 'resource-wheel',
@@ -380,4 +380,8 @@ export function addSteamRecentWidget(settings, steamId = '', width = 2, height =
         type: 'steamRecent',
         steamId,
     }, width, height);
+}
+
+export function addMemoryDonutWidget(settings, width = 4, height = 2) {
+    addWidget(settings, { id: nextWidgetId(settings, 'memoryDonut'), type: 'memoryDonut' }, width, height);
 }

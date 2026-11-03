@@ -6,7 +6,6 @@ import Pango from 'gi://Pango';
 import {
     resolveWidgetForegroundColor,
     resolveExplicitFontFamily,
-    parseCssColor,
     CAIRO_OPERATOR_CLEAR,
     CAIRO_OPERATOR_OVER,
     CAIRO_LINE_CAP_ROUND,
@@ -14,7 +13,9 @@ import {
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
-const BASE_CONTAINER_SIZE = 200;
+// 4x2 alapon a referenciaméret (kb. 360 x 176 px)
+const BASE_CONTAINER_WIDTH = 360;
+const BASE_CONTAINER_HEIGHT = 176;
 
 const RINGS = [
     { key: 'disk', label: 'Disk', rRatio: 1.00, color: '#fff59d', rgb: [1.00, 0.96, 0.62] },
@@ -29,8 +30,9 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     const textColor = resolveWidgetForegroundColor(config);
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
-    let scale = Math.max(0.65, Math.min(width, height) / BASE_CONTAINER_SIZE);
+    let scale = Math.max(0.65, height / BASE_CONTAINER_HEIGHT);
 
+    // ── 1. Rajzterület a köröknek (a teljes widget háttere) ──
     const drawingArea = new St.DrawingArea({
         x_expand: true,
         y_expand: true,
@@ -39,23 +41,31 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     });
     container.add_child(drawingArea);
 
-    // ── 2. Fölé rétegezett UI doboz a fejléccel és a sarokszövegekkel ──
+    // ── 2. Fő réteg: vízszintes felosztás (Bal: szöveg + fejléc, Jobb: diagram területe) ──
     const mainLayout = new St.BoxLayout({
-        orientation: Clutter.Orientation.VERTICAL,
+        orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
         y_expand: true,
     });
     container.add_child(mainLayout);
 
+    // Bal oldali függőleges oszlop
+    const leftColumn = new St.BoxLayout({
+        orientation: Clutter.Orientation.VERTICAL,
+        y_expand: true,
+        y_align: Clutter.ActorAlign.FILL,
+    });
+    mainLayout.add_child(leftColumn);
+
     // Fejléc
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
-        x_expand: true,
+        x_align: Clutter.ActorAlign.START,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerIcon = new St.Icon({
         icon_name: 'utilities-system-monitor-symbolic',
-        style: `color: ${textColor}; margin-right: 5px; opacity: 0.85;`,
+        style: `color: ${textColor}; margin-right: 6px; opacity: 0.85;`,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const headerLabel = new St.Label({
@@ -66,21 +76,24 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     headerLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
     headerBox.add_child(headerIcon);
     headerBox.add_child(headerLabel);
-    mainLayout.add_child(headerBox);
+    leftColumn.add_child(headerBox);
 
-    // Felső saroksor
-    const topRow = new St.BoxLayout({
-        orientation: Clutter.Orientation.HORIZONTAL,
-        x_expand: true,
+    // Kis térköz a fejléc és a sorok között
+    const spacer = new St.Widget({ y_expand: true });
+    leftColumn.add_child(spacer);
+
+    // Lista a 4 mutatónak egymás alatt
+    const statsList = new St.BoxLayout({
+        orientation: Clutter.Orientation.VERTICAL,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    mainLayout.add_child(topRow);
+    leftColumn.add_child(statsList);
 
-    const makeStatItem = (ring, isRightAligned = false) => {
-        const box = new St.BoxLayout({
+    const makeStatRow = (ring) => {
+        const row = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'spacing: 4px;',
+            style: 'spacing: 8px;',
         });
         const dot = new St.Label({
             text: '●',
@@ -94,44 +107,26 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         });
         lbl.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
 
-        if (isRightAligned) {
-            box.add_child(lbl);
-            box.add_child(dot);
-        } else {
-            box.add_child(dot);
-            box.add_child(lbl);
-        }
-        return { box, dot, lbl };
+        row.add_child(dot);
+        row.add_child(lbl);
+        statsList.add_child(row);
+        return { row, dot, lbl };
     };
 
-    const diskStat = makeStatItem(RINGS.find(r => r.key === 'disk'), false);
-    const ramStat  = makeStatItem(RINGS.find(r => r.key === 'ram'), true);
+    const diskStat = makeStatRow(RINGS.find(r => r.key === 'disk'));
+    const ramStat  = makeStatRow(RINGS.find(r => r.key === 'ram'));
+    const tempStat = makeStatRow(RINGS.find(r => r.key === 'temp'));
+    const cpuStat  = makeStatRow(RINGS.find(r => r.key === 'cpu'));
 
-    topRow.style = `margin-bottom: ${Math.round(2 * scale)}px;`;
+    // Alsó térköz szimmetriához
+    leftColumn.add_child(new St.Widget({ y_expand: true }));
 
-    topRow.add_child(diskStat.box);
-    topRow.add_child(new St.Widget({ x_expand: true }));
-    topRow.add_child(ramStat.box);
-
-    // Középső térkitöltő
-    mainLayout.add_child(new St.Widget({ x_expand: true, y_expand: true }));
-
-    // ── Alsó adatsor: Balra a 3. (Temp), Jobbra a legbelső (CPU) ──
-    const bottomRow = new St.BoxLayout({
-        orientation: Clutter.Orientation.HORIZONTAL,
+    // Jobb oldal kitöltő (hogy a diagramnak fenntartsa a helyet a rajzolón)
+    const rightAreaPlaceholder = new St.Widget({
         x_expand: true,
-        y_align: Clutter.ActorAlign.CENTER,
+        y_expand: true,
     });
-    mainLayout.add_child(bottomRow);
-
-    const tempStat = makeStatItem(RINGS.find(r => r.key === 'temp'), false);
-    const cpuStat  = makeStatItem(RINGS.find(r => r.key === 'cpu'), true);
-
-    topRow.style = `margin-top: ${Math.round(2 * scale)}px;`;
-
-    bottomRow.add_child(tempStat.box);
-    bottomRow.add_child(new St.Widget({ x_expand: true }));
-    bottomRow.add_child(cpuStat.box);
+    mainLayout.add_child(rightAreaPlaceholder);
 
     const legendLabels = {
         disk: diskStat.lbl,
@@ -140,12 +135,14 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         cpu: cpuStat.lbl,
     };
     const allDots = [diskStat.dot, ramStat.dot, tempStat.dot, cpuStat.dot];
+    const allRows = [diskStat.row, ramStat.row, tempStat.row, cpuStat.row];
 
     let currentMetrics = { cpu: 15, ram: 40, disk: 50, temp: 45 };
     let prevIdle = 0;
     let prevTotal = 0;
     let isDisposed = false;
 
+    // ── Rajzolás a jobb oldalra igazítva ──
     drawingArea.connect('repaint', (area) => {
         const ctx = area.get_context();
         const [w, h] = area.get_surface_size();
@@ -156,14 +153,14 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         ctx.setOperator(CAIRO_OPERATOR_OVER);
         ctx.setLineCap(CAIRO_LINE_CAP_ROUND);
 
-        const cx = w / 2;
-        // Kicsit lejjebb toljuk a középpontot a fejléc miatt:
-        const cy = (h / 2) + (13 * scale);
+        // A kör középpontja a widget jobb felének közepére kerül
+        const cx = w * 0.73;
+        const cy = h / 2;
 
-        const lineWidth = Math.max(3.8, 4.6 * scale);
-        // A Pomodoro köréhez illeszkedő méret:
-        const maxRadius = Math.min(w, h) * 0.28;
-        const baseR = Math.max(12, maxRadius);
+        const lineWidth = Math.max(4.0, 5.0 * scale);
+        // A magassághoz skálázott sugár
+        const maxRadius = (h / 2) * 0.78;
+        const baseR = Math.max(14, maxRadius);
 
         RINGS.forEach(ring => {
             const r = baseR * ring.rRatio;
@@ -278,11 +275,12 @@ echo "\${mem:-40};;\${disk:-50};;\${temp:-45}"
 
     function applyScale(newScale) {
         scale = newScale;
-        const pad = Math.max(8, Math.round(10 * scale));
-        const titleFontSize = Math.max(10, Math.round(12 * scale));
-        const iconSize = Math.round(14 * scale);
-        const statFontSize = Math.max(9, Math.round(10.5 * scale));
-        const dotSize = Math.max(7, Math.round(8 * scale));
+        const pad = Math.max(10, Math.round(14 * scale));
+        const titleFontSize = Math.max(11, Math.round(13 * scale));
+        const iconSize = Math.round(15 * scale);
+        const statFontSize = Math.max(10, Math.round(11.5 * scale));
+        const dotSize = Math.max(8, Math.round(9 * scale));
+        const rowSpacing = Math.max(2, Math.round(3 * scale));
 
         mainLayout.style = `padding: ${pad}px;`;
         headerBox.style = `margin-bottom: ${Math.round(4 * scale)}px;`;
@@ -294,6 +292,10 @@ echo "\${mem:-40};;\${disk:-50};;\${temp:-45}"
             d.style = `${c} font-size: ${dotSize}px;`;
         });
 
+        allRows.forEach(r => {
+            r.style = `margin-bottom: ${rowSpacing}px; spacing: ${Math.round(6 * scale)}px;`;
+        });
+
         Object.values(legendLabels).forEach(lbl => {
             lbl.style = `${fontCss}color: ${textColor}; font-size: ${statFontSize}px; font-weight: 500; opacity: 0.9;`;
         });
@@ -303,9 +305,9 @@ echo "\${mem:-40};;\${disk:-50};;\${temp:-45}"
 
     applyScale(scale);
 
-    attachResponsiveScaler(container, BASE_CONTAINER_SIZE, BASE_CONTAINER_SIZE, (_ratio, w, h) => {
+    attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
-        applyScale(Math.max(0.65, Math.min(w, h) / BASE_CONTAINER_SIZE));
+        applyScale(Math.max(0.65, h / BASE_CONTAINER_HEIGHT));
     });
 
     return container;

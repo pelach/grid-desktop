@@ -1,64 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" width="160" height="120">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 176" width="360" height="176">
   <defs>
     <style>
-      .bg { fill: #222226; rx: 14px; ry: 14px; stroke: rgba(255, 255, 255, 0.14); stroke-width: 1.2; }
-      .pill-bg { fill: rgba(255, 255, 255, 0.08); rx: 6px; ry: 6px; }
-      .pill-text { font-family: 'Google Sans', 'Ubuntu', 'Cantarell', sans-serif; font-size: 6px; font-weight: 700; fill: #ffffff; letter-spacing: 0.6px; }
-      .track { fill: none; stroke-width: 2.8; stroke-linecap: round; opacity: 0.15; }
-      .arc { fill: none; stroke-width: 2.8; stroke-linecap: round; }
-      .center-val { font-family: 'Google Sans', 'Ubuntu', 'Cantarell', sans-serif; font-size: 9px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
-      .center-sub { font-family: 'Google Sans', 'Ubuntu', 'Cantarell', sans-serif; font-size: 5.5px; font-weight: 700; fill: #90caf9; text-anchor: middle; }
-      .legend-text { font-family: 'Google Sans', 'Ubuntu', 'Cantarell', sans-serif; font-size: 7px; font-weight: 500; fill: #ffffff; }
-      .footer-text { font-family: 'Google Sans', 'Ubuntu', 'Cantarell', sans-serif; font-size: 5.5px; fill: #ffffff; opacity: 0.45; }
+      .bg { fill: #212126; stroke: rgba(0, 0, 0, 0.75); stroke-width: 1.5; rx: 16px; }
+      .title { font-family: 'Cantarell', 'Ubuntu', sans-serif; font-size: 13px; font-weight: bold; fill: #ffffff; opacity: 0.9; }
+      .stat { font-family: 'Cantarell', 'Ubuntu', sans-serif; font-size: 11.5px; font-weight: 500; fill: #ffffff; opacity: 0.9; }
+      .icon { fill: #ffffff; opacity: 0.85; }
+      .ring-bg { fill: none; opacity: 0.16; stroke-linecap: round; }
+      .ring-val { fill: none; stroke-linecap: round; }
     </style>
   </defs>
 
-  <!-- Kártya alap -->
-  <rect class="bg" x="2" y="2" width="156" height="116" />
+  <!-- Kártya háttér -->
+  <rect width="358.5" height="174.5" x="0.75" y="0.75" class="bg" />
 
-  <!-- Fejléc kapszula -->
-  <rect class="pill-bg" x="12" y="10" width="68" height="13" />
-  <circle cx="18" cy="16.5" r="2" fill="#90caf9" />
-  <text class="pill-text" x="23" y="18.5">RESOURCE WHEEL</text>
+  <!-- Fejléc (Ikon + Resources) -->
+  <g transform="translate(14, 14)">
+    <path class="icon" d="M1 9.5 L3.5 9.5 L5 4.5 L7.5 13 L9.5 7.5 L11 9.5 L14 9.5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="0" y="2" width="15" height="11" rx="2" fill="none" stroke="#ffffff" stroke-width="1.3" opacity="0.85" />
+    <text x="22" y="11" class="title">Resources</text>
+  </g>
 
-  <!-- ── Kerék (Középpont: cx=48, cy=63) ── -->
-  <!-- 1. Disk (sárga, külső r=25) -->
-  <circle class="track" cx="48" cy="63" r="25" stroke="#fff59d" />
-  <path class="arc" stroke="#fff59d" d="M 48 38 A 25 25 0 0 1 68 78" />
+  <!-- Bal oldali lista (Pöttyök + Feliratok) -->
+  <g transform="translate(14, 46)">
+    <!-- Disk: 19% -->
+    <g transform="translate(0, 16)">
+      <circle cx="4" cy="-4" r="3.5" fill="#fff59d" />
+      <text x="14" y="0" class="stat">Disk 19%</text>
+    </g>
 
-  <!-- 2. RAM (zöld, r=20) -->
-  <circle class="track" cx="48" cy="63" r="20" stroke="#a5d6a7" />
-  <path class="arc" stroke="#a5d6a7" d="M 48 43 A 20 20 0 0 1 68 63" />
+    <!-- RAM: 50% -->
+    <g transform="translate(0, 38)">
+      <circle cx="4" cy="-4" r="3.5" fill="#a5d6a7" />
+      <text x="14" y="0" class="stat">RAM 50%</text>
+    </g>
 
-  <!-- 3. Temp (korall, r=15) -->
-  <circle class="track" cx="48" cy="63" r="15" stroke="#ef9a9a" />
-  <path class="arc" stroke="#ef9a9a" d="M 48 48 A 15 15 0 1 1 35 70" />
+    <!-- Temp: 53° -->
+    <g transform="translate(0, 60)">
+      <circle cx="4" cy="-4" r="3.5" fill="#ef9a9a" />
+      <text x="14" y="0" class="stat">Temp 53°</text>
+    </g>
 
-  <!-- 4. CPU (kék, belső r=10) -->
-  <circle class="track" cx="48" cy="63" r="10" stroke="#90caf9" />
-  <path class="arc" stroke="#90caf9" d="M 48 53 A 10 10 0 0 1 56 57" />
+    <!-- CPU: 10% -->
+    <g transform="translate(0, 82)">
+      <circle cx="4" cy="-4" r="3.5" fill="#90caf9" />
+      <text x="14" y="0" class="stat">CPU 10%</text>
+    </g>
+  </g>
 
-  <!-- Középső szöveg -->
-  <text class="center-val" x="48" y="62">7%</text>
-  <text class="center-sub" x="48" y="68">CPU</text>
+  <!-- Jobb oldali koncentrikus kördiagram (cx=263, cy=88) -->
+  <g transform="translate(263, 88)">
+    <!-- Disk (r=55, val: 19%) -->
+    <circle r="55" class="ring-bg" stroke="#fff59d" stroke-width="5" />
+    <circle r="55" class="ring-val" stroke="#fff59d" stroke-width="5" stroke-dasharray="345.57" stroke-dashoffset="279.91" transform="rotate(-90)" />
 
-  <!-- ── Jobb oldali Legenda (x=94) ── -->
-  <!-- CPU -->
-  <circle cx="94" cy="46" r="2" fill="#90caf9" />
-  <text class="legend-text" x="100" y="48">CPU: 7%</text>
+    <!-- RAM (r=44.55, val: 50%) -->
+    <circle r="44.55" class="ring-bg" stroke="#a5d6a7" stroke-width="5" />
+    <circle r="44.55" class="ring-val" stroke="#a5d6a7" stroke-width="5" stroke-dasharray="279.91" stroke-dashoffset="139.95" transform="rotate(-90)" />
 
-  <!-- RAM -->
-  <circle cx="94" cy="57" r="2" fill="#a5d6a7" />
-  <text class="legend-text" x="100" y="59">RAM: 25%</text>
+    <!-- Temp (r=34.1, val: 53%) -->
+    <circle r="34.1" class="ring-bg" stroke="#ef9a9a" stroke-width="5" />
+    <circle r="34.1" class="ring-val" stroke="#ef9a9a" stroke-width="5" stroke-dasharray="214.25" stroke-dashoffset="100.70" transform="rotate(-90)" />
 
-  <!-- Disk -->
-  <circle cx="94" cy="68" r="2" fill="#fff59d" />
-  <text class="legend-text" x="100" y="70">Disk: 35%</text>
-
-  <!-- Temp -->
-  <circle cx="94" cy="79" r="2" fill="#ef9a9a" />
-  <text class="legend-text" x="100" y="81">Temp: 55°</text>
-
-  <!-- Lábléc -->
-  <text class="footer-text" x="12" y="106">Hardware telemetry updated in real time</text>
+    <!-- CPU (r=23.65, val: 10%) -->
+    <circle r="23.65" class="ring-bg" stroke="#90caf9" stroke-width="5" />
+    <circle r="23.65" class="ring-val" stroke="#90caf9" stroke-width="5" stroke-dasharray="148.59" stroke-dashoffset="133.73" transform="rotate(-90)" />
+  </g>
 </svg>

@@ -123,7 +123,7 @@ export const STORE_WIDGETS = Object.freeze({
     resourceWheel: {
         title: 'Resource Wheel',
         description: 'Circular hardware telemetry showing CPU, RAM, Disk, and Temp.',
-        gridSize: '2x2',
+        gridSize: '4x2',
         thumbnail: 'system/resource-wheel.svg',
         fallbackIconName: 'utilities-system-monitor-symbolic',
     },
@@ -232,7 +232,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'system/command-runner.svg',
         fallbackIconName: 'utilities-terminal-symbolic',
     },
-
+    memoryDonut: {
+        title: 'Memory Donut',
+        description: 'Circular memory telemetry',
+        gridSize: '4x2',
+        thumbnail: 'system/memory-donut.svg',
+        fallbackIconName: 'utilities-terminal-symbolic',
+    },
     // ── Focus & Productivity ───────────────────────────────────────────
     pomodoroTimer: {
         title: 'Pomodoro Timer',
@@ -517,7 +523,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'updates',
         'hardwerinfo',
         'commandRunner',
-        'steamRecent'
+        'steamRecent',
+        'memoryDonut'
 
     ],
 });
@@ -675,6 +682,8 @@ function getStoreWidgetKey(widget) {
             return 'commandRunner';
         case 'steamRecent':
             return 'steamRecent';
+        case 'memoryDonut':
+            return 'memoryDonut';
         default:
             return null;
     }

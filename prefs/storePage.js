@@ -31,7 +31,8 @@ import {
     addDownloadsWidget,
     addUptimeWidget,
     addUpdatesWidget,
-    addHardwerInfoWidget,   
+    addHardwerInfoWidget,  
+    addMemoryDonutWidget, 
 
     // Focus & Productivity
     addClipboardWidget,
@@ -231,11 +232,12 @@ export function buildStorePage(window, settings, extensionPath) {
                 def(STORE_WIDGETS.hardwerinfo, () => addHardwerInfoWidget(settings)),
                 def(STORE_WIDGETS.systemMonitor, () => addCpuRamWidget(settings, 4, 2)),
                 def(STORE_WIDGETS.systemInfo, () => addSystemInfoWidget(settings, 'cpu', 2, 2)),
-                def(STORE_WIDGETS.resourceWheel, () => addResourceWheelWidget(settings, 'cpu', 2, 2)),
+                def(STORE_WIDGETS.resourceWheel, () => addResourceWheelWidget(settings, 'cpu', 4, 2)),
                 def(STORE_WIDGETS.uptime, () => addUptimeWidget(settings)),
                 def(STORE_WIDGETS.updates, () => addUpdatesWidget(settings)),
                 def(STORE_WIDGETS.storageBar, () => addStorageBarWidget(settings)),
                 def(STORE_WIDGETS.batteryStatus, () => addBatteryStatusWidget(settings, 2, 2)),
+                def(STORE_WIDGETS.memoryDonut, () => addMemoryDonutWidget(settings, 4, 2)),
 
                 // Hálózat
                 def(STORE_WIDGETS.networkSpeed, () => addNetworkSpeedWidget(settings, 4, 2)),
