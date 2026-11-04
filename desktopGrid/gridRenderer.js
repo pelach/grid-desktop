@@ -19,16 +19,18 @@ export function drawRoundedRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
-export function createGridOverlay(gridCols, gridRows, cellTotalWidth, gridMargin, red, green, blue, alpha) {
+export function createGridOverlay(gridCols, gridRows, cellTotalWidth, cellSize, gridMargin, red, green, blue, alpha) {
     const step = cellTotalWidth;
-    const cellSize = step - GRID_GAP_PX;
-    const overlayWidth = gridCols * step + GRID_GAP_PX;
-    const overlayHeight = gridRows * step + GRID_GAP_PX;
-    const cornerRadius = Math.min(GRID_GAP_PX, cellSize / 2);
+    const gap = step - cellSize;
+    
+    // A teljes kiterjedés az első cella szélétől az utolsó cella széléig:
+    const overlayWidth = gridCols * step - gap;
+    const overlayHeight = gridRows * step - gap;
+    const cornerRadius = Math.min(gap > 0 ? gap : 8, cellSize / 2);
 
     const canvas = new St.DrawingArea({
-        x: gridMargin - GRID_GAP_PX,
-        y: gridMargin - GRID_GAP_PX,
+        x: gridMargin,
+        y: gridMargin,
         width: overlayWidth,
         height: overlayHeight,
     });
@@ -45,8 +47,8 @@ export function createGridOverlay(gridCols, gridRows, cellTotalWidth, gridMargin
         ctx.setOperator(CAIRO_OPERATOR_CLEAR);
         for (let r = 0; r < gridRows; r++) {
             for (let c = 0; c < gridCols; c++) {
-                const cellX = GRID_GAP_PX + c * step;
-                const cellY = GRID_GAP_PX + r * step;
+                const cellX = c * step;
+                const cellY = r * step;
                 drawRoundedRect(ctx, cellX, cellY, cellSize, cellSize, cornerRadius);
                 ctx.fill();
             }

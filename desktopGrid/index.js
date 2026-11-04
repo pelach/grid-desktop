@@ -408,6 +408,7 @@ export const DesktopGrid = GObject.registerClass(
                     this.gridCols || COLUMNS_COUNT,
                     this.gridRows || ROWS_COUNT,
                     this.cellTotalWidth,
+                    this.cellSize,
                     this.gridMargin,
                     accent.r, accent.g, accent.b, GRID_LINE_ALPHA
                 );
@@ -617,6 +618,7 @@ export const DesktopGrid = GObject.registerClass(
                     this.gridCols || COLUMNS_COUNT,
                     this.gridRows || ROWS_COUNT,
                     this.cellTotalWidth,
+                    this.cellSize,
                     this.gridMargin,
                     accent.r, accent.g, accent.b, EDIT_OVERLAY_ALPHA
                 );
