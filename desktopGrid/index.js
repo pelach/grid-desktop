@@ -113,6 +113,10 @@ export const DesktopGrid = GObject.registerClass(
                 if (btn === BUTTON_PRIMARY) {
                     removeContextMenu(this);
 
+                    if (event.get_source() !== this) {
+                        return Clutter.EVENT_PROPAGATE;
+                    }
+                    
                     const now = event.get_time();
                     // Ha a két bal klikk között kevesebb mint 400ms telt el -> DUPLA KLIKK!
                     if (now - lastClickTime < 400) {
