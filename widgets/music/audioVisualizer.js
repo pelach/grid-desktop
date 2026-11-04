@@ -179,7 +179,7 @@ export function createAudioVisualizerNode(config, width, height, xPosition, yPos
         const cr = area.get_context();
         const [w, h] = area.get_surface_size();
         if (w === 0 || h === 0) {
-            cr.$dispose();
+            //cr.$dispose();
             return;
         }
 
@@ -267,7 +267,7 @@ export function createAudioVisualizerNode(config, width, height, xPosition, yPos
             cr.fill();
         }
 
-        cr.$dispose();
+        //cr.$dispose();
     });
 
     // ── Folyamatos Idle Animáció ──

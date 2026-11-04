@@ -172,7 +172,7 @@ export function createWorldTimeAnalogNode(config, width, height, xPosition, yPos
             if (drawSize > 0) {
                 drawSingleClock(cr, drawSize, city, fontFamily);
             }
-            cr.$dispose();
+            //cr.$dispose();
         });
 
         if (i < 2) rowTop.add_child(drawingArea);

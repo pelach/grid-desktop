@@ -82,19 +82,7 @@ export default class GridgetsExtension extends Extension {
         
         this._createAndShowGrids();
 
-        this._monitorsChangedIdleId = 0;
-        this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', () => {
-            if (this._monitorsChangedIdleId > 0) {
-                GLib.Source.remove(this._monitorsChangedIdleId);
-                this._monitorsChangedIdleId = 0;
-            }
-            // 200 ms türelmi idő, amíg a Mutter beállítja az új elsődleges monitort és geometriát
-            this._monitorsChangedIdleId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
-                this._monitorsChangedIdleId = 0;
-                this._rebuildGrids();
-                return GLib.SOURCE_REMOVE;
-            });
-        });
+        
 
         this._interfaceSignalId = this._interfaceSettings.connect('changed::color-scheme', () => {
             if (this._settings.get_boolean('follow-system-theme'))
@@ -209,7 +197,12 @@ export default class GridgetsExtension extends Extension {
     }
 
     _removeAllGrids() {
-        this._desktopGrids.forEach(grid => grid.destroy());
+        this._desktopGrids.forEach(grid => {
+            if (grid.get_parent()) {
+                grid.get_parent().remove_child(grid);
+            }
+            grid.destroy();
+        });
         this._desktopGrids = [];
     }
 

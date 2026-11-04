@@ -193,14 +193,25 @@ export const DesktopGrid = GObject.registerClass(
 
             this._menuManager = null;
 
-            this.editOverlayCanvases.forEach(box => box.destroy());
+            this.editOverlayCanvases.forEach(box => {
+                if (!isActorDestroyed(box)) box.destroy();
+            });
             this.editOverlayCanvases = [];
 
-            this.widgetNodes.forEach(node => node.destroy());
+            if (this._gridLineCanvas) {
+                if (!isActorDestroyed(this._gridLineCanvas)) {
+                    this._gridLineCanvas.destroy();
+                }
+                this._gridLineCanvas = null;
+            }
+
+            this.widgetNodes.forEach(node => {
+                if (!isActorDestroyed(node)) node.destroy();
+            });
             this.widgetNodes.clear();
             this._nodeConfigs.clear();
-            this._gridLineCanvas = null;
-            this.destroy_all_children();
+
+            // TÖRÖLVE: this.destroy_all_children();  <-- Kettős törlést és C-szintű segfaultot okozott!
 
             super.destroy();
         }
@@ -597,20 +608,22 @@ export const DesktopGrid = GObject.registerClass(
             }
         }
         _rebuildGrid() {
-            //syncDesktopIcons(this.settings); 
-
             this._lastAppliedWidgetsJson = this.settings.get_string('widgets');
 
-            this.widgetNodes.forEach(node => node.destroy());
+            this.widgetNodes.forEach(node => {
+                if (!isActorDestroyed(node)) node.destroy();
+            });
             this.widgetNodes.clear();
             this._nodeConfigs.clear();
+
             if (this._gridLineCanvas) {
-                this._gridLineCanvas.destroy();
+                if (!isActorDestroyed(this._gridLineCanvas)) this._gridLineCanvas.destroy();
                 this._gridLineCanvas = null;
             }
-            this.destroy_all_children();
 
-            this.editOverlayCanvases.forEach(box => box.destroy());
+            this.editOverlayCanvases.forEach(box => {
+                if (!isActorDestroyed(box)) box.destroy();
+            });
             this.editOverlayCanvases = [];
 
             this._updateStageSize();
@@ -623,7 +636,14 @@ export const DesktopGrid = GObject.registerClass(
             const globalSettings = readGlobalSettings(this.settings, this.interfaceSettings);
             const createNode = this._createNodeFactory(layout, globalSettings);
 
-            const { sortedWidgets, modified } = this._layoutWidgetsOnGrid(activeWidgets, layout.gridCols, layout.gridRows, layout.cellSize, layout.cellTotalWidth, layout.cellTotalHeight);
+            const { sortedWidgets, modified } = this._layoutWidgetsOnGrid(
+                activeWidgets,
+                layout.gridCols,
+                layout.gridRows,
+                layout.cellSize,
+                layout.cellTotalWidth,
+                layout.cellTotalHeight
+            );
 
             sortedWidgets.forEach(createNode);
 

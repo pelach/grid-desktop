@@ -54,7 +54,7 @@ export function createBinaryNode(config, width, height, xPosition, yPosition) {
         const [w, h] = area.get_surface_size();
 
         if (w <= 0 || h <= 0) {
-            cr.$dispose();
+            //cr.$dispose();
             return;
         }
 
@@ -118,7 +118,7 @@ export function createBinaryNode(config, width, height, xPosition, yPosition) {
             }
         }
 
-        cr.$dispose();
+        //cr.$dispose();
     });
 
     container.set_child(drawingArea);

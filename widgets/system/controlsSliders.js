@@ -152,7 +152,7 @@ class CapsuleSlider {
             cr.fill();
         }
 
-        cr.$dispose();
+        //cr.$dispose();
     }
 
     destroy() {

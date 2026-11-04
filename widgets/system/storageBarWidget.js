@@ -123,7 +123,7 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
         const cr = area.get_context();
         const [w, h] = area.get_surface_size();
         if (w <= 0 || h <= 0) {
-            cr.$dispose();
+            //cr.$dispose();
             return;
         }
         const r = h / 2;
@@ -133,7 +133,7 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
         cr.fill();
 
         if (!currentData || !currentData.total) {
-            cr.$dispose();
+            //cr.$dispose();
             return;
         }
 
@@ -163,7 +163,7 @@ export function createStorageBarNode(config, width, height, xPosition, yPosition
         }
 
         cr.restore();
-        cr.$dispose();
+        //cr.$dispose();
     });
 
     mainBox.add_child(drawingArea);

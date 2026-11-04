@@ -63,6 +63,7 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
     let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
     let lastDevicesData = [];
     let isDisposed = false;
+    let cancellable = new Gio.Cancellable()
 
     const isDarkSurface = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
     const cardBgAlpha = isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA;
@@ -261,19 +262,26 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
     };
 
     const refreshData = () => {
+        if (isDisposed || isActorDestroyed(container)) return; //[cite: 4]
+
         try {
             const proc = new Gio.Subprocess({
                 argv: ['upower', '-d'],
-                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE,
+                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE, //
             });
-            proc.init(null);
-            proc.communicate_utf8_async(null, null, (p, res) => {
+            proc.init(cancellable);
+            proc.communicate_utf8_async(null, cancellable, (p, res) => {
+                if (isDisposed || cancellable.is_cancelled() || isActorDestroyed(container)) { //[cite: 4]
+                    return;
+                }
                 try {
-                    const [, stdout] = p.communicate_utf8_finish(res);
-                    if (stdout) parseAndRender(stdout);
-                } catch (e) {}
+                    const [, stdout] = p.communicate_utf8_finish(res); //
+                    if (stdout && !isDisposed && !cancellable.is_cancelled()) { //
+                        parseAndRender(stdout); //
+                    }
+                } catch (e) {} //
             });
-        } catch (err) {}
+        } catch (err) {} //
     };
 
     function applyScale(newScale) {
@@ -305,8 +313,14 @@ export function createBatteryStatusNode(config, width, height, xPosition, yPosit
     });
 
     registerWidgetCleanup(container, () => {
-        isDisposed = true;
-        if (timeoutId) GLib.source_remove(timeoutId);
+        isDisposed = true; //[cite: 4]
+        if (cancellable) {
+            cancellable.cancel();
+            cancellable = null;
+        }
+        if (timeoutId) {
+            GLib.source_remove(timeoutId); //[cite: 4]
+        }
     });
 
     return container;

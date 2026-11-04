@@ -354,7 +354,7 @@ export function buildSmallLayout(config, state) {
                 const cr = area.get_context();
                 const [w, h] = area.get_surface_size();
                 if (w === 0 || h === 0 || state.playbackStatus !== 'Playing') {
-                    cr.$dispose();
+                    //cr.$dispose();
                     return;
                 }
                 
@@ -464,7 +464,7 @@ export function buildSmallLayout(config, state) {
                     cr.fill();
                 }
                 cr.restore();
-                cr.$dispose();
+                //cr.$dispose();
             });
 
             if (!hasCava) {

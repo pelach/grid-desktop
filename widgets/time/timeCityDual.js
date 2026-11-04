@@ -225,7 +225,7 @@ export function createCityDualTimeNode(widgetData, width, height, xPosition, yPo
         if (drawSize > 0) {
             drawAnalogDial(cr, drawSize, nowTarget, fontFamily, widgetData.showSecondHand !== false);
         }
-        cr.$dispose();
+        //cr.$dispose();
     });
 
     // ── Idő és szövegek frissítése másodpercenként ──
