@@ -126,9 +126,9 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 | :---: | :---: | :---: |
 | ![Timer](assets/screenshot/timer.png) | ![Countdown](assets/screenshot/countdown.png) | ![Stopwatch](assets/screenshot/stopwatch.png) |
 
-| Calendar Tasks | Calendar Weather |
-| :---: | :---: |
-| ![Calendar Tasks](assets/screenshot/calendar_task.png) | ![Calendar Weather](assets/screenshot/calendar_weather.png) |
+| Calendar Tasks | Calendar Weather | Dual Cloack |
+| :---: | :---: | :---: |
+| ![Calendar Tasks](assets/screenshot/calendar_task.png) | ![Calendar Weather](assets/screenshot/calendar_weather.png) | ![Dual Clock](assets/screenshot/dual_clock.png) |
 
 - **Analog Clock Skins**: Multiple built-in faces (Basic, Rolex, Sensa) with smooth sweeping second hand and floating canvas mode.
 - **World Clocks**: Multi-timezone digital and quad-analog dial displays.
@@ -136,7 +136,7 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 - **Time Tracking Tools**: Standard countdown gauges, stopwatch counters, and BCD binary clock rendering.
 - **Calendar & Agenda (Tasks)**: Modern month grid paired with a daily agenda pane displaying current weather glance and daily name days / milestones.
 - **Calendar Weather & Day Split**: Split view featuring an expanded daily date, live weather telemetry, and full-month interactive schedule grid.
-
+- **Dual Clock**: Dual digital an analog clock for any slelcted global city.
 ---
 
 #### Personal, Wellness & Tracking
