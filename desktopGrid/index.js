@@ -113,10 +113,31 @@ export const DesktopGrid = GObject.registerClass(
                 if (btn === BUTTON_PRIMARY) {
                     removeContextMenu(this);
 
-                    if (event.get_source() !== this) {
+                    const [clickX, clickY] = event.get_coords();
+
+                    // Megnézzük a kattintás koordinátáit: esik-e bármelyik widget vagy ikon területére?
+                    let clickedOnWidget = false;
+                    for (const [, node] of this.widgetNodes) {
+                        if (!node || node.is_finalized?.()) continue;
+
+                        const box = node.get_transformed_extents();
+                        const x1 = box.get_x();
+                        const y1 = box.get_y();
+                        const x2 = x1 + box.get_width();
+                        const y2 = y1 + box.get_height();
+
+                        if (clickX >= x1 && clickX <= x2 && clickY >= y1 && clickY <= y2) {
+                            clickedOnWidget = true;
+                            break;
+                        }
+                    }
+
+                    // Ha a kattintás koordinátája egy widget területére esik:
+                    // CSAK továbbra engedjük (hogy lehessen húzni/kattintani), de nem indítunk Nautilust!
+                    if (clickedOnWidget) {
                         return Clutter.EVENT_PROPAGATE;
                     }
-                    
+
                     const now = event.get_time();
                     // Ha a két bal klikk között kevesebb mint 400ms telt el -> DUPLA KLIKK!
                     if (now - lastClickTime < 400) {
@@ -124,7 +145,6 @@ export const DesktopGrid = GObject.registerClass(
                         
                         try {
                             const desktopPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) || `${GLib.get_home_dir()}/Desktop`;
-                            // Közvetlen subprocess hívás, ami azonnal feldobja a Nautilust:
                             const proc = Gio.Subprocess.new(['nautilus', desktopPath], Gio.SubprocessFlags.NONE);
                             proc.wait_async(null, null);
                         } catch (e) {
