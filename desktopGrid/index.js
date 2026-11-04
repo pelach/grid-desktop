@@ -273,10 +273,10 @@ export const DesktopGrid = GObject.registerClass(
 
             const currentGap = this.settings.get_int('grid-gap-size') || 16;
             const cellSize = this.cellTotalWidth - currentGap;
-            const widgetWidth = (newCols * cellSize) + ((newCols - 1) * currentGap);
-            const widgetHeight = (newRows * cellSize) + ((newRows - 1) * currentGap);
-            const posX = GRID_MARGIN_PX + (newX * this.cellTotalWidth);
-            const posY = GRID_MARGIN_PX + (newY * this.cellTotalHeight);
+            const widgetWidth = Math.round((newCols * cellSize) + ((newCols - 1) * currentGap));
+            const widgetHeight = Math.round((newRows * cellSize) + ((newRows - 1) * currentGap));
+            const posX = Math.round(GRID_MARGIN_PX + (newX * this.cellTotalWidth));
+            const posY = Math.round(GRID_MARGIN_PX + (newY * this.cellTotalHeight));
 
             node.set_size(widgetWidth, widgetHeight);
             node.set_position(posX, posY);

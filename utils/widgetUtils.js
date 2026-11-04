@@ -774,7 +774,7 @@ const DEFAULT_SCREEN_ASPECT_RATIO = 16 / 9;
 export function findEmptySpot(widgets, reqWidth, reqHeight, maxCols = COLUMNS_COUNT, maxRows = ROWS_COUNT) {
     const effectiveReqW = Math.max(1, Math.min(reqWidth, maxCols));
     const effectiveReqH = Math.max(1, reqHeight);
-    const limitRows = Math.max(maxRows || ROWS_COUNT, 50);
+    const limitRows = Math.max(maxRows || ROWS_COUNT, 1);
 
     for (let row = 0; row <= limitRows - effectiveReqH; row++) {
         for (let col = 0; col <= maxCols - effectiveReqW; col++) {
@@ -834,45 +834,43 @@ export function addWidget(settings, widgetData, defaultWidth, defaultHeight) {
             defaultHeight = 2;
         }
     }
-    
 
     const defaultPreset = supportsSizePresets(widgetData)
         ? resolveWidgetSizePreset(widgetData, 0)
         : null;
-    const spawnWidth = defaultPreset ? defaultPreset.width : defaultWidth;
-    const spawnHeight = defaultPreset ? defaultPreset.height : defaultHeight;
-
-    const cellSize = settings ? (settings.get_int('grid-cell-size') || 80) : 80;
-    const gridGap = settings ? (settings.get_int('grid-gap-size') || 16) : 16;
-    const step = cellSize + gridGap;
-
-    let screenWidth = 2560; // Biztonságos fallback a korábbi 1920 helyett!
+    let spawnWidth = defaultPreset ? defaultPreset.width : defaultWidth;
+    let spawnHeight = defaultPreset ? defaultPreset.height : defaultHeight;
 
     if (widgetData.type === 'app-launcher' && defaultWidth > spawnWidth) {
         spawnWidth = defaultWidth;
         spawnHeight = defaultHeight;
     }
-    
+
+    const cellSize = settings ? (settings.get_int('grid-cell-size') || 80) : 80;
+    const gridGap = settings ? (settings.get_int('grid-gap-size') || 16) : 16;
+    const step = cellSize + gridGap;
+
+    let screenWidth = 0;
     try {
-        try {
-            if (typeof global !== 'undefined' && global.stage && global.stage.width) {
-                screenWidth = global.stage.width;
-            } else if (typeof global !== 'undefined' && global.display) {
-                const primaryMonIdx = global.display.get_primary_monitor();
-                const geom = global.display.get_monitor_geometry(primaryMonIdx);
-                if (geom && geom.width > 0) {
-                    screenWidth = geom.width;
-                }
+        if (typeof global !== 'undefined' && global.stage && global.stage.width > 0) {
+            screenWidth = global.stage.width;
+        } else if (typeof global !== 'undefined' && global.display) {
+            const primaryMonIdx = global.display.get_primary_monitor();
+            const geom = global.display.get_monitor_geometry(primaryMonIdx);
+            if (geom && geom.width > 0) {
+                screenWidth = geom.width;
             }
-        } catch (e) {
-            screenWidth = 1920;
         }
     } catch (e) {
-        screenWidth = 2560;
+        screenWidth = 0;
+    }
+
+    if (!screenWidth || screenWidth <= 0) {
+        screenWidth = 3840; // Ultrawide/4K biztonsági fallback
     }
 
     const availableWidth = Math.max(step, screenWidth - (GRID_MARGIN_PX * 2));
-    const actualGridCols = Math.max(1, Math.floor((availableWidth + GRID_GAP_PX) / step));
+    const actualGridCols = Math.max(1, Math.floor((availableWidth + gridGap) / step));
 
     const emptySpot = findEmptySpot(widgets, spawnWidth, spawnHeight, actualGridCols);
     widgetData.x = emptySpot ? emptySpot.x : 0;

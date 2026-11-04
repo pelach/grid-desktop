@@ -1,6 +1,5 @@
 import St from 'gi://St';
 import {
-    GRID_GAP_PX,
     CAIRO_OPERATOR_CLEAR,
     CAIRO_OPERATOR_OVER
 } from '../utils/widgetUtils.js';
@@ -21,11 +20,9 @@ export function drawRoundedRect(ctx, x, y, w, h, r) {
 
 export function createGridOverlay(gridCols, gridRows, cellTotalWidth, cellSize, gridMargin, red, green, blue, alpha) {
     const step = cellTotalWidth;
-    const gap = step - cellSize;
-    
-    // A teljes kiterjedés az első cella szélétől az utolsó cella széléig:
-    const overlayWidth = gridCols * step - gap;
-    const overlayHeight = gridRows * step - gap;
+    const gap = Math.max(0, step - cellSize);
+    const overlayWidth = Math.max(0, (gridCols * step) - gap);
+    const overlayHeight = Math.max(0, (gridRows * step) - gap);
     const cornerRadius = Math.min(gap > 0 ? gap : 8, cellSize / 2);
 
     const canvas = new St.DrawingArea({
