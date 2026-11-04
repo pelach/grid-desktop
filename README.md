@@ -26,9 +26,9 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 | :---: | :---: | :---: |
 | ![Music Player Wide](assets/screenshot/music_wide.png) | ![Music Player Vinyl](assets/screenshot/music_vinyl.png) | ![Lyrics](assets/screenshot/lyrics.png) |
 
-| Audio Spectrum |
-| :---: |
-| ![Audio Spectrum](assets/screenshot/audio_spectrum.png) |
+| Audio Spectrum | Audio Mixer |
+| :---: | :---: |
+| ![Audio Spectrum](assets/screenshot/audio_spectrum.png) | ![Audio Mixer](assets/screenshot/volume-controll.png) |
 
 - **Music Player**: Compact media player featuring album artwork, track details, and playback controls. Features a vintage vinyl turntable view with an animated tonearm synchronized to track playback and seeking, alongside a real-time fluid audio spectrum visualizer (CAVA / 16-Bar Equalizer).
 - **Music Player (Wide)**: Expanded horizontal layout displaying album artwork alongside track info, artist details, and playback controls. Automatically adapts its background accent to match the active album artwork palette.
@@ -36,7 +36,7 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 - **Image Slideshow**: Cycles smoothly through local images from a selected folder using crossfade transitions, with support for captions.
 - **Lyrics**: Synchronized real-time song lyrics for currently playing media.
 - **Audio Spectrum**: Standalone real-time audio visualizer bar displaying fluid frequency spectrum bars for desktop media playback with smooth idle falloff animations.
-
+- **Audio Mixer**: Per-app volume mixer with master audio output control.
 ---
 
 #### Weather & Sun
@@ -59,9 +59,9 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 #### System Monitor & Hardware
 *Comprehensive hardware telemetry, package tracking, and desktop power utilities.*
 
-| Hardware Info | System Monitor |
-| :---: | :---: |
-| ![Hardware Info](assets/screenshot/hardware_info.png) | ![System Monitor](assets/screenshot/system_monitor.png) |
+| Hardware Info | System Monitor | Memory Donut |
+| :---: | :---: | :---: |
+| ![Hardware Info](assets/screenshot/hardware_info.png) | ![System Monitor](assets/screenshot/system_monitor.png) | ![Memory Donut](assets/screenshot/memory-donut.png) |
 
 | System Controls & Quick Toggles | System Telemetry & Compact Metrics |
 | :---: | :---: |
@@ -82,7 +82,7 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 - **Storage Bar & Resource Wheel**: Circular telemetry and multi-category disk breakdown across system partitions.
 - **Desktop Controls & Power**: Dedicated sliders for volume and display brightness, power mode profiles (Balanced, Performance, Saver), audio sink toggles, and session controls.
 - **Command Runner**: Quick desktop execution panel for custom shell commands, system actions (e.g. drop caches), and terminal shortcuts with real-time status output.
-
+- **Memory Donut**: Circular memory telemetry
 ---
 
 #### Productivity, Files & Organization
@@ -158,10 +158,14 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 | :---: | :---: | :---: | :---: |
 | ![Today in History](assets/screenshot/today_in_history.png) | ![Quotes](assets/screenshot/quotes.png) | ![RSS Headlines](assets/screenshot/rss_headlines.png) | ![LavaLamp](assets/screenshot/lavalamp.png) |
 
+| Steam Recent |
+| :---: |
+| ![Steam Recent](assets/screenshot/steam.png) |
+
 - **Market Trackers**: Real-time fiat exchange rates (Frankfurter API) and cryptocurrency charts (CoinGecko API) with 24h/30d trend lines.
 - **Wellness & Habits**: Smart 8-hour hydration tracker (Watermind), daily streaks logger, and emotional mood trends.
 - **Activity & Feeds**: GitHub contribution heat map, active screen time analytics, daily historical milestones, news reader, and ambient decorative LavaLamp.
-
+- **Steam Recent**: View Steam recent games
 ---
 
 ## Compatibility
