@@ -2,6 +2,7 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Pango from 'gi://Pango';
 import {
     resolveWidgetForegroundColor,
     resolveExplicitFontFamily,
@@ -34,7 +35,6 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
     const fontFamily = resolveExplicitFontFamily(config);
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
     const textColor = resolveWidgetForegroundColor(config);
-    const accentHex = config.globalAccentColor || '#3584e4';
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
     let scale = Math.max(0.65, Math.min(width / BASE_WIDTH, height / BASE_HEIGHT));
@@ -56,22 +56,20 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
         x_expand: true,
         y_align: Clutter.ActorAlign.START,
     });
-    mainLayout.add_child(headerBox);
-
     const headerIcon = new St.Icon({
         icon_name: 'utilities-terminal-symbolic',
-        style: `color: ${accentHex}; margin-right: 8px;`,
+        style: `color: ${textColor};`,
         y_align: Clutter.ActorAlign.CENTER,
     });
-    headerBox.add_child(headerIcon);
-
     const headerLabel = new St.Label({
         text: config.customTitle || 'Command Runner',
         y_align: Clutter.ActorAlign.CENTER,
         style: `${fontCss}color: ${textColor}; font-weight: bold; opacity: 0.9;`,
     });
-    headerLabel.clutter_text.set_ellipsize(0);
+    headerLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+    headerBox.add_child(headerIcon);
     headerBox.add_child(headerLabel);
+    mainLayout.add_child(headerBox);
 
    
     // ── 2. Görgethető Box ──
@@ -126,35 +124,30 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
 
         const btnBox = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
-            x_align: Clutter.ActorAlign.FILL,
+            x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.CENTER,
-            x_expand: true,
         });
 
         const btnIcon = new St.Icon({
             icon_name: cmdItem.inTerminal ? 'utilities-terminal-symbolic' : 'system-run-symbolic',
-            style: `color: ${accentHex}; margin-right: 6px;`,
-            x_align: Clutter.ActorAlign.START,
+            style: `color: ${textColor}; margin-right: 6px;`,
             y_align: Clutter.ActorAlign.CENTER,
         });
 
         const btnLabel = new St.Label({
             text: cmdItem.label || 'Run',
-            x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.CENTER,
         });
-        btnLabel.clutter_text.set_x_align(Clutter.ActorAlign.START);
-        btnLabel.clutter_text.set_ellipsize(0);
+        btnLabel.clutter_text.set_ellipsize(3); // Pango.EllipsizeMode.END (három pont a végére, ha túl hosszú)
 
-
-        const spinner = new Spinner(16); // A paraméter az ikon mérete pixelben
+        const spinner = new Spinner(16);
         spinner.y_align = Clutter.ActorAlign.CENTER;
         spinner.hide();
 
         btnBox.add_child(btnIcon);
         btnBox.add_child(spinner);
         btnBox.add_child(btnLabel);
-        btnBox.add_child(new St.Widget({ x_expand: true }));
+        // A "new St.Widget({ x_expand: true })" sort teljesen töröld ki innen!
         runBtn.set_child(btnBox);
         rowCard.add_child(runBtn);
 
@@ -255,7 +248,7 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
                         GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
                             if (!isDisposed && btnIcon) {
                                 btnIcon.set_icon_name('system-run-symbolic');
-                                btnIcon.style = `color: ${accentHex}; margin-right: 6px;`;
+                                btnIcon.style = `color: ${textColor}; margin-right: 6px;`;
                             }
                             return GLib.SOURCE_REMOVE;
                         });
@@ -293,16 +286,16 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
     // ── Reszponzív skálázás ──
     function applyScale(newScale) {
         scale = newScale;
-        const pad = Math.round(10 * scale);
         const iconSize = Math.round(16 * scale);
         const titleFontSize = Math.max(11, Math.round(13 * scale));
         const btnFontSize = Math.max(10, Math.round(12 * scale));
         const outFontSize = Math.max(10, Math.round(11 * scale));
         const cardRadius = Math.max(6, Math.round(8 * scale));
 
-        mainLayout.style = `padding: ${pad}px;`;
+        mainLayout.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
         headerBox.style = `margin-bottom: ${Math.round(8 * scale)}px;`;
         headerIcon.icon_size = iconSize;
+        headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
 
         listContainer.style = `spacing: ${Math.round(6 * scale)}px;`;
@@ -310,9 +303,11 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
         const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
         const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
 
-        const minBtnWidth = Math.round(130 * scale);
+        const maxBtnWidth = Math.round(150 * scale);
+
         rowActors.forEach(({ card, runBtn, btnIcon, btnLabel, outputLabel }) => {
-            runBtn.style = `min-width: ${minBtnWidth}px; padding: 4px 8px;`;
+            // max-width megfogja a szélességet, a padding pedig kompakt marad
+            runBtn.style = `max-width: ${maxBtnWidth}px; padding: 4px 8px;`;
             card.style = `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${Math.round(4 * scale)}px ${Math.round(6 * scale)}px;`;
             btnIcon.icon_size = Math.round(14 * scale);
             btnLabel.style = `${fontCss}color: ${textColor}; font-size: ${btnFontSize}px; font-weight: bold;`;
