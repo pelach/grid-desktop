@@ -7,28 +7,38 @@ import { watchActorLifecycle } from '../utils/actorLifecycle.js';
 import { launchFileUri } from '../desktopGrid/contextMenu.js';
 
 export function createDesktopIconNode(data, w, h, x, y) {
-    const rootContainer = new WidgetActor({
-        style_class: 'gridgets-widget desktop-icon-widget',
-        style: 'background-color: transparent; border: none; box-shadow: none;',
-        x: x || 0,
-        y: y || 0,
-        width: w,
-        height: h,
-        clip_to_allocation: false, // ne vágja le az árnyékot vagy az alsó túlnyúlást
-        reactive: true,
-        can_focus: true,
-        track_hover: true,
-        layout_manager: new Clutter.BinLayout(),
-    });
+    const rootContainer = new WidgetActor();
+    rootContainer.style_class = 'gridgets-widget desktop-icon-widget';
+    rootContainer.style = 'background-color: transparent; border: none; box-shadow: none;';
+    rootContainer.x = x || 0;
+    rootContainer.y = y || 0;
+    rootContainer.width = w;
+    rootContainer.height = h;
+    rootContainer.clip_to_allocation = false;
+    rootContainer.reactive = true;
+    rootContainer.can_focus = true;
+    rootContainer.track_hover = true;
+    
+    if (typeof rootContainer.set_layout_manager === 'function') {
+        rootContainer.set_layout_manager(new Clutter.BinLayout());
+    } else {
+        rootContainer.layout_manager = new Clutter.BinLayout();
+    }
+    
+    const box = new St.BoxLayout();
 
-    const box = new St.BoxLayout({
-        vertical: true,
-        x_align: Clutter.ActorAlign.CENTER,
-        y_align: Clutter.ActorAlign.CENTER,
-        x_expand: true,
-        y_expand: true,
-        reactive: false,
-    });
+    if (typeof Clutter.Orientation !== 'undefined') {
+        box.set_orientation(Clutter.Orientation.VERTICAL);
+    } else {
+        box.vertical = true;
+    }
+
+    box.x_expand = true;
+    box.y_expand = true;
+    // align CENTER/TOP
+    box.x_align = Clutter.ActorAlign.CENTER;
+    box.y_align = Clutter.ActorAlign.START; 
+    box.reactive = false;
 
     // DINAMIKUS IKONMÉRET A CELLÁHOZ KÖTVE:
     // Felirattal a cella kb. 55%-a (68px-nél ~38px, 80px-nél ~44px, 96px-nél ~52px)
@@ -63,6 +73,10 @@ export function createDesktopIconNode(data, w, h, x, y) {
             x_align: Clutter.ActorAlign.CENTER,
             reactive: false,
         });
+
+        // align CENTER/BOTTOM
+        label.x_align = Clutter.ActorAlign.CENTER;
+        label.y_align = Clutter.ActorAlign.END;
 
         label.clutter_text.set_line_wrap(true);
         label.clutter_text.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR);
