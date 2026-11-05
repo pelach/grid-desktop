@@ -76,9 +76,9 @@ export default class GridgetsExtension extends Extension {
 
         syncDesktopIcons(this._settings, false);
         
-        monitorDesktop(this._settings, () => {
-            this._rebuildGrids();
-        });
+        //monitorDesktop(this._settings, () => {
+        //    this._rebuildGrids();
+        //});
         
         this._createAndShowGrids();
 

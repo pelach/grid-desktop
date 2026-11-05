@@ -899,42 +899,41 @@ export function resolveDesktopAppInfo(appId) {
 
 export function calculateDesktopIconPositions(files, settings, gridCols, gridRows) {
     const showLabels = settings.get_boolean('desktop-icons-show-labels');
-    const side = settings.get_string('desktop-icons-side') || 'left';
-    const direction = settings.get_string('desktop-icons-direction') || 'vertical';
-    
+    const existingWidgets = getWidgets(settings); // Beolvassuk a már mentett widgeteket és ikonokat
     const size = 2;
     const icons = [];
 
-    // Kezdőpozíciók
-    let startX = (side === 'left') ? 0 : gridCols - size;
-    let currentX = startX;
-    let currentY = 0;
+    // Összegyűjtjük a már elhelyezett widgetek és ikonok foglalt celláit
+    const occupied = [...existingWidgets];
 
     for (const file of files) {
-        icons.push({
-            ...file,
-            x: currentX,
-            y: currentY,
-            width: size,
-            height: size,
-            showLabel: showLabels,
-            isDesktopIcon: true, // Jelölő a context menu tiltáshoz
-            type: 'desktop-icon'
-        });
+        // Megnézzük, hogy ez a meghajtó vagy fájl szerepel-e már mentett pozícióval
+        const saved = existingWidgets.find(w => w.isDesktopIcon && (w.uri === file.uri || w.id === file.id));
 
-        if (direction === 'vertical') {
-            currentY += size;
-            if (currentY + size > gridRows) {
-                currentY = 0;
-                currentX = (side === 'left') ? currentX + size : currentX - size;
-            }
+        if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+            // Megtartjuk a felhasználó által beállított koordinátákat
+            icons.push({
+                ...file,
+                ...saved,
+                showLabel: showLabels,
+                isDesktopIcon: true,
+                type: 'desktop-icon'
+            });
         } else {
-            // Horizontal
-            currentX = (side === 'left') ? currentX + size : currentX - size;
-            if (currentX < 0 || currentX + size > gridCols) {
-                currentX = startX;
-                currentY += size;
-            }
+            // CSAK AZ ÚJ ELEMNEK (pl. a most felcsatolt meghajtónak) keresünk üres helyet
+            const spot = findEmptySpot(occupied, size, size, gridCols, gridRows);
+            const newIcon = {
+                ...file,
+                x: spot ? spot.x : 0,
+                y: spot ? spot.y : 0,
+                width: size,
+                height: size,
+                showLabel: showLabels,
+                isDesktopIcon: true,
+                type: 'desktop-icon'
+            };
+            icons.push(newIcon);
+            occupied.push(newIcon); // Az új elem is foglalttá teszi a helyét a továbbiak előtt
         }
     }
     return icons;

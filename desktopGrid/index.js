@@ -583,9 +583,9 @@ export const DesktopGrid = GObject.registerClass(
             const { sortedWidgets, modified } = this._layoutWidgetsOnGrid(activeWidgets, layout.gridCols, layout.gridRows, layout.cellSize, layout.cellTotalWidth, layout.cellTotalHeight);
 
             sortedWidgets.forEach(widgetData => {
-                if (!widgetData.isDesktopIcon && this.widgetNodes.has(widgetData.id) && this._nodeConfigs.get(widgetData.id) === JSON.stringify(widgetData))
-                    return;
-
+                if (this.widgetNodes.has(widgetData.id) && this._nodeConfigs.get(widgetData.id) === JSON.stringify(widgetData)) {
+                    return; // Ha a pozíciója és beállításai nem változtak, NE bántsd!
+                }
                 const existingNode = this.widgetNodes.get(widgetData.id);
                 if (existingNode) {
                     existingNode.destroy();
