@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- Finom felső fény/árnyék a sötét kártyának -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#282830" />
+      <stop offset="100%" stop-color="#212126" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fő kártya háttér -->
+  <rect x="4" y="4" width="120" height="120" rx="26" ry="26" fill="url(#bgGrad)" />
+  <rect x="4.5" y="4.5" width="119" height="119" rx="25.5" ry="25.5" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.08" />
+
+  <!-- Számológép belső kijelző (halvány panel) -->
+  <rect x="22" y="20" width="84" height="24" rx="6" ry="6" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-width="1" stroke-opacity="0.08" />
+  <!-- Kijelzőn lévő kis digit indikátor / vonal -->
+  <rect x="78" y="28" width="20" height="8" rx="2" ry="2" fill="#ffffff" fill-opacity="0.75" />
+
+  <!-- 1. sor gombok -->
+  <rect x="22" y="52" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="44" y="52" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="67" y="52" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="89" y="52" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.22" />
+
+  <!-- 2. sor gombok -->
+  <rect x="22" y="68" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="44" y="68" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="67" y="68" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="89" y="68" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.22" />
+
+  <!-- 3. sor gombok -->
+  <rect x="22" y="84" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="44" y="84" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="67" y="84" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="89" y="84" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.22" />
+
+  <!-- 4. sor: Dupla széles 0, pont és kiemelt = gomb -->
+  <rect x="22" y="100" width="39" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="67" y="100" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.08" />
+  <rect x="89" y="100" width="17" height="12" rx="4" fill="#ffffff" fill-opacity="0.35" />
+</svg>

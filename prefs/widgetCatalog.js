@@ -297,7 +297,7 @@ export const STORE_WIDGETS = Object.freeze({
         fallbackIconName: 'mail-unread-symbolic',
     },
     calculator: {
-        title: 'Caclulator',
+        title: 'Calculator',
         description: 'Simple calculator.',
         gridSize: '2x4',
         thumbnail: 'productivity/calculator.svg',
