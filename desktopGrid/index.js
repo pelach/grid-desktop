@@ -259,6 +259,10 @@ export const DesktopGrid = GObject.registerClass(
                 syncDesktopIcons(this.settings, false);
                 this._rebuildGrid();
             });
+            connectSetting('desktop-icons-show-networks', () => {
+                syncDesktopIcons(this.settings, false);
+                this._rebuildGrid();
+            });
 
             // Widgetek változása
             connectSetting('widgets', () => {

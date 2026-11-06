@@ -210,9 +210,13 @@ export function buildGlobalSettingsPage(settings) {
     settings.bind('desktop-icons-show-trash', showTrashRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     desktopGroup.add(showTrashRow);
 
-    const showMountsRow = new Adw.SwitchRow({ title: 'Show Mapped Drives and Network Locations' });
+    const showMountsRow = new Adw.SwitchRow({ title: 'Show Mapped Drives' });
     settings.bind('desktop-icons-show-mounts', showMountsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     desktopGroup.add(showMountsRow);
+
+    const showNetworksRow = new Adw.SwitchRow({ title: 'Show Network Locations' });
+    settings.bind('desktop-icons-show-networks', showNetworksRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    desktopGroup.add(showNetworksRow);
 
     const organizeRow = new Adw.ActionRow({
         title: 'Auto-Layout',
