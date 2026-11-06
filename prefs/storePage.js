@@ -42,6 +42,7 @@ import {
     addPomodoroFocusWidget,
     addPomodoroWidget,
     addTodoWidget,
+    addCalculatorWidget,
 
     // Time & Calendar
     addAnalogClockWidget,
@@ -269,6 +270,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 def(STORE_WIDGETS.clipboardHistory, () => addClipboardWidget(settings, 2, 2)),
                 def(STORE_WIDGETS.appLauncher, () => openAddAppLauncherDialog(window, settings)),
                 def(STORE_WIDGETS.mailGoa, () => addMailGoaWidget(settings)),
+                def(STORE_WIDGETS.calculator, () => addCalculatorWidget(settings)),
             ]
         },
         {

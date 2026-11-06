@@ -108,6 +108,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'rss-headlines': { minCols: 2, minRows: 2 },
     'rss-feed': { minCols: 2, minRows: 2 },
     'steamRecent': { minCols: 2, minRows: 4 },
+    'calculator': { minCols: 2, minRows: 4 },
 
     // Szabadon méretezhető média
     'app-launcher': { minCols: 2, minRows: 2 },
@@ -619,6 +620,7 @@ const SIZE_PRESETS = {
     'screen-time': [[4, 2], [6, 3], [8, 4]],
     'rss-headlines': [[2, 2], [3, 3], [4, 4]],
     'steamRecent': [[2, 4], [3, 5], [4, 6]],
+    'calculator': [[2, 4], [3, 5], [4, 6]],
 };
 
 export const FREE_FLOW_SIZE_TYPES = ['image', 'slideshow'];

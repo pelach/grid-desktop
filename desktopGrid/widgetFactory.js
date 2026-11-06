@@ -72,7 +72,8 @@ import {
     createNotesNode,
     createPomodoroFocusNode,
     createPomodoroNode,
-    createTodoNode
+    createTodoNode,
+    createCalculatorNode,
 } from '../widgets/productivity/index.js';
 
 // Personal
@@ -169,6 +170,7 @@ const WIDGET_CREATORS = {
     'memoryDonut': (data, w, h, x, y) => createMemoryDonutNode(data, w, h, x, y),
     'timeDual': (data, w, h, x, y) => createCityDualTimeNode(data, w, h, x, y),
     'audioMixer': (data, w, h, x, y) => createAudioMixerNode(data, w, h, x, y),
+    'calculator': (data, w, h, x, y) => createCalculatorNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

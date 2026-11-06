@@ -296,6 +296,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'productivity/mailGoa.svg',
         fallbackIconName: 'mail-unread-symbolic',
     },
+    calculator: {
+        title: 'Caclulator',
+        description: 'Simple calculator.',
+        gridSize: '2x4',
+        thumbnail: 'productivity/calculator.svg',
+        fallbackIconName: 'accessories-calculator-symbolic',
+    },
 
     // ── Time & Calendar ────────────────────────────────────────────────
     timeAndDate: {
@@ -539,7 +546,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'commandRunner',
         'steamRecent',
         'memoryDonut',
-        'audioMixer'
+        'audioMixer',
+        'calculator'
 
     ],
 });
@@ -703,6 +711,8 @@ function getStoreWidgetKey(widget) {
             return 'timeDual';
         case 'audioMixer':
             return 'audioMixer';
+        case 'calculator':
+            return 'calculator';
         default:
             return null;
     }
