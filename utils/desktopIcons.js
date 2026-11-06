@@ -1,29 +1,8 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import { getWidgets, saveWidgets, calculateGridDimensions } from './widgetUtils.js';
-
-function isMountActuallyActive(uri) {
-    if (!uri) return false;
-    try {
-        const file = Gio.File.new_for_uri(uri);
-        const mount = file.find_enclosing_mount(null);
-        if (!mount) return false;
-
-        const enumerator = file.enumerate_children(
-            'standard::name',
-            Gio.FileQueryInfoFlags.NONE,
-            null
-        );
-
-        if (enumerator) {
-            enumerator.close(null);
-            return true;
-        }
-        return false;
-    } catch (e) {
-        return false;
-    }
-}
+import { getMountedDeviceIcons } from './mountedDeviceIcons.js';
+import { getNetworkLocationIcons } from './networkLocationIcons.js';
 
 function getThumbnailForUri(uri) {
     try {
@@ -90,6 +69,7 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
     const showHome = settings.get_boolean('desktop-icons-show-home');
     const showTrash = settings.get_boolean('desktop-icons-show-trash');
     const showMounts = settings.get_boolean('desktop-icons-show-mounts');
+    const showNetworks = settings.get_boolean('desktop-icons-show-networks');
 
     const globalMonitorSetting = settings.get_string('global-monitor') || 'primary';
     const targetMonitor = (globalMonitorSetting === 'each' || globalMonitorSetting === 'all')
@@ -136,29 +116,10 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
         });
     }
 
-    if (showMounts) {
-        try {
-            const vm = Gio.VolumeMonitor.get();
-            const mounts = vm.get_mounts();
-            mounts.forEach(mount => {
-                const root = mount.get_root();
-                if (root && root.get_path() !== '/') {
-                    const uri = root.get_uri();
-                    const isRemoteOrGvfs = !uri.startsWith('file://');
-
-                    if (!isRemoteOrGvfs || isMountActuallyActive(uri)) {
-                        currentFiles.push({
-                            name: mount.get_name(),
-                            uri: uri,
-                            icon: mount.get_icon() ? mount.get_icon().to_string() : 'drive-harddisk',
-                            isSpecial: true,
-                            isMount: true,
-                        });
-                    }
-                }
-            });
-        } catch (e) {}
-    }
+    if (showMounts)
+        currentFiles.push(...getMountedDeviceIcons());
+    if (showNetworks)
+        currentFiles.push(...getNetworkLocationIcons());
 
     try {
         const enumerator = directory.enumerate_children(
@@ -244,10 +205,7 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
 
         if (isMountWidget) {
             const existsInCurrent = currentFiles.some(f => f.isMount && f.uri === w.uri);
-            if (!existsInCurrent || !isMountActuallyActive(w.uri)) {
-                return false;
-            }
-            return true;
+            return existsInCurrent;
         }
 
         return currentFiles.some(f => {

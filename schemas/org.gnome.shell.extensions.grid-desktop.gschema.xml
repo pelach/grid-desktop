@@ -132,7 +132,11 @@
     </key>
     <key name="desktop-icons-show-mounts" type="b">
       <default>false</default>
-      <summary>Show mounted drives and network shares on desktop</summary>
+      <summary>Show mounted drives on desktop</summary>
+    </key>
+    <key name="desktop-icons-show-networks" type="b">
+      <default>false</default>
+      <summary>Show network locations on desktop</summary>
     </key>
     <key name="global-background-opacity" type="i">
       <default>100</default>
