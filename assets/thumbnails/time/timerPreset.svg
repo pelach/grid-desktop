@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" width="320" height="160">
+  <!-- Widget kártya háttér -->
+  <rect width="320" height="160" rx="20" fill="#212126" />
+  
+  <!-- Finom külső szegély / border kiemelés -->
+  <rect x="0.5" y="0.5" width="319" height="159" rx="19.5" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1" />
+
+  <!-- BAL OLDAL: Presets fejléc -->
+  <text x="24" y="32" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="13" font-weight="bold" opacity="0.85">Presets</text>
+
+  <!-- Preset gomb 1 (1 min) -->
+  <rect x="24" y="44" width="84" height="28" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1" />
+  <text x="66" y="63" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="12" font-weight="500" text-anchor="middle">1 min</text>
+
+  <!-- Preset gomb 2 (2 min - aktív/kijelölt) -->
+  <rect x="24" y="78" width="84" height="28" rx="8" fill="#ffffff" fill-opacity="0.18" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1" />
+  <text x="66" y="97" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="12" font-weight="500" text-anchor="middle">2 min</text>
+
+  <!-- Preset gomb 3 (3 min) -->
+  <rect x="24" y="112" width="84" height="28" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1" />
+  <text x="66" y="131" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="12" font-weight="500" text-anchor="middle">3 min</text>
+
+  <!-- JOBB OLDAL: Picker oszlopok -->
+  <!-- Perc: felső és alsó halvány számok -->
+  <text x="175" y="36" fill="#ffffff" font-family="Cantarell, monospace" font-size="12" opacity="0.35" text-anchor="middle">01</text>
+  <text x="175" y="80" fill="#ffffff" font-family="Cantarell, monospace" font-size="12" opacity="0.35" text-anchor="middle">03</text>
+
+  <!-- Perc: aktív középérték és vonalak -->
+  <line x1="155" y1="42" x2="195" y2="42" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1" />
+  <text x="175" y="64" fill="#ffffff" font-family="Cantarell, monospace" font-size="24" font-weight="bold" text-anchor="middle">02</text>
+  <line x1="155" y1="70" x2="195" y2="70" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1" />
+
+  <!-- 'min' felirat -->
+  <text x="210" y="61" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="11" opacity="0.6">min</text>
+
+  <!-- Másodperc: felső és alsó halvány számok -->
+  <text x="255" y="36" fill="#ffffff" font-family="Cantarell, monospace" font-size="12" opacity="0.35" text-anchor="middle">49</text>
+  <text x="255" y="80" fill="#ffffff" font-family="Cantarell, monospace" font-size="12" opacity="0.35" text-anchor="middle">51</text>
+
+  <!-- Másodperc: aktív középérték és vonalak -->
+  <line x1="235" y1="42" x2="275" y2="42" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1" />
+  <text x="255" y="64" fill="#ffffff" font-family="Cantarell, monospace" font-size="24" font-weight="bold" text-anchor="middle">50</text>
+  <line x1="235" y1="70" x2="275" y2="70" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1" />
+
+  <!-- 'sec' felirat -->
+  <text x="288" y="61" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="11" opacity="0.6">sec</text>
+
+  <!-- Kör alakú Play gomb -->
+  <circle cx="215" cy="116" r="21" fill="#3584e4" fill-opacity="0.28" />
+  <polygon points="211,108 223,116 211,124" fill="#ffffff" />
+</svg>

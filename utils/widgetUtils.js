@@ -38,6 +38,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'calendarTasks': { minCols: 2, minRows: 2 },
     'todayHistory': { minCols: 2, minRows: 2 },
     'timeDual':  { minCols: 4, minRows: 2 },
+    'timerPreset':  { minCols: 4, minRows: 2 },
 
     // --- 2. IDŐJÁRÁS ÉS KÖRNYEZET ---
     'weather': { minCols: 2, minRows: 2 },
@@ -558,6 +559,7 @@ const SIZE_PRESETS = {
     'calendarTasks': [[2, 2], [3, 3], [4, 4]],
     'todayHistory': [[2, 2], [3, 3], [4, 4]],
     'timeDual': [[4, 2], [6, 3], [8, 4]],
+    'timerPreset': [[4, 2], [6, 3], [8, 4]],
 
     // --- 2. IDŐJÁRÁS ÉS KÖRNYEZET ---
     'weatherStandard': [[2, 2], [3, 3], [4, 4]],

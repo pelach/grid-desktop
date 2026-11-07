@@ -6,6 +6,7 @@ import { createTimerNode } from './timerWidget.js';
 import { createCountdownNode } from './countdownWidget.js';
 import { createBinaryNode } from './binary.js';
 import { createCityDualTimeNode } from './timeCityDual.js';
+import { createTimerPresetNode } from './timerPreset.js';
 
 export {
     createDigitalTimeNode,
@@ -15,7 +16,8 @@ export {
     createTimerNode,
     createCountdownNode,
     createBinaryNode,
-    createCityDualTimeNode
+    createCityDualTimeNode,
+    createTimerPresetNode
 };
 
 export { createCalendarNode } from './calendar.js';
@@ -46,6 +48,10 @@ export function createTimeNode(widgetData, width, height, xPosition, yPosition) 
     }
     if (widgetData.layout === 'binary') {
         return createBinaryNode(widgetData, width, height, xPosition, yPosition);
+    }
+
+    if (widgetData.layout === 'timerPreset') {
+        return createTimerPresetNode(widgetData, width, height, xPosition, yPosition);
     }
     return createDigitalTimeNode(widgetData, width, height, xPosition, yPosition);
 }

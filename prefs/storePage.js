@@ -54,6 +54,7 @@ import {
     addTimerWidget,
     addCalendarWeatherWidget,
     addCalendarEventsWidget,
+    addTimerPresetWidget,
 
     // Personal
     addCalendarTasksWidget,
@@ -287,6 +288,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 // Időzítők
                 def(STORE_WIDGETS.stopwatch, () => addStopWatchWidget(settings)),
                 def(STORE_WIDGETS.timer, () => addTimerWidget(settings)),
+                def(STORE_WIDGETS.timerPreset, () => addTimerPresetWidget(settings)),
                 def(STORE_WIDGETS.countdown, () => openAddCountdownDialog(window, settings)),
 
                 // Naptárak

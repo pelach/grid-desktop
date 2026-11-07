@@ -407,3 +407,7 @@ export function addAudioMixerWidget(settings, width = 4, height = 2) {
 export function addCalculatorWidget(settings, width = 2, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'calculator'), type: 'calculator' }, width, height);
 }
+
+export function addTimerPresetWidget(settings, width = 2, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'timerPreset'), type: 'timerPreset' }, width, height);
+}

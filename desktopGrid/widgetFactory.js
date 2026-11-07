@@ -61,7 +61,8 @@ import {
     createWorldTimeAnalogNode,
     createCalendarWeatherNode,
     createCalendarEventsNode,
-    createCityDualTimeNode
+    createCityDualTimeNode,
+    createTimerPresetNode
 } from '../widgets/time/index.js';
 
 // Focus & Productivity
@@ -171,6 +172,7 @@ const WIDGET_CREATORS = {
     'timeDual': (data, w, h, x, y) => createCityDualTimeNode(data, w, h, x, y),
     'audioMixer': (data, w, h, x, y) => createAudioMixerNode(data, w, h, x, y),
     'calculator': (data, w, h, x, y) => createCalculatorNode(data, w, h, x, y),
+    'timerPreset': (data, w, h, x, y) => createTimerPresetNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

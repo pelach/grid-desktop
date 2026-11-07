@@ -361,6 +361,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'time/timer.svg',
         fallbackIconName: 'preferences-system-time-symbolic',
     },
+    timerPreset: {
+        title: 'Timer Preset',
+        description: 'Countdown timer with quick settings and a scrollable time selector',
+        gridSize: '2x4',
+        thumbnail: 'time/timerPreset.svg',
+        fallbackIconName: 'preferences-system-time-symbolic',
+    },
     countdown: {
         title: 'Countdown',
         description: 'Simple countdown widget.',
@@ -503,7 +510,7 @@ export const STORE_WIDGETS = Object.freeze({
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards', 'moonWidget'],
     music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget', 'audioVisualizer'],
-    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather', 'calendarEvents', 'timeDual'],
+    time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather', 'calendarEvents', 'timeDual', 'timerPreset'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
         'systemDashboard',
@@ -713,6 +720,8 @@ function getStoreWidgetKey(widget) {
             return 'audioMixer';
         case 'calculator':
             return 'calculator';
+        case 'timerPreset':
+            return 'timerPreset';
         default:
             return null;
     }
