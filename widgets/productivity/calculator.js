@@ -302,7 +302,7 @@ export function createCalculatorNode(config, width, height, xPosition, yPosition
         const doubleBtnWidth = (singleBtnWidth * 2) + gap;
 
         buttonActors.forEach(({ btn, label, btnDef }) => {
-            const isHighlighted = btnDef.type === 'op' || btnDef.type === 'equal';
+            const isHighlighted = btnDef.type === 'op' || btnDef.type === 'equal' || btnDef.type === 'action';
             const btnWidth = (btnDef.flex === 2) ? doubleBtnWidth : singleBtnWidth;
 
             btn.width = btnWidth; // St.Widget / Clutter.Actor tulajdonság!
