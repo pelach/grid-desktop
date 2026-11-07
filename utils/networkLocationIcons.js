@@ -4,20 +4,9 @@ function isMountActuallyActive(uri) {
     if (!uri) return false;
     try {
         const file = Gio.File.new_for_uri(uri);
-        const mount = file.find_enclosing_mount(null);
-        if (!mount) return false;
-
-        const enumerator = file.enumerate_children(
-            'standard::name',
-            Gio.FileQueryInfoFlags.NONE,
-            null
-        );
-
-        if (enumerator) {
-            enumerator.close(null);
-            return true;
-        }
-        return false;
+        // Csak alapadatokat kérünk le, nem listázzuk a teljes könyvtártartalmat
+        const info = file.query_info('standard::name', Gio.FileQueryInfoFlags.NONE, null);
+        return info !== null;
     } catch (e) {
         return false;
     }
@@ -29,16 +18,19 @@ export function getNetworkLocationIcons() {
         const mounts = Gio.VolumeMonitor.get().get_mounts();
         mounts.forEach(mount => {
             const root = mount.get_root();
-            if (!root || root.get_path() === '/' || root.get_uri().startsWith('file://'))
-                return;
+            if (!root) return;
 
             const uri = root.get_uri();
+            // Csak akkor lépünk tovább, ha NEM lokális fájlrendszer (nem file://)
+            if (!uri || uri.startsWith('file://'))
+                return;
+
             if (!isMountActuallyActive(uri))
                 return;
 
             icons.push({
                 name: mount.get_name(),
-                uri,
+                uri: uri,
                 icon: mount.get_icon() ? mount.get_icon().to_string() : 'network-server',
                 isSpecial: true,
                 isMount: true,

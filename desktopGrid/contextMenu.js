@@ -179,19 +179,18 @@ function emptyTrash() {
     }
 }
 
-function unmountTargetUri(uri) {
+function ejectOrUnmountTargetUri(uri) {
     try {
         const file = Gio.File.new_for_uri(uri);
         const volumeMonitor = Gio.VolumeMonitor.get();
         const mounts = volumeMonitor.get_mounts();
 
-        // 1. Megkeressük a megfelelő Mount objektumot a VolumeMonitorban
+        // 1. Megkeressük a megfelelő Mount objektumot
         let targetMount = mounts.find(m => {
             const root = m.get_root();
             return root && (root.get_uri() === uri || uri.startsWith(root.get_uri()));
         });
 
-        // Ha így nem találtuk meg, próbáljuk meg a find_enclosing_mount-tal
         if (!targetMount) {
             try {
                 targetMount = file.find_enclosing_mount(null);
@@ -199,31 +198,64 @@ function unmountTargetUri(uri) {
         }
 
         if (targetMount) {
-            targetMount.unmount_with_operation(
-                Gio.MountUnmountFlags.NONE,
-                new Gio.MountOperation(),
-                null,
-                (src, res) => {
-                    try {
-                        src.unmount_with_operation_finish(res);
-                    } catch (e) {
+            const mountOp = new Gio.MountOperation();
 
+            // A) Ha közvetlenül kiadható (Pendrive, optikai lemez, kártyaolvasó)
+            if (targetMount.can_eject()) {
+                targetMount.eject_with_operation(
+                    Gio.MountUnmountFlags.NONE,
+                    mountOp,
+                    null,
+                    (src, res) => {
+                        try {
+                            src.eject_with_operation_finish(res);
+                        } catch (e) {}
                     }
-                }
-            );
-            return;
+                );
+                return;
+            }
+
+            // B) Ha van mögötte fizikai drive, ami biztonságosan leállítható (külső HDD/SSD)
+            const drive = targetMount.get_drive();
+            if (drive && drive.can_stop()) {
+                drive.stop(
+                    Gio.MountUnmountFlags.NONE,
+                    mountOp,
+                    null,
+                    (src, res) => {
+                        try {
+                            src.stop_finish(res);
+                        } catch (e) {}
+                    }
+                );
+                return;
+            }
+
+            // C) Hálózati megosztás vagy virtuális mount (Samba, SFTP, Google Drive)
+            if (targetMount.can_unmount()) {
+                targetMount.unmount_with_operation(
+                    Gio.MountUnmountFlags.NONE,
+                    mountOp,
+                    null,
+                    (src, res) => {
+                        try {
+                            src.unmount_with_operation_finish(res);
+                        } catch (e) {}
+                    }
+                );
+                return;
+            }
         }
-    } catch (e) {
+    } catch (e) {}
 
-    }
-
-    // 2. Tartalék megoldás (gio mount -u URI): ez a Google Drive-val és hálózati megosztásokkal is azonnal működik
+    // 2. Tartalék fallback parancs: ha a fentiek nem találták volna meg
     try {
-        const proc = Gio.Subprocess.new(['gio', 'mount', '-u', uri], Gio.SubprocessFlags.NONE);
+        // A gio mount -e (eject) pendrive-ra, -u (unmount) hálózatra
+        const isNetwork = uri.startsWith('smb:') || uri.startsWith('sftp:') || uri.startsWith('nfs:');
+        const flag = isNetwork ? '-u' : '-e';
+        const proc = Gio.Subprocess.new(['gio', 'mount', flag, uri], Gio.SubprocessFlags.NONE);
         proc.wait_async(null, null);
-    } catch (err) {
-
-    }
+    } catch (err) {}
 }
 
 /** Fájl/Mappa tulajdonságok ablak megnyitása Nautilusban */
@@ -286,8 +318,15 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
 
     // 3. Csatolt meghajtó / Google Drive esetén: Leválasztás (Unmount)
     if (isMount) {
-        const unmountItem = new PopupMenu.PopupMenuItem('Unmount');
-        unmountItem.connect('activate', () => unmountTargetUri(uri));
+        const isNetworkShare = uri.startsWith('smb:') || 
+                               uri.startsWith('sftp:') || 
+                               uri.startsWith('nfs:') || 
+                               uri.startsWith('dav:') || 
+                               uri.startsWith('davs:');
+
+        const menuLabel = isNetworkShare ? 'Unmount' : 'Eject';
+        const unmountItem = new PopupMenu.PopupMenuItem(menuLabel);
+        unmountItem.connect('activate', () => ejectOrUnmountTargetUri(uri));
         menu.addMenuItem(unmountItem);
     }
 

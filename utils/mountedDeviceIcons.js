@@ -6,12 +6,16 @@ export function getMountedDeviceIcons() {
         const mounts = Gio.VolumeMonitor.get().get_mounts();
         mounts.forEach(mount => {
             const root = mount.get_root();
-            if (!root || root.get_path() === '/' || !root.get_uri().startsWith('file://'))
+            if (!root) return;
+
+            const uri = root.get_uri();
+            // Csak a valódi lokális mountok kellenek, a gyökér (/) kivételével
+            if (!uri || !uri.startsWith('file://') || root.get_path() === '/')
                 return;
 
             icons.push({
                 name: mount.get_name(),
-                uri: root.get_uri(),
+                uri: uri,
                 icon: mount.get_icon() ? mount.get_icon().to_string() : 'drive-harddisk',
                 isSpecial: true,
                 isMount: true,

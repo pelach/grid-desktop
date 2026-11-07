@@ -76,9 +76,33 @@ export default class GridgetsExtension extends Extension {
 
         syncDesktopIcons(this._settings, false);
         
-        //monitorDesktop(this._settings, () => {
-        //    this._rebuildGrids();
-        //});
+        // --- Volume és Meghajtó figyelő (pendrive / hálózati csatolások) ---
+        this._volumeMonitor = Gio.VolumeMonitor.get();
+        this._volumeSignals = [];
+        this._volumeDebounceId = 0;
+
+        const onStorageStateChanged = () => {
+            if (this._volumeDebounceId > 0) {
+                GLib.source_remove(this._volumeDebounceId);
+            }
+            // 200ms debounce: elkerüli a dupla újraépítést, ha egyszerre több szignál érkezik
+            this._volumeDebounceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT_IDLE, 200, () => {
+                this._volumeDebounceId = 0;
+                syncDesktopIcons(this._settings, false);
+                this._rebuildGrids();
+                return GLib.SOURCE_REMOVE;
+            });
+        };
+
+        this._volumeSignals.push(
+            this._volumeMonitor.connect('mount-added', onStorageStateChanged),
+            this._volumeMonitor.connect('mount-removed', onStorageStateChanged),
+            this._volumeMonitor.connect('volume-added', onStorageStateChanged),
+            this._volumeMonitor.connect('volume-removed', onStorageStateChanged),
+            this._volumeMonitor.connect('drive-connected', onStorageStateChanged),
+            this._volumeMonitor.connect('drive-disconnected', onStorageStateChanged)
+        );
+        // ------------------------------------------------------------------
         
         this._createAndShowGrids();
 
@@ -112,6 +136,17 @@ export default class GridgetsExtension extends Extension {
         stopMonitor();
         disableDashContextMenu();
         
+        // VolumeMonitor szignálok lecsatolása memóriaszivárgás ellen
+        if (this._volumeDebounceId > 0) {
+            GLib.source_remove(this._volumeDebounceId);
+            this._volumeDebounceId = 0;
+        }
+        if (this._volumeMonitor && this._volumeSignals) {
+            this._volumeSignals.forEach(id => this._volumeMonitor.disconnect(id));
+            this._volumeSignals = [];
+            this._volumeMonitor = null;
+        }
+
         if (this._monitorsChangedTimeoutId > 0) {
             GLib.source_remove(this._monitorsChangedTimeoutId);
             this._monitorsChangedTimeoutId = 0;
