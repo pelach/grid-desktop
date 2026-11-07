@@ -29,7 +29,8 @@ import {
     buildAudioVisualizerSettings,
     buildCommandRunnerSettings,
     buildSteamRecentSettings,
-    buildDualClockSettings
+    buildDualClockSettings,
+    buildWebRadioSettings,
 } from './widgetSettings.js';
 
 export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCallback) {
@@ -139,6 +140,9 @@ export function buildWidgetEditPanel(parentWindow, widget, settings, onSavedCall
         case 'dualClock':
         case 'timeDual':
             buildDualClockSettings(group, widget, settings, saveHandlers);
+            break;
+        case 'webRadio':
+            buildWebRadioSettings(group, widget, saveHandlers);
             break;
     }
 

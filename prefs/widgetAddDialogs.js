@@ -15,7 +15,8 @@ import {
     addWatermindWidget,
     addCommandRunnerWidget,
     addSteamRecentWidget,
-    addDualClockWidget
+    addDualClockWidget,
+    addWebRadioWidget,
 } from './widgetAdders.js';
 import { createAppSelectionControls } from './appSelection.js';
 import { createLiveCitySearchRow, buildOpenMeteoCitySearchRow } from './citySearch.js';
@@ -669,5 +670,119 @@ export function openAddDualClockDialog(parentWindow, settings) {
     cityPicker = createLiveCitySearchRow(box, 'Target City / Timezone:', defaultCity, 0);
 
     group.add(box);
+    window.present();
+}
+
+
+export function openAddWebRadioDialog(parentWindow, settings) {
+    let stations = [
+        { name: 'Retro Rádió', url: 'https://stream.retroradio.hu/mid.mp3' },
+        { name: 'Rádió 1', url: 'https://stream.radio1.hu/mid.mp3' },
+        { name: 'Petőfi Rádió', url: 'https://mr-stream.mediaklikk.hu/play/petofi.mp3' },
+        { name: 'Kossuth Rádió', url: 'https://mr-stream.mediaklikk.hu/play/kossuth.mp3' },
+        { name: 'Smooth Jazz', url: 'https://smoothjazz.cdnstream1.com/2585_128.mp3' },
+        { name: 'Klasszik Rádió', url: 'http://s04.diazol.hu:9600/live.mp3' },
+    ];
+
+    const { window, group } = createModernWidgetAddDialog(parentWindow, 'Configure Web Radio Widget', () => {
+        const valid = stations.filter(s => s.name.trim() && s.url.trim());
+        addWebRadioWidget(settings, 4, 2, valid.length > 0 ? valid : null);
+        return true;
+    });
+
+    window.set_default_size(520, 560);
+
+    const stationsGroup = new Adw.PreferencesGroup({
+        title: 'Radio Stations',
+        description: 'Edit names and stream URLs, or add new channels.',
+    });
+    group.add(stationsGroup);
+
+    const listContainer = new Gtk.Box({
+        orientation: Gtk.Orientation.VERTICAL,
+        spacing: 10,
+        margin_top: 6,
+        margin_bottom: 6,
+    });
+    stationsGroup.add(listContainer);
+
+    const rebuildUI = () => {
+        let child = listContainer.get_first_child();
+        while (child) {
+            const next = child.get_next_sibling();
+            listContainer.remove(child);
+            child = next;
+        }
+
+        stations.forEach((st, idx) => {
+            const cardBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 6,
+                css_classes: ['card'],
+                margin_start: 2,
+                margin_end: 2,
+            });
+
+            const headerRow = new Adw.ActionRow({
+                title: `Station #${idx + 1}`,
+            });
+
+            const deleteBtn = new Gtk.Button({
+                icon_name: 'user-trash-symbolic',
+                valign: Gtk.Align.CENTER,
+                css_classes: ['flat', 'destructive-action'],
+                tooltip_text: 'Remove Station',
+            });
+            deleteBtn.connect('clicked', () => {
+                stations.splice(idx, 1);
+                rebuildUI();
+            });
+
+            headerRow.add_suffix(deleteBtn);
+            cardBox.append(headerRow);
+
+            const nameEntry = new Adw.EntryRow({
+                title: 'Station Name',
+                text: st.name || '',
+            });
+            nameEntry.connect('changed', () => {
+                st.name = nameEntry.get_text().trim();
+            });
+            cardBox.append(nameEntry);
+
+            const urlEntry = new Adw.EntryRow({
+                title: 'Stream URL (mp3/aac/ogg)',
+                text: st.url || '',
+            });
+            urlEntry.connect('changed', () => {
+                st.url = urlEntry.get_text().trim();
+            });
+            cardBox.append(urlEntry);
+
+            listContainer.append(cardBox);
+        });
+    };
+
+    rebuildUI();
+
+    const addActionRow = new Adw.ActionRow();
+    const addBtn = new Gtk.Button({
+        label: '+ Add Station',
+        css_classes: ['suggested-action'],
+        halign: Gtk.Align.CENTER,
+        hexpand: true,
+        margin_top: 6,
+    });
+    addBtn.connect('clicked', () => {
+        stations.push({
+            name: 'New Station',
+            url: 'https://',
+        });
+        rebuildUI();
+    });
+
+    addActionRow.set_child(addBtn);
+    stationsGroup.add(addActionRow);
+
     window.present();
 }

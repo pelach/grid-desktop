@@ -69,6 +69,13 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'media/musicLarge.svg',
         fallbackIconName: 'audio-x-generic-symbolic',
     },
+    webRadio: {
+        title: 'Web Radio',
+        description: 'Live playback of internet radio stations with metadata display and volume control.',
+        gridSize: '2x4',
+        thumbnail: 'media/webRadio.svg',
+        fallbackIconName: 'audio-radio-symbolic',
+    },
     lyricsWidget: {
         title: 'Lyrics',
         description: 'Synchronized real-time song lyrics for currently playing media.',
@@ -509,7 +516,7 @@ export const STORE_WIDGETS = Object.freeze({
 
 export const STORE_CATEGORIES = Object.freeze({
     weather: ['weatherStandard', 'weatherMinimal', 'weatherForecast', 'weatherBars', 'sunScheduleWidget', 'weatherCards', 'moonWidget'],
-    music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget', 'audioVisualizer'],
+    music: ['musicPlayer', 'musicPlayerWide', 'lyricsWidget', 'audioVisualizer','webRadio'],
     time: ['timeAndDate', 'analogClock', 'worldClock', 'calendarWidget', 'calendarGrid', 'countdown', 'timer', 'stopwatch', 'worldAnalog', 'binary', 'calendarWeather', 'calendarEvents', 'timeDual', 'timerPreset'],
     media: ['imageGif', 'imageSlideshow'],
     utilities: [
@@ -722,6 +729,8 @@ function getStoreWidgetKey(widget) {
             return 'calculator';
         case 'timerPreset':
             return 'timerPreset';
+        case 'webRadio':
+            return 'webRadio';
         default:
             return null;
     }

@@ -24,6 +24,9 @@ import {
 import { 
     createAudioVisualizerNode 
 } from '../widgets/music/audioVisualizer.js';
+import { 
+    createWebRadioNode 
+} from '../widgets/music/webRadio.js';
 // System
 import {
     createAudioOutputNode,
@@ -173,6 +176,7 @@ const WIDGET_CREATORS = {
     'audioMixer': (data, w, h, x, y) => createAudioMixerNode(data, w, h, x, y),
     'calculator': (data, w, h, x, y) => createCalculatorNode(data, w, h, x, y),
     'timerPreset': (data, w, h, x, y) => createTimerPresetNode(data, w, h, x, y),
+    'webRadio': (data, w, h, x, y) => createWebRadioNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

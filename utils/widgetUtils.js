@@ -81,6 +81,7 @@ export const MIN_WIDGET_SIZES = Object.freeze({
     'lyrics': { minCols: 4, minRows: 2 },
     'audioVisualizer': { minCols: 4, minRows: 2 },
     'audioMixer': { minCols: 4, minRows: 2 },
+    'webRadio':  { minCols: 4, minRows: 2 },
 
     // --- 5. KAPCSOLÓK ÉS VEZÉRLÉS ---
     'battery-status': { minCols: 2, minRows: 2 },
@@ -595,6 +596,7 @@ const SIZE_PRESETS = {
     'lyrics': [[4, 2], [6, 3], [8, 4]],
     'audioVisualizer': [[4, 2], [6, 3], [8, 4]],
     'audioMixer': [[4, 2], [6, 3], [8, 4]],
+    'webRadio': [[4, 2], [6, 3], [8, 4]],
 
     // --- 5. KAPCSOLÓK ÉS VEZÉRLÉS ---
     'battery-status': [[2, 2], [3, 3], [4, 4]],

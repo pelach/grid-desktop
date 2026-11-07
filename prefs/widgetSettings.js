@@ -1322,3 +1322,97 @@ export function buildDualClockSettings(container, widget, settings, saveHandlers
         }
     });
 }
+
+
+export function buildWebRadioSettings(group, widget, saveHandlers) {
+    const radioGroup = new Adw.PreferencesGroup({
+        title: 'Web Radio Stations',
+        description: 'Edit, add, or remove stream URLs.',
+    });
+    group.add(radioGroup);
+
+    let stations = Array.isArray(widget.stations) ? JSON.parse(JSON.stringify(widget.stations)) : [];
+
+    const listContainer = new Gtk.Box({
+        orientation: Gtk.Orientation.VERTICAL,
+        spacing: 10,
+        margin_top: 8,
+    });
+    radioGroup.add(listContainer);
+
+    const rebuildList = () => {
+        let child = listContainer.get_first_child();
+        while (child) {
+            const next = child.get_next_sibling();
+            listContainer.remove(child);
+            child = next;
+        }
+
+        stations.forEach((st, index) => {
+            const card = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 6,
+                css_classes: ['card'],
+                margin_start: 2,
+                margin_end: 2,
+            });
+
+            const headerRow = new Adw.ActionRow({
+                title: `Station #${index + 1}`,
+            });
+
+            const delBtn = new Gtk.Button({
+                icon_name: 'user-trash-symbolic',
+                valign: Gtk.Align.CENTER,
+                css_classes: ['flat', 'destructive-action'],
+            });
+            delBtn.connect('clicked', () => {
+                stations.splice(index, 1);
+                rebuildList();
+            });
+            headerRow.add_suffix(delBtn);
+            card.append(headerRow);
+
+            const nameEntry = new Adw.EntryRow({
+                title: 'Station Name',
+                text: st.name || '',
+            });
+            nameEntry.connect('changed', () => {
+                st.name = nameEntry.get_text().trim();
+            });
+            card.append(nameEntry);
+
+            const urlEntry = new Adw.EntryRow({
+                title: 'Stream URL (mp3/aac/ogg)',
+                text: st.url || '',
+            });
+            urlEntry.connect('changed', () => {
+                st.url = urlEntry.get_text().trim();
+            });
+            card.append(urlEntry);
+
+            listContainer.append(card);
+        });
+    };
+
+    rebuildList();
+
+    const addRow = new Adw.ActionRow();
+    const addBtn = new Gtk.Button({
+        label: '+ Add Station',
+        css_classes: ['suggested-action'],
+        halign: Gtk.Align.CENTER,
+        hexpand: true,
+        margin_top: 6,
+    });
+    addBtn.connect('clicked', () => {
+        stations.push({ name: 'Új Adó', url: 'https://' });
+        rebuildList();
+    });
+    addRow.set_child(addBtn);
+    radioGroup.add(addRow);
+
+    saveHandlers.push((target) => {
+        target.stations = stations.filter(s => s.name && s.url);
+    });
+}

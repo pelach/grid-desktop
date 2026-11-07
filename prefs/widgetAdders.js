@@ -411,3 +411,14 @@ export function addCalculatorWidget(settings, width = 2, height = 4) {
 export function addTimerPresetWidget(settings, width = 2, height = 4) {
     addWidget(settings, { id: nextWidgetId(settings, 'timerPreset'), type: 'timerPreset' }, width, height);
 }
+
+export function addWebRadioWidget(settings, width = 4, height = 2, stations = null) {
+    const config = {
+        id: nextWidgetId(settings, 'webRadio'),
+        type: 'webRadio',
+    };
+    if (stations && Array.isArray(stations)) {
+        config.stations = stations;
+    }
+    addWidget(settings, config, width, height);
+}

@@ -12,6 +12,7 @@ import {
     addMusicWidget,
     addLyricsWidget,
     addAudioVisualizerWidget,
+    
 
     // System Monitor
     addAudioOutputWidget,
@@ -77,6 +78,7 @@ import {
     // Media
     openAddImageDialog,
     openAddSlideshowDialog,
+    openAddWebRadioDialog,
 
     // Focus & Productivity
     openAddAppLauncherDialog,
@@ -222,6 +224,7 @@ export function buildStorePage(window, settings, extensionPath) {
             items: [
                 def(STORE_WIDGETS[STORE_CATEGORIES.music[0]], () => addMusicWidget(settings, 2, 2)),
                 def(STORE_WIDGETS[STORE_CATEGORIES.music[1]], () => addMusicWidget(settings, 4, 2)),
+                def(STORE_WIDGETS.webRadio, () => openAddWebRadioDialog(window, settings)),
                 def(STORE_WIDGETS.lyricsWidget, () => addLyricsWidget(settings, 4, 2)),
                 def(STORE_WIDGETS.audioVisualizer, () => addAudioVisualizerWidget(settings, 4, 2)),
                 def(STORE_WIDGETS.audioMixer, () => addAudioMixerWidget(settings, 4, 2)),

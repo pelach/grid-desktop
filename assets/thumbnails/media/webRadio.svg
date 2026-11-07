@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" width="320" height="160">
+  <!-- Widget kártya háttér -->
+  <rect width="320" height="160" rx="20" fill="#212126" />
+  <rect x="0.5" y="0.5" width="319" height="159" rx="19.5" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1" />
+
+  <!-- BAL OLDAL: Állomáslista -->
+  <text x="24" y="32" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="13" font-weight="bold" opacity="0.85">Rádióadók</text>
+
+  <!-- Gomb 1 (Retro Rádió - aktív) -->
+  <rect x="24" y="44" width="94" height="28" rx="8" fill="#ffffff" fill-opacity="0.18" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1" />
+  <circle cx="36" cy="58" r="4" fill="#ffffff" opacity="0.7" />
+  <text x="46" y="62" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="11" font-weight="500">Retro Rádió</text>
+
+  <!-- Gomb 2 (Rádió 1) -->
+  <rect x="24" y="78" width="94" height="28" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1" />
+  <circle cx="36" cy="92" r="4" fill="#ffffff" opacity="0.4" />
+  <text x="46" y="96" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="11" font-weight="500">Rádió 1</text>
+
+  <!-- Gomb 3 (Petőfi) -->
+  <rect x="24" y="112" width="94" height="28" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1" />
+  <circle cx="36" cy="126" r="4" fill="#ffffff" opacity="0.4" />
+  <text x="46" y="130" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="11" font-weight="500">Petőfi Rádió</text>
+
+  <!-- JOBB OLDAL: Lejátszó -->
+  <!-- LIVE zöld pötty + ÉLŐ ADÁS felirat -->
+  <circle cx="195" cy="30" r="4" fill="#33d17a" />
+  <text x="205" y="33" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="10" font-weight="bold" opacity="0.75">ÉLŐ ADÁS</text>
+
+  <!-- Adó neve -->
+  <text x="225" y="55" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Retro Rádió</text>
+
+  <!-- Track infó -->
+  <text x="225" y="72" fill="#ffffff" font-family="Cantarell, system-ui, sans-serif" font-size="10" opacity="0.65" text-anchor="middle">Queen - Bohemian Rhapsody</text>
+
+  <!-- Kerek Play/Stop gomb -->
+  <circle cx="225" cy="104" r="20" fill="#3584e4" fill-opacity="0.3" />
+  <rect x="219" y="98" width="12" height="12" rx="2" fill="#ffffff" />
+
+  <!-- Hangerő sáv jelzés alul -->
+  <circle cx="195" cy="138" r="2.5" fill="#ffffff" opacity="0.4" />
+  <rect x="205" y="136" width="40" height="4" rx="2" fill="#ffffff" fill-opacity="0.2" />
+  <rect x="205" y="136" width="32" height="4" rx="2" fill="#3584e4" />
+  <circle cx="260" cy="138" r="2.5" fill="#ffffff" opacity="0.4" />
+</svg>
