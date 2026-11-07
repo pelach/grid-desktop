@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import Gio from 'gi://Gio';
+import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DesktopGrid } from './desktopGrid/index.js';
 import { clearMoodStoreCache } from './utils/moodStore.js';
@@ -16,9 +17,40 @@ import { clearStorageEngine } from './utils/storageEngine.js';
 import { monitorDesktop, stopMonitor, syncDesktopIcons } from './utils/desktopIcons.js';
 import { getWidgets, saveWidgets } from './utils/widgetUtils.js';
 
+function ensureDesktopEntry(extensionPath) {
+    try {
+        const appsDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'applications']);
+        GLib.mkdir_with_parents(appsDir, 0o755);
+
+        const desktopFile = Gio.File.new_for_path(GLib.build_filenamev([appsDir, 'grid-desktop.desktop']));
+        if (!desktopFile.query_exists(null)) {
+            const iconPath = GLib.build_filenamev([extensionPath, 'assets', 'icons', 'grid-desktop.svg']);
+            const content = `[Desktop Entry]
+Name=Grid Radio
+Comment=Desktop Widgets for GNOME Shell
+Exec=true
+Icon=${iconPath}
+Terminal=false
+Type=Application
+NoDisplay=true
+`;
+            desktopFile.replace_contents(
+                content,
+                null,
+                false,
+                Gio.FileCreateFlags.REPLACE_DESTINATION,
+                null
+            );
+            Shell.AppSystem.get_default().reload();
+        }
+    } catch (_e) {}
+}
+
+
 export default class GridgetsExtension extends Extension {
     enable() {
 
+        ensureDesktopEntry(this.path);
         this._settings = this.getSettings();
 
         const isMigrated = this._settings.get_boolean('grid-migrated-v2');

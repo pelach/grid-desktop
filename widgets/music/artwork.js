@@ -343,14 +343,20 @@ export async function ensureLocalArtwork(artUrl, state, callback) {
     cleanOldArtworkCache();
 
     if (!artUrl.startsWith('http://') && !artUrl.startsWith('https://')) {
-        const localFile = artUrl.startsWith('file://') ? Gio.File.new_for_uri(artUrl) : Gio.File.new_for_path(artUrl);
-        if (await fileExists(localFile)) {
-            callback(artUrl.startsWith('file://') ? localFile.get_path() : artUrl);
+        const localFile = artUrl.startsWith('file://') 
+            ? Gio.File.new_for_uri(artUrl) 
+            : Gio.File.new_for_path(artUrl);
+        const filePath = localFile.get_path();
+
+        // 1. Azonnali ellenőrzés: ha a fájl létezik, késlekedés nélkül visszaadjuk
+        if (filePath && GLib.file_test(filePath, GLib.FileTest.EXISTS)) {
+            callback(filePath);
             return;
         }
 
+        // 2. Ha nem létezik, csak akkor nézzük meg a szülő mappát legfrissebb PNG után
         const parentDir = localFile.get_parent();
-        if (parentDir && await fileExists(parentDir)) {
+        if (parentDir && (await fileExists(parentDir))) {
             const latestPng = await findLatestModifiedPng(parentDir);
             if (latestPng) {
                 callback(latestPng);
@@ -358,16 +364,18 @@ export async function ensureLocalArtwork(artUrl, state, callback) {
             }
         }
 
+        // 3. Újrapróbálkozási ciklus, ha épp most íródik a lemezre a fájl
         let attempts = 0;
         while (attempts < ARTWORK_RETRY_MAX_ATTEMPTS) {
             const waitSettled = await waitForArtworkRetry(state);
             if (!waitSettled || isActorDestroyed(state.container)) return;
             attempts++;
-            if (await fileExists(localFile)) {
-                callback(artUrl.startsWith('file://') ? localFile.get_path() : artUrl);
+            if (filePath && GLib.file_test(filePath, GLib.FileTest.EXISTS)) {
+                callback(filePath);
                 return;
             }
         }
+        
         callback(null);
         return;
     }

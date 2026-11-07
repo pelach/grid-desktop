@@ -1,7 +1,10 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gst from 'gi://Gst';
+import Gvc from 'gi://Gvc';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { 
     resolveExplicitFontFamily, 
@@ -13,17 +16,17 @@ import {
 
 import { 
     createWidgetContainer, 
-    attachResponsiveScaler,
+    attachResponsiveScaler, 
     attachButtonFeedback 
 } from '../../shell/widgetUIUtils.js';
 
 import { BUTTON_PRIMARY } from '../../desktopGrid/constants.js';
+import { RadioMprisService } from './mprisPlayer.js';
 
-// GStreamer inicializálása egyszer modul betöltésekor
 try {
     Gst.init(null);
 } catch (e) {
-    // Ha már inicializálva volt a Shell által
+    // Shell által inicializálva
 }
 
 const BASE_CONTAINER_WIDTH = 400;
@@ -34,7 +37,6 @@ const CARD_BG_LIGHT_ALPHA = 0.04;
 const CARD_BORDER_DARK_ALPHA = 0.06;
 const CARD_BORDER_LIGHT_ALPHA = 0.10;
 
-// Alapértelmezett beépített adók
 const DEFAULT_STATIONS = [
     { name: 'Retro Rádió', url: 'https://stream.retroradio.hu/mid.mp3' },
     { name: 'Rádió 1', url: 'https://stream.radio1.hu/mid.mp3' },
@@ -56,8 +58,16 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
 
     let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
-
     const PADDING_H = 12;
+
+    const quickSettings = Main.panel?.statusArea?.quickSettings;
+    const volIndicator = quickSettings?._volumeOutput;
+    const mixerControl = volIndicator?._control;
+
+    function toLinearVolume(display) {
+        return Math.pow(Math.max(0.0, Math.min(1.0, display)), 3);
+    }
+
 
     const state = {
         stations: (Array.isArray(config.stations) && config.stations.length > 0)
@@ -66,13 +76,14 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         selectedIndex: 0,
         isPlaying: false,
         isBuffering: false,
-        volume: 0.8,
-        currentTrack: 'Nincs adás',
+        volume: toLinearVolume(1.0),
+        currentTrack: 'No signal',
         player: null,
         busWatchId: null,
+        radioStream: null,
+        streamNotifyId: 0,
     };
 
-    // UI elemek előre deklarálása, hogy a GStreamer busz és a layout is elérje
     const liveDot = new St.Widget({
         width: 8,
         height: 8,
@@ -81,14 +92,14 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     });
 
     const statusLabel = new St.Label({
-        text: 'Készenlét',
+        text: 'Standby',
         y_align: Clutter.ActorAlign.CENTER,
         style: `${fontCss}color: ${textColor}; font-size: 10px; font-weight: bold; opacity: 0.6;`,
     });
 
     const currentStation = state.stations[state.selectedIndex];
     const stationTitleLabel = new St.Label({
-        text: currentStation ? currentStation.name : 'Web Rádió',
+        text: currentStation ? currentStation.name : 'Web Radio',
         x_align: Clutter.ActorAlign.CENTER,
         style: `${fontCss}color: ${textColor}; font-size: 16px; font-weight: bold; margin-bottom: 2px; text-align: center;`,
     });
@@ -117,13 +128,221 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     playPauseBtn.set_child(playPauseIcon);
     attachButtonFeedback(playPauseBtn);
 
-    // ==========================================
-    // GSTREAMER PIPELINE LÉTREHOZÁSA
-    // ==========================================
+    const volLabel = new St.Label({
+        text: '100%',
+        x_align: Clutter.ActorAlign.CENTER,
+        style: `${fontCss}font-feature-settings: 'tnum'; color: ${textColor}; font-size: 11px; opacity: 0.75; text-align: center;`,
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+
+    const stationButtons = [];
+
+    function getCustomIconUri(iconName = 'grid-desktop.svg') {
+        const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
+        const currentDir = GLib.path_get_dirname(currentFilePath);
+        const iconFile = Gio.File.new_for_path(currentDir)
+            .get_parent() 
+            .get_parent() 
+            .get_child('assets')
+            .get_child('icons')
+            .get_child(iconName);
+
+        if (iconFile.query_exists(null)) {
+            return iconFile.get_uri(); 
+        }
+        return '';
+    }
+
+    function updateStationHighlights() {
+        state.stations.forEach((_s, idx) => {
+            const btn = stationButtons[idx];
+            if (!btn) return;
+            const isSelected = (state.selectedIndex === idx);
+            const bg = isSelected ? cssColorToRgba(textColor, 0.18) : cssColorToRgba(textColor, cardBgAlpha);
+            const border = isSelected ? cssColorToRgba(textColor, 0.35) : cssColorToRgba(textColor, cardBorderAlpha);
+            btn.style = `background-color: ${bg}; border: 1px solid ${border}; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; margin-right: 4px;`;
+        });
+    }
+
+    // ── Gvc PipeWire szinkronizáció ──
+    function findRadioStream() {
+        if (!mixerControl) return null;
+        const streams = mixerControl.get_streams ? mixerControl.get_streams() : [];
+        
+        // 1. Megkeressük az összes aktív SinkInputot, ami nem rendszer hangjelzés
+        const sinkInputs = streams.filter(s => {
+            if (!s || !(s instanceof Gvc.MixerSinkInput)) return false;
+            const name = (s.get_name ? s.get_name() : '') || '';
+            return name !== 'sink-input-by-media-role:event';
+        });
+
+        if (sinkInputs.length === 0) return null;
+
+        // 2. Ha csak egyetlen app stream van (a rádió), egyből azt adjuk vissza:
+        if (sinkInputs.length === 1) return sinkInputs[0];
+
+        // 3. Ha több is fut, kiszűrjük a böngészőket/zenelejátszókat vagy megnézzük a nevet:
+        const radioStream = sinkInputs.find(s => {
+            const name = (s.get_name ? s.get_name() : '').toLowerCase();
+            const app = (s.get_application_id ? s.get_application_id() : '').toLowerCase();
+            return name.includes('gstreamer') || name.includes('playbin') || app.includes('gnome-shell') || name.includes('gnome-shell');
+        });
+
+        // Ha nincs explicit egyezés, az utoljára megjelent (legfrissebb) stream a miénk:
+        return radioStream || sinkInputs[sinkInputs.length - 1];
+    }
+
+    function syncFromStream() {
+        if (!state.radioStream || !mixerControl) return;
+        const maxNorm = mixerControl.get_vol_max_norm() || 65536;
+        state.volume = Math.min(1.0, Math.max(0.0, state.radioStream.volume / maxNorm));
+        volLabel.set_text(`${Math.round(state.volume * 100)}%`);
+        mpris.updateState({ volume: state.volume });
+    }
+
+    function bindRadioStream() {
+        const stream = findRadioStream();
+        if (stream && stream !== state.radioStream) {
+            if (state.radioStream && state.streamNotifyId) {
+                try { state.radioStream.disconnect(state.streamNotifyId); } catch (_) {}
+            }
+            state.radioStream = stream;
+            state.streamNotifyId = stream.connect('notify::volume', () => syncFromStream());
+            syncFromStream();
+        }
+    }
+
+    function applyStreamVolume(newVal) {
+        state.volume = Math.max(0.0, Math.min(1.0, newVal));
+        volLabel.set_text(`${Math.round(state.volume * 100)}%`);
+        mpris.updateState({ volume: state.volume });
+
+        if (state.radioStream && mixerControl) {
+            const maxNorm = mixerControl.get_vol_max_norm() || 65536;
+            state.radioStream.volume = Math.round(state.volume * maxNorm);
+            if (state.radioStream.is_muted && state.volume > 0) {
+                state.radioStream.change_is_muted(false);
+            }
+            state.radioStream.push_volume();
+        } else if (state.player) {
+            // Tartalék ág, ha a PipeWire stream még nem jött létre
+            state.player.set_property('volume', state.volume);
+        }
+    }
+
+    let gvcSignalId = 0;
+    if (mixerControl) {
+        gvcSignalId = mixerControl.connect('stream-added', () => {
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                bindRadioStream();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+    }
+
+    function startRadio() {
+        if (!state.player) return;
+        const station = state.stations[state.selectedIndex];
+        if (!station || !station.url) return;
+
+        state.player.set_state(Gst.State.NULL);
+        state.player.set_property('uri', station.url);
+        state.player.set_property('volume', 1.0);
+        state.player.set_state(Gst.State.PLAYING);
+
+        statusLabel.set_text('Connecting...');
+        liveDot.style = `background-color: #f6d32d; border-radius: 99px; margin-right: 6px;`;
+
+        // 150ms és 400ms múlva is ránézünk, amint a PipeWire stream regisztrálva van:
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+            bindRadioStream();
+            return GLib.SOURCE_REMOVE;
+        });
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+            bindRadioStream();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    function stopRadio() {
+        if (!state.player) return;
+        state.player.set_state(Gst.State.NULL);
+        state.isPlaying = false;
+        state.isBuffering = false;
+        playPauseIcon.set_icon_name('media-playback-start-symbolic');
+        statusLabel.set_text('Stopped');
+        liveDot.style = `background-color: ${cssColorToRgba(textColor, 0.25)}; border-radius: 99px; margin-right: 6px;`;
+        trackLabel.set_text('No signal');
+
+        mpris.updateState({
+            playbackStatus: 'Stopped',
+            trackTitle: 'No signal'
+        });
+    }
+
+    function toDisplayVolume(linear) {
+        return Math.cbrt(Math.max(0.0, Math.min(1.0, linear)));
+    }
+
+    const fallbackArtUri = getCustomIconUri('grid-desktop.png'); 
+
+    function selectStation(idx) {
+        const wasPlaying = state.isPlaying;
+        stopRadio();
+        state.selectedIndex = idx;
+        const station = state.stations[idx];
+        stationTitleLabel.set_text(station.name);
+        state.currentTrack = 'Connecting...';
+        trackLabel.set_text(state.currentTrack);
+        updateStationHighlights();
+
+        const stationArt = station.logo || station.icon || station.artUrl || fallbackArtUri;
+
+        mpris.updateState({
+            stationName: station.name,
+            trackTitle: 'Connecting...',
+            artUrl: stationArt,
+        });
+
+        if (wasPlaying) {
+            startRadio();
+        }
+    }
+
+    const mpris = new RadioMprisService({
+        onPlayPause: () => {
+            if (state.isPlaying || state.isBuffering) {
+                stopRadio();
+            } else {
+                startRadio();
+            }
+        },
+        onPlay: () => {
+            if (!state.isPlaying) startRadio();
+        },
+        onPause: () => {
+            if (state.isPlaying) stopRadio();
+        },
+        onStop: () => {
+            stopRadio();
+        },
+        onNext: () => {
+            const nextIdx = (state.selectedIndex + 1) % state.stations.length;
+            selectStation(nextIdx);
+        },
+        onPrevious: () => {
+            const prevIdx = (state.selectedIndex - 1 + state.stations.length) % state.stations.length;
+            selectStation(prevIdx);
+        },
+        onSetVolume: (newVol) => {
+            applyStreamVolume(newVol);
+        }
+    });
+
     try {
         state.player = Gst.ElementFactory.make('playbin', 'grid-radio-player');
         if (state.player) {
-            state.player.set_property('volume', state.volume);
+            state.player.set_property('volume', 1.0);
 
             const bus = state.player.get_bus();
             bus.add_signal_watch();
@@ -142,6 +361,16 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                                     ? `${artist} - ${title}`
                                     : title;
                                 trackLabel.set_text(state.currentTrack);
+
+                                const stationArt = state.stations[state.selectedIndex]?.logo 
+                                    || state.stations[state.selectedIndex]?.icon 
+                                    || fallbackArtUri;
+
+                                mpris.updateState({
+                                    trackTitle: state.currentTrack,
+                                    stationName: state.stations[state.selectedIndex]?.name,
+                                    artUrl: stationArt,
+                                });
                             }
                         }
                         break;
@@ -150,16 +379,15 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                         const percent = msg.parse_buffering();
                         if (percent < 100) {
                             state.isBuffering = true;
-                            statusLabel.set_text(`Pufferelés ${percent}%`);
+                            statusLabel.set_text(`Buffering ${percent}%`);
                             liveDot.style = `background-color: #f6d32d; border-radius: 99px; margin-right: 6px;`;
                         } else {
                             state.isBuffering = false;
                             if (state.isPlaying) {
-                                statusLabel.set_text('ÉLŐ ADÁS');
+                                statusLabel.set_text('LIVE');
                                 liveDot.style = `background-color: #33d17a; border-radius: 99px; margin-right: 6px;`;
-                                // Ha a stream nem küldött track címet, ne maradjon kint a "Csatlakozás..."
-                                if (trackLabel.get_text() === 'Csatlakozás...') {
-                                    trackLabel.set_text('Élő adás');
+                                if (trackLabel.get_text() === 'Connecting...') {
+                                    trackLabel.set_text('Live');
                                 }
                             }
                         }
@@ -171,19 +399,32 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                             if (newState === Gst.State.PLAYING) {
                                 state.isPlaying = true;
                                 state.isBuffering = false;
-                                statusLabel.set_text('ÉLŐ ADÁS');
+                                statusLabel.set_text('LIVE');
                                 liveDot.style = `background-color: #33d17a; border-radius: 99px; margin-right: 6px;`;
                                 playPauseIcon.set_icon_name('media-playback-stop-symbolic');
 
-                                if (trackLabel.get_text() === 'Csatlakozás...') {
-                                    trackLabel.set_text('Élő adás');
+                                if (state.currentTrack === 'Connecting...' || state.currentTrack === 'Connecting...') {
+                                    state.currentTrack = 'Live';
+                                    trackLabel.set_text(state.currentTrack);
                                 }
+
+                                mpris.updateState({
+                                    playbackStatus: 'Playing',
+                                    stationName: state.stations[state.selectedIndex]?.name,
+                                    trackTitle: state.currentTrack,
+                                    artUrl: state.stations[state.selectedIndex]?.logo || fallbackArtUri,
+                                });
+                                bindRadioStream();
                             } else if (newState === Gst.State.NULL || newState === Gst.State.READY) {
                                 state.isPlaying = false;
                                 state.isBuffering = false;
-                                statusLabel.set_text('Leállítva');
+                                statusLabel.set_text('Stopped');
                                 liveDot.style = `background-color: ${cssColorToRgba(textColor, 0.25)}; border-radius: 99px; margin-right: 6px;`;
                                 playPauseIcon.set_icon_name('media-playback-start-symbolic');
+                                mpris.updateState({
+                                    playbackStatus: 'Stopped',
+                                    trackTitle: 'No signal'
+                                });
                             }
                         }
                         break;
@@ -191,7 +432,7 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                     case Gst.MessageType.ERROR: {
                         const [err, _debug] = msg.parse_error();
                         statusLabel.set_text('Hiba');
-                        trackLabel.set_text(err?.message || 'A stream nem elérhető');
+                        trackLabel.set_text(err?.message || 'The stream is unavailable');
                         liveDot.style = `background-color: #e01b24; border-radius: 99px; margin-right: 6px;`;
                         stopRadio();
                         break;
@@ -203,7 +444,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         logError(e, 'Failed to initialize GStreamer playbin');
     }
 
-    // Fő konténer layout
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -212,9 +452,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     });
     container.set_child(mainLayout);
 
-    // ==========================================
-    // BAL OLDAL: ÁLLOMÁSLISTA (FIX SZÉLESSÉGGEL)
-    // ==========================================
     const leftBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -224,7 +461,7 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     });
 
     const listHeader = new St.Label({
-        text: 'Rádióadók',
+        text: 'Radio Stations',
         x_align: Clutter.ActorAlign.START,
         style: `${fontCss}color: ${textColor}; font-size: 13px; font-weight: bold; opacity: 0.8; margin-bottom: 6px;`,
     });
@@ -244,19 +481,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         x_expand: true,
     });
     scrollView.set_child(stationList);
-
-    const stationButtons = [];
-
-    function updateStationHighlights() {
-        state.stations.forEach((_s, idx) => {
-            const btn = stationButtons[idx];
-            if (!btn) return;
-            const isSelected = (state.selectedIndex === idx);
-            const bg = isSelected ? cssColorToRgba(textColor, 0.18) : cssColorToRgba(textColor, cardBgAlpha);
-            const border = isSelected ? cssColorToRgba(textColor, 0.35) : cssColorToRgba(textColor, cardBorderAlpha);
-            btn.style = `background-color: ${bg}; border: 1px solid ${border}; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; margin-right: 4px;`;
-        });
-    }
 
     state.stations.forEach((station, idx) => {
         const btn = new St.Button({
@@ -293,17 +517,7 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         btn.set_child(row);
 
         btn.connect('clicked', () => {
-            const wasPlaying = state.isPlaying;
-            stopRadio();
-            state.selectedIndex = idx;
-            stationTitleLabel.set_text(station.name);
-            state.currentTrack = 'Csatlakozás...';
-            trackLabel.set_text(state.currentTrack);
-            updateStationHighlights();
-
-            if (wasPlaying) {
-                startRadio();
-            }
+            selectStation(idx);
         });
 
         stationButtons.push(btn);
@@ -312,9 +526,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
 
     mainLayout.add_child(leftBox);
 
-    // ==========================================
-    // JOBB OLDAL: LEJÁTSZÓ VEZÉRLÉS
-    // ==========================================
     const rightBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -324,7 +535,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         style: 'margin-left: 8px;',
     });
 
-    // 1. Státusz sor
     const statusRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.CENTER,
@@ -335,13 +545,9 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     statusRow.add_child(statusLabel);
     rightBox.add_child(statusRow);
 
-    // 2. Állomás neve
     rightBox.add_child(stationTitleLabel);
-
-    // 3. Track infó
     rightBox.add_child(trackLabel);
 
-    // 4. Play/Stop gomb
     const controlsRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.CENTER,
@@ -350,7 +556,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     controlsRow.add_child(playPauseBtn);
     rightBox.add_child(controlsRow);
 
-    // 5. Fix szélességű hangerő sor
     const volBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.CENTER,
@@ -365,14 +570,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         style: `color: ${textColor}; opacity: 0.5; margin-right: 4px;`,
     });
 
-    const volLabel = new St.Label({
-        text: `${Math.round(state.volume * 100)}%`,
-        x_align: Clutter.ActorAlign.CENTER,
-        width: 38,
-        style: `${fontCss}font-feature-settings: 'tnum'; color: ${textColor}; font-size: 11px; opacity: 0.75; text-align: center;`,
-        y_align: Clutter.ActorAlign.CENTER,
-    });
-
     const volUpIcon = new St.Icon({
         icon_name: 'audio-volume-high-symbolic',
         icon_size: 13,
@@ -384,7 +581,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     volBox.add_child(volUpIcon);
     rightBox.add_child(volBox);
 
-    // Görgetéses hangerőszabályzás
     rightBox.reactive = true;
     rightBox.connect('scroll-event', (_actor, event) => {
         const dir = event.get_scroll_direction();
@@ -392,43 +588,38 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         if (dir === Clutter.ScrollDirection.UP) step = 0.05;
         else if (dir === Clutter.ScrollDirection.DOWN) step = -0.05;
 
-        state.volume = Math.max(0.0, Math.min(1.0, state.volume + step));
-        if (state.player) {
-            state.player.set_property('volume', state.volume);
+        // Nem belső GStreamer volume-ot állítunk, hanem a megtalált Gvc streamet:
+        if (state.radioStream && mixerControl) {
+            const maxNorm = mixerControl.get_vol_max_norm() || 65536;
+            const currentNorm = state.radioStream.volume / maxNorm;
+            const newNorm = Math.max(0.0, Math.min(1.0, currentNorm + step));
+
+            state.radioStream.volume = Math.round(newNorm * maxNorm);
+            if (state.radioStream.is_muted && newNorm > 0) {
+                state.radioStream.change_is_muted(false);
+            }
+            state.radioStream.push_volume();
+
+            // A felirat azonnal a PipeWire értékét veszi fel:
+            state.volume = newNorm;
+            volLabel.set_text(`${Math.round(newNorm * 100)}%`);
+            mpris.updateState({ volume: newNorm });
+        } else {
+            // Fallback, ha a PipeWire stream még nem állt elő
+            let currentDisplay = toDisplayVolume(state.volume);
+            let newDisplay = Math.max(0.0, Math.min(1.0, currentDisplay + step));
+            state.volume = toLinearVolume(newDisplay);
+            if (state.player) {
+                state.player.set_property('volume', state.volume);
+            }
+            volLabel.set_text(`${Math.round(newDisplay * 100)}%`);
+            mpris.updateState({ volume: newDisplay });
         }
-        volLabel.set_text(`${Math.round(state.volume * 100)}%`);
+
         return Clutter.EVENT_STOP;
     });
 
     mainLayout.add_child(rightBox);
-
-    // ==========================================
-    // LEJÁTSZÁS VEZÉRLÉS LOGIKA
-    // ==========================================
-    function startRadio() {
-        if (!state.player) return;
-        const station = state.stations[state.selectedIndex];
-        if (!station || !station.url) return;
-
-        state.player.set_state(Gst.State.NULL);
-        state.player.set_property('uri', station.url);
-        state.player.set_property('volume', state.volume);
-        state.player.set_state(Gst.State.PLAYING);
-
-        statusLabel.set_text('Csatlakozás...');
-        liveDot.style = `background-color: #f6d32d; border-radius: 99px; margin-right: 6px;`;
-    }
-
-    function stopRadio() {
-        if (!state.player) return;
-        state.player.set_state(Gst.State.NULL);
-        state.isPlaying = false;
-        state.isBuffering = false;
-        playPauseIcon.set_icon_name('media-playback-start-symbolic');
-        statusLabel.set_text('Leállítva');
-        liveDot.style = `background-color: ${cssColorToRgba(textColor, 0.25)}; border-radius: 99px; margin-right: 6px;`;
-        trackLabel.set_text('Nincs adás');
-    }
 
     playPauseBtn.connect('button-press-event', (_actor, event) => {
         if (event.get_button() !== BUTTON_PRIMARY || container.actionOverlay)
@@ -443,6 +634,13 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     });
 
     container.connect('destroy', () => {
+        if (mixerControl && gvcSignalId) {
+            try { mixerControl.disconnect(gvcSignalId); } catch (_) {}
+        }
+        if (state.radioStream && state.streamNotifyId) {
+            try { state.radioStream.disconnect(state.streamNotifyId); } catch (_) {}
+        }
+        mpris.destroy();
         if (state.player) {
             state.player.set_state(Gst.State.NULL);
             if (state.busWatchId) {
@@ -457,20 +655,80 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     updateStationHighlights();
 
     function updateDimensions(w) {
-        // Levonjuk a bal/jobb külső paddingot és a középső 16px margót:
         const availableWidth = Math.max(0, w - (PADDING_H * 2) - 16);
         const halfWidth = Math.floor(availableWidth / 2);
-
         leftBox.set_width(halfWidth);
         rightBox.set_width(halfWidth);
     }
 
+    function applyScale(newScale) {
+        scale = newScale;
+
+        // 1. Oszlopok felosztása
+        const currentWidth = container.get_width() || BASE_CONTAINER_WIDTH;
+        updateDimensions(currentWidth);
+
+        // 2. Bal oldali állomáslista dinamikus méretei
+        const listHeaderSize = Math.max(10, Math.round(13 * scale));
+        listHeader.style = `${fontCss}color: ${textColor}; font-size: ${listHeaderSize}px; font-weight: bold; opacity: 0.8; margin-bottom: ${Math.round(6 * scale)}px;`;
+
+        const padV = Math.max(3, Math.round(6 * scale));
+        const padH = Math.max(5, Math.round(10 * scale));
+        const rowMarginB = Math.max(2, Math.round(6 * scale));
+        const listFontSize = Math.max(9, Math.round(12 * scale));
+        const listIconSize = Math.max(11, Math.round(14 * scale));
+
+        stationButtons.forEach(btn => {
+            const row = btn.get_child();
+            if (row) {
+                const ic = row.get_first_child();
+                const lb = row.get_last_child();
+                if (ic && ic instanceof St.Icon) ic.icon_size = listIconSize;
+                if (lb && lb instanceof St.Label) lb.style = `${fontCss}color: ${textColor}; font-size: ${listFontSize}px; font-weight: 500;`;
+            }
+        });
+
+        // 3. Kiemelések frissítése az új padding/margin értékekkel
+        state.stations.forEach((_s, idx) => {
+            const btn = stationButtons[idx];
+            if (!btn) return;
+            const isSelected = (state.selectedIndex === idx);
+            const bg = isSelected ? cssColorToRgba(textColor, 0.18) : cssColorToRgba(textColor, cardBgAlpha);
+            const border = isSelected ? cssColorToRgba(textColor, 0.35) : cssColorToRgba(textColor, cardBorderAlpha);
+            btn.style = `background-color: ${bg}; border: 1px solid ${border}; border-radius: ${Math.round(8 * scale)}px; padding: ${padV}px ${padH}px; margin-bottom: ${rowMarginB}px; margin-right: 4px;`;
+        });
+
+        // 4. Jobb oldali vezérlők dinamikus skálázása
+        const statusFontSize = Math.max(8, Math.round(10 * scale));
+        statusLabel.style = `${fontCss}color: ${textColor}; font-size: ${statusFontSize}px; font-weight: bold; opacity: 0.6;`;
+
+        const titleSize = Math.max(12, Math.round(16 * scale));
+        stationTitleLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleSize}px; font-weight: bold; margin-bottom: 2px; text-align: center;`;
+
+        const trackSize = Math.max(9, Math.round(11 * scale));
+        trackLabel.style = `${fontCss}color: ${textColor}; font-size: ${trackSize}px; opacity: 0.65; margin-bottom: ${Math.round(8 * scale)}px; text-align: center;`;
+
+        const btnDim = Math.max(30, Math.round(44 * scale));
+        const playIconDim = Math.max(14, Math.round(20 * scale));
+        playPauseBtn.style = `background-color: ${cssColorToRgba(accentHex, 0.25)}; border-radius: 99px; width: ${btnDim}px; height: ${btnDim}px;`;
+        playPauseIcon.icon_size = playIconDim;
+
+        const volFontSize = Math.max(9, Math.round(11 * scale));
+        const volIconSize = Math.max(10, Math.round(13 * scale));
+        const volWidth = Math.max(32, Math.round(44 * scale));
+        volDownIcon.icon_size = volIconSize;
+        volUpIcon.icon_size = volIconSize;
+        volLabel.width = volWidth;
+        volLabel.style = `${fontCss}font-feature-settings: 'tnum'; color: ${textColor}; font-size: ${volFontSize}px; opacity: 0.75; text-align: center;`;
+        
+    }
+
+    applyScale(scale);
+
     attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
-        scale = Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT));
-        updateDimensions(w);
+        if (isActorDestroyed(container)) return;
+        applyScale(Math.max(0.60, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
     });
-
-    updateDimensions(width);
-
+  
     return container;
 }

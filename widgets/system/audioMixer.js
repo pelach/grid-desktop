@@ -1,6 +1,7 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import Gvc from 'gi://Gvc';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
@@ -267,6 +268,22 @@ export function createAudioMixerNode(config, width, height, xPosition, yPosition
         }
     });
 
+    function getGridDesktopGIcon() {
+        const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
+        const currentDir = GLib.path_get_dirname(currentFilePath);
+        const iconFile = Gio.File.new_for_path(currentDir)
+            .get_parent() // widgets
+            .get_parent() // grid-desktop root
+            .get_child('assets')
+            .get_child('icons')
+            .get_child('grid-desktop.svg');
+
+        if (iconFile.query_exists(null)) {
+            return Gio.FileIcon.new(iconFile);
+        }
+        return null;
+    }
+
     function updateMasterPercent() {
         if (!masterSlider) return;
         masterPercentLabel.text = `${Math.round(masterSlider.value * 100)}%`;
@@ -359,9 +376,17 @@ export function createAudioMixerNode(config, width, height, xPosition, yPosition
             if (!iconName && stream.get_application_id) {
                 iconName = stream.get_application_id();
             }
-            if (!iconName) {
-                iconName = 'audio-speakers-symbolic';
-            }
+
+            const streamName = (stream.get_name ? stream.get_name() : '') || '';
+            const streamAppId = (stream.get_application_id ? stream.get_application_id() : '') || '';
+
+            // Ha explicit a gstreamer / gnome-shell hozta létre, VAGY fallback executable ikont kapott:
+            const isRadioStream = streamName.includes('GStreamer') || 
+                                  streamName.includes('playbin') || 
+                                  streamName.includes('Grid Radio') ||
+                                  streamAppId.includes('gnome-shell') ||
+                                  iconName === 'application-x-executable' ||
+                                  iconName === 'application-default-icon';
 
             const appBtn = new St.Button({
                 reactive: true,
@@ -372,11 +397,22 @@ export function createAudioMixerNode(config, width, height, xPosition, yPosition
             attachButtonFeedback(appBtn);
 
             const appIcon = new St.Icon({
-                icon_name: iconName,
                 icon_size: btnIconSize,
                 style: `color: ${textColor};`,
                 y_align: Clutter.ActorAlign.CENTER,
             });
+
+            if (isRadioStream) {
+                const customGIcon = getGridDesktopGIcon();
+                if (customGIcon) {
+                    appIcon.set_gicon(customGIcon);
+                } else {
+                    appIcon.set_icon_name('view-app-grid-symbolic');
+                }
+            } else {
+                appIcon.set_icon_name(iconName || 'audio-speakers-symbolic');
+            }
+
             appBtn.set_child(appIcon);
 
             // Némítás gomb működése
