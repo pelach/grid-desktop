@@ -81,4 +81,5 @@ export function applyTheme(settings, themeId) {
     settings.set_string('global-background-color', theme.bg);
     settings.set_string('global-foreground-color', theme.fg);
     settings.set_string('accent-color-override', theme.accent);
+    settings.set_boolean('accent-color-override-enabled', true);
 }

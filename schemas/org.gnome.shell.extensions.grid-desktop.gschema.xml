@@ -37,6 +37,11 @@
       <summary>Show Grid</summary>
       <description>Visualize the underlying widget placement grid.</description>
     </key>
+    <key name="multi-select-all-widget-sizes" type="b">
+      <default>false</default>
+      <summary>Select Widgets of Any Size</summary>
+      <description>Allow the selection rectangle to select widgets of any size. When disabled, only 1x1 widgets can be selected.</description>
+    </key>
     <key name="global-font-family" type="s">
       <default>''</default>
       <summary>Global Font Family</summary>
@@ -99,8 +104,13 @@
     </key>
     <key name="accent-color-override" type="s">
       <default>''</default>
-      <summary>Accent Color Override</summary>
-      <description>Custom accent color hex (e.g. '#3584e4'). Empty falls back to the system accent color.</description>
+      <summary>Accent Color</summary>
+      <description>Custom accent color hex (e.g. '#3584e4').</description>
+    </key>
+    <key name="accent-color-override-enabled" type="b">
+      <default>false</default>
+      <summary>Enable Accent Color Override</summary>
+      <description>Use the selected accent color instead of the system accent color.</description>
     </key>
     <key name="show-desktop-icons" type="b">
       <default>false</default>

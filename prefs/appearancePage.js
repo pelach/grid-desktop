@@ -5,6 +5,11 @@ import { buildGlobalAestheticsGroup, createSwitchRow } from './aestheticControls
 import { DEFAULT_BG_COLOR, DEFAULT_FG_COLOR } from '../utils/widgetUtils.js';
 import { THEMES, applyTheme } from './themes.js';
 
+function formatAccentColor(rgba) {
+    const toHex = channel => Math.round(channel * 255).toString(16).padStart(2, '0');
+    return `#${toHex(rgba.red)}${toHex(rgba.green)}${toHex(rgba.blue)}`;
+}
+
 export function buildAppearancePage(settings) {
     const page = new Adw.PreferencesPage({
         title: 'Appearance',
@@ -54,7 +59,7 @@ export function buildAppearancePage(settings) {
             settings.set_string('theme', '');
             settings.set_string('global-background-color', DEFAULT_BG_COLOR);
             settings.set_string('global-foreground-color', DEFAULT_FG_COLOR);
-            settings.set_string('accent-color-override', '');
+            settings.set_boolean('accent-color-override-enabled', false);
             return;
         }
         const theme = THEMES[idx - 1];
@@ -65,9 +70,21 @@ export function buildAppearancePage(settings) {
     });
     themeGroup.add(themeRow);
 
+    const accentGroup = new Adw.PreferencesGroup({
+        title: 'Accent Color',
+        description: 'Choose whether to use a custom accent color instead of the system color.',
+    });
+
+    accentGroup.add(createSwitchRow(
+        'Enable Accent Color Override',
+        'Use the selected accent color instead of the system accent color.',
+        settings,
+        'accent-color-override-enabled'
+    ).row);
+
     const accentRow = new Adw.ActionRow({
-        title: 'Accent Color Override',
-        subtitle: 'Manually set the accent color. Leave empty to use the system or theme default.',
+        title: 'Accent Color',
+        subtitle: 'Choose the custom accent color to use when the override is enabled.',
     });
 
     const accentRgba = new Gdk.RGBA();
@@ -86,7 +103,7 @@ export function buildAppearancePage(settings) {
         accentBtn.connect('notify::rgba', () => {
             const newRgba = accentBtn.get_rgba();
             if (newRgba) {
-                settings.set_string('accent-color-override', newRgba.to_string());
+                settings.set_string('accent-color-override', formatAccentColor(newRgba));
             }
         });
     } else {
@@ -97,7 +114,7 @@ export function buildAppearancePage(settings) {
             use_alpha: false,
         });
         accentBtn.connect('color-set', () => {
-            settings.set_string('accent-color-override', accentBtn.get_rgba().to_string());
+            settings.set_string('accent-color-override', formatAccentColor(accentBtn.get_rgba()));
         });
     }
 
@@ -110,9 +127,9 @@ export function buildAppearancePage(settings) {
 
     accentRow.add_suffix(accentBox);
     accentRow.set_activatable_widget(accentBtn);
-    themeGroup.add(accentRow);
-
+    accentGroup.add(accentRow);
     page.add(themeGroup);
+    page.add(accentGroup);
 
     // 3. AESTHETICS CSOPORT
     const aestheticsGroup = buildGlobalAestheticsGroup(settings);
@@ -208,6 +225,7 @@ export function buildAppearancePage(settings) {
     gridGroup.add(gapRow);
     
     gridGroup.add(createSwitchRow('Visualize Grid Overlay', 'Show grid lines on the desktop for easier widget alignment.', settings, 'show-grid').row);
+    gridGroup.add(createSwitchRow('Select Widgets of Any Size', 'When disabled, the selection rectangle can select multiple 1x1 widgets only.', settings, 'multi-select-all-widget-sizes').row);
     page.add(gridGroup);
     return page;
 }

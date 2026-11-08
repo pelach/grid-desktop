@@ -57,6 +57,9 @@ export default class GridgetsExtension extends Extension {
         this._settingSignalIds.push(
             this._settings.connect('changed::accent-color-override', () => this._rebuildGrids())
         );
+        this._settingSignalIds.push(
+            this._settings.connect('changed::accent-color-override-enabled', () => this._rebuildGrids())
+        );
 
         this._settingSignalIds.push(
             this._settings.connect('changed::global-background-opacity', () => this._rebuildGrids())
