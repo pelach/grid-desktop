@@ -37,6 +37,11 @@
       <summary>Show Grid</summary>
       <description>Visualize the underlying widget placement grid.</description>
     </key>
+    <key name="show-desktop-while-dragging" type="b">
+      <default>false</default>
+      <summary>Show Desktop while Dragging</summary>
+      <description>Show the desktop while dragging widgets and restore the previous window state when the drag ends.</description>
+    </key>
     <key name="multi-select-all-widget-sizes" type="b">
       <default>false</default>
       <summary>Select Widgets of Any Size</summary>

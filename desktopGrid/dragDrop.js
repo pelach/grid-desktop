@@ -1,4 +1,5 @@
 import Clutter from 'gi://Clutter';
+import Meta from 'gi://Meta';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {
@@ -98,11 +99,32 @@ function resolveWidgetMonitor(grid, currentMonitor) {
     return String(grid.targetMonitorIndex);
 }
 
+function showDesktopForDrag(state) {
+    const workspace = global.workspace_manager.get_active_workspace();
+    state.minimizedWindows = global.display
+        .get_tab_list(Meta.TabList.NORMAL, workspace)
+        .filter(window => !window.minimized);
+
+    for (const window of state.minimizedWindows)
+        window.minimize();
+}
+
+function restoreDesktopAfterDrag(state) {
+    const windows = state.minimizedWindows;
+    state.minimizedWindows = [];
+
+    for (const window of windows) {
+        if (window.minimized)
+            window.unminimize();
+    }
+}
+
 function endDrag(state, grid, node, widgetData) {
     if (state.dragMotionId) { global.stage.disconnect(state.dragMotionId); state.dragMotionId = 0; }
     if (state.dragReleaseId) { global.stage.disconnect(state.dragReleaseId); state.dragReleaseId = 0; }
     
     removeDropPlaceholder(grid);
+    restoreDesktopAfterDrag(state);
 
     if (!state.isDragging)
         return;
@@ -324,7 +346,7 @@ function cancelInterruptedDrag(grid) {
 export function attachDragHandlers(grid, node, widgetData) {
     let pressX = 0;
     let pressY = 0;
-    const state = { isDragging: false, dragMotionId: 0, dragReleaseId: 0, startX: 0, startY: 0, origGridX: 0, origGridY: 0, groupItems: null };
+    const state = { isDragging: false, minimizedWindows: [], dragMotionId: 0, dragReleaseId: 0, startX: 0, startY: 0, origGridX: 0, origGridY: 0, groupItems: null };
 
     const finishDrag = () => {
         const currentDrag = getActiveDrag(grid);
@@ -381,6 +403,8 @@ export function attachDragHandlers(grid, node, widgetData) {
 
                 if (!state.isDragging && (Math.abs(dx) > DRAG_MOTION_THRESHOLD_PX || Math.abs(dy) > DRAG_MOTION_THRESHOLD_PX)) {
                     state.isDragging = true;
+                    if (grid.settings.get_boolean('show-desktop-while-dragging'))
+                        showDesktopForDrag(state);
                     //grid.constructor.toggleAllGridOverlays(true);
                 }
 
@@ -437,6 +461,7 @@ export function attachDragHandlers(grid, node, widgetData) {
         const currentDrag = getActiveDrag(grid);
         if (currentDrag && currentDrag.state === state) setActiveDrag(grid, null);
         cancelInterruptedDragForState(state);
+        restoreDesktopAfterDrag(state);
         removeDropPlaceholder(grid);
     });
 }
