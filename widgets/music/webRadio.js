@@ -408,13 +408,35 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                     case Gst.MessageType.TAG: {
                         const tagList = msg.parse_tag();
                         if (tagList) {
-                            const [hasTitle, title] = tagList.get_string('title');
-                            const [hasArtist, artist] = tagList.get_string('artist');
+                            let trackTitle = '';
+                            let trackArtist = '';
 
-                            if (hasTitle && title && title.trim() !== '') {
-                                state.currentTrack = (hasArtist && artist && artist.trim() !== '')
-                                    ? `${artist} - ${title}`
-                                    : title;
+                            // 1. Biztonságos string kiolvasás GJS alatt
+                            try {
+                                const titleRes = tagList.get_string('title');
+                                if (Array.isArray(titleRes) && titleRes[0]) trackTitle = titleRes[1];
+                                else if (typeof titleRes === 'string') trackTitle = titleRes;
+                            } catch (_) {}
+
+                            try {
+                                const artistRes = tagList.get_string('artist');
+                                if (Array.isArray(artistRes) && artistRes[0]) trackArtist = artistRes[1];
+                                else if (typeof artistRes === 'string') trackArtist = artistRes;
+                            } catch (_) {}
+
+                            // Ha az artist üres, de a title tartalmaz kötőjelet ("Előadó - Cím"), hagyjuk egyben
+                            let fullTrack = '';
+                            if (trackArtist && trackTitle) {
+                                fullTrack = `${trackArtist} - ${trackTitle}`;
+                            } else if (trackTitle) {
+                                fullTrack = trackTitle;
+                            }
+
+                            fullTrack = fullTrack.trim();
+
+                            // 2. Csak akkor frissítünk, ha valódi címet kaptunk
+                            if (fullTrack !== '' && fullTrack !== state.currentTrack) {
+                                state.currentTrack = fullTrack;
                                 trackLabel.set_text(state.currentTrack);
 
                                 const stationArt = state.stations[state.selectedIndex]?.logo 
@@ -441,8 +463,9 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                             if (state.isPlaying) {
                                 statusLabel.set_text('LIVE');
                                 liveDot.style = `background-color: #33d17a; border-radius: 99px; margin-right: 6px;`;
-                                if (trackLabel.get_text() === 'Connecting...') {
-                                    trackLabel.set_text('Live');
+                                // NE írjuk felül a trackLabelt "Live"-ra, ha már van címe vagy épp tölt!
+                                if (state.currentTrack === 'No signal' || state.currentTrack === 'Connecting...') {
+                                    trackLabel.set_text('Online adás');
                                 }
                             }
                         }
@@ -458,8 +481,9 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                                 liveDot.style = `background-color: #33d17a; border-radius: 99px; margin-right: 6px;`;
                                 playPauseIcon.set_icon_name('media-playback-stop-symbolic');
 
-                                if (state.currentTrack === 'Connecting...' || state.currentTrack === 'Connecting...') {
-                                    state.currentTrack = 'Live';
+                                // ITT VOLT A HIBA: ha még nem jött meg a tag, ne Live-ot írjunk, hanem tartsuk meg vagy írjuk hogy adásban
+                                if (state.currentTrack === 'Connecting...') {
+                                    state.currentTrack = 'Online adás';
                                     trackLabel.set_text(state.currentTrack);
                                 }
 
@@ -482,14 +506,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                                 });
                             }
                         }
-                        break;
-                    }
-                    case Gst.MessageType.ERROR: {
-                        const [err, _debug] = msg.parse_error();
-                        statusLabel.set_text('Hiba');
-                        trackLabel.set_text(err?.message || 'The stream is unavailable');
-                        liveDot.style = `background-color: #e01b24; border-radius: 99px; margin-right: 6px;`;
-                        stopRadio();
                         break;
                     }
                 }
