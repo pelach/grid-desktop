@@ -59,6 +59,19 @@ export function buildGlobalSettingsPage(settings) {
     }
     page.add(monitorGroup);
 
+    // DRAG AND DROP
+    const dragDropGroup = new Adw.PreferencesGroup({
+        title: 'Drag and Drop',
+        description: 'Configure widget drag-and-drop behavior.',
+    });
+    dragDropGroup.add(createSwitchRow(
+        'Show Desktop while Dragging',
+        'Show the desktop when a widget drag starts, then restore open windows when the drag ends.',
+        settings,
+        'show-desktop-while-dragging'
+    ).row);
+    page.add(dragDropGroup);
+
     // 2. IMAGE SETTINGS
     const imageConfigGroup = new Adw.PreferencesGroup({
         title: 'Image Settings',

@@ -216,12 +216,21 @@ export function resolveSystemAccentColor(interfaceSettings) {
     return ADWAITA_ACCENT_COLORS[interfaceSettings.get_string('accent-color')] || DEFAULT_ACCENT_COLOR;
 }
 
+export function resolveAccentColor(settings, interfaceSettings) {
+    if (settings.get_boolean('accent-color-override-enabled')) {
+        const accentOverride = settings.get_string('accent-color-override');
+        return accentOverride || DEFAULT_ACCENT_COLOR;
+    }
+    return resolveSystemAccentColor(interfaceSettings);
+}
+
 /** Reads global extension settings; when follow-system-theme is enabled, bg/fg follow the GNOME color scheme. */
 export function readGlobalSettings(settings, interfaceSettings = null) {
     let globalBgColor = settings.get_string('global-background-color');
     let globalFgColor = settings.get_string('global-foreground-color');
+    const followSystemTheme = settings.get_boolean('follow-system-theme');
 
-    if (settings.get_boolean('follow-system-theme') && interfaceSettings) {
+    if (followSystemTheme && interfaceSettings) {
         const schemeColors = resolveSystemSchemeColors(interfaceSettings.get_string('color-scheme'));
         if (schemeColors) {
             globalBgColor = schemeColors.bg;
@@ -229,8 +238,7 @@ export function readGlobalSettings(settings, interfaceSettings = null) {
         }
     }
 
-    const accentOverride = settings.get_string('accent-color-override');
-    const globalAccentColor = accentOverride || resolveSystemAccentColor(interfaceSettings);
+    const globalAccentColor = resolveAccentColor(settings, interfaceSettings);
 
     return {
         globalBgColor,
@@ -310,7 +318,7 @@ export function normalizeAppLauncherApps(apps) {
     return normalizedApps;
 }
 
-const CSS_RGB_FUNCTION_PATTERN = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*([\d.]+))?/;
+const CSS_RGB_FUNCTION_PATTERN = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?/;
 
 /** Parses a CSS color string (#rrggbb or rgb()/rgba()) into normalized [0..1] RGB components. */
 export function parseCssColor(colorString) {
@@ -329,7 +337,12 @@ export function parseCssColor(colorString) {
 
     const rgbMatch = colorString.match(CSS_RGB_FUNCTION_PATTERN);
     if (rgbMatch) {
-        const channel = (value) => Math.min(COLOR_MAX_BYTE, parseInt(value, 10)) / COLOR_MAX_BYTE;
+        const channel = (value) => {
+            const parsed = parseFloat(value);
+            return value.includes('.') && parsed <= 1
+                ? Math.max(0, parsed)
+                : Math.max(0, Math.min(COLOR_MAX_BYTE, parsed)) / COLOR_MAX_BYTE;
+        };
         const parsed = { r: channel(rgbMatch[1]), g: channel(rgbMatch[2]), b: channel(rgbMatch[3]) };
         if (rgbMatch[4] !== undefined)
             parsed.a = Math.max(0, Math.min(1, parseFloat(rgbMatch[4])));

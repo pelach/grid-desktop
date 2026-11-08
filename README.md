@@ -6,7 +6,8 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
 
 - **Modern 1x1 Logical Grid**: Redesigned from the ground up on a true 1x1 base unit. Offers selectable base cell sizes (Compact 68px, Standard 80px, Large 96px, HiDPI 112px) and fully configurable grid spacing (`grid-gap-size` from 4px to 32px) directly from Preferences.
 - **Dynamic Grid Scaling**: Automatically adapts cell sizing and layout to any display resolution and aspect ratio — full native support for standard 16:9 displays and Ultrawide (21:9 / 32:9) monitors with seamless v2 layout migration.
-- **Precision Alignment & Cleaner Drag-and-Drop**: Snap-to-grid placement with dynamic collision avoidance and interactive resizing across widget size tiers. Features a clean, color-coded drop placeholder without intrusive full-screen grid flashes.
+- **Precision Alignment & Cleaner Drag-and-Drop**: Snap-to-grid placement with dynamic collision avoidance and interactive resizing across widget size tiers. Features a clean, color-coded drop placeholder without intrusive full-screen grid flashes. Optionally show the desktop while dragging widgets, then restore the previous window state when the drag ends.
+- **Multi-Widget Selection**: Drag a macOS-Inspired selection rectangle across the desktop to select and move widgets together. By default, only 1x1 widgets are eligible; enable **Select Widgets of Any Size** in Appearance settings to include larger widgets. Group moves preserve spacing and are rejected atomically if they would overlap or exceed the grid.
 - **Pure Clutter Engine**: High-performance, lightweight rendering directly via Clutter without external CSS dependencies, built for GNOME 48, 49, 50, and 51.
 - **macOS-Inspired Desktop Icon Manager**:
   - Native desktop icons snapped cleanly to the 1x1 grid with customizable alignment (Left / Right) and layout flow (Vertical / Horizontal).

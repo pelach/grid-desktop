@@ -17,6 +17,8 @@ import {
     readGlobalSettings,
     calculateGridDimensions,
     parseCssColor,
+    cssColorToRgba,
+    resolveAccentColor,
     resolveWidgetSizePreset,
 } from '../utils/widgetUtils.js';
 import {
@@ -44,8 +46,8 @@ import { resolveWeatherLayoutVariant } from '../widgets/weather/weatherCommon.js
 import { syncDesktopIcons, monitorDesktop, stopMonitor } from '../utils/desktopIcons.js';
 
 
-const GRID_LINE_ALPHA = 0.25;
-const EDIT_OVERLAY_ALPHA = 0.3;
+const GRID_LINE_ALPHA = 0.45;
+const EDIT_OVERLAY_ALPHA = 0.45;
 
 export const DesktopGrid = GObject.registerClass(
     class DesktopGrid extends St.Widget {
@@ -89,6 +91,10 @@ export const DesktopGrid = GObject.registerClass(
             this.contextMenu = null;
             this._menuManager = null;
             this._lastAppliedWidgetsJson = null;
+            this._selectedWidgetIds = new Set();
+            this._selectionIndicators = new Map();
+            this._selectionDrag = null;
+            this._pendingDesktopOpenId = 0;
 
             if (!DesktopGrid._activeInstances) {
                 DesktopGrid._activeInstances = new Set();
@@ -142,18 +148,23 @@ export const DesktopGrid = GObject.registerClass(
                     // Ha a két bal klikk között kevesebb mint 400ms telt el -> DUPLA KLIKK!
                     if (now - lastClickTime < 400) {
                         lastClickTime = 0; // nullázzuk, hogy ne triplázzon
-                        
-                        try {
-                            const desktopPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) || `${GLib.get_home_dir()}/Desktop`;
-                            const proc = Gio.Subprocess.new(['nautilus', desktopPath], Gio.SubprocessFlags.NONE);
-                            proc.wait_async(null, null);
-                        } catch (e) {
-
-                        }
+                        this._pendingDesktopOpenId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+                            this._pendingDesktopOpenId = 0;
+                            try {
+                                const desktopPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) || `${GLib.get_home_dir()}/Desktop`;
+                                const proc = Gio.Subprocess.new(['nautilus', desktopPath], Gio.SubprocessFlags.NONE);
+                                proc.wait_async(null, null);
+                            } catch (e) {
+                                console.error('Failed to open the desktop folder:', e);
+                            }
+                            return GLib.SOURCE_REMOVE;
+                        });
+                        this._startSelectionDrag(event);
                         return Clutter.EVENT_STOP;
                     }
 
                     lastClickTime = now;
+                    this._startSelectionDrag(event);
                 }
 
                 return Clutter.EVENT_PROPAGATE;
@@ -189,6 +200,12 @@ export const DesktopGrid = GObject.registerClass(
             if (this._backgroundPressId) {
                 this.disconnect(this._backgroundPressId);
                 this._backgroundPressId = 0;
+            }
+            this._cancelSelectionDrag();
+            this._clearWidgetSelection();
+            if (this._pendingDesktopOpenId) {
+                GLib.Source.remove(this._pendingDesktopOpenId);
+                this._pendingDesktopOpenId = 0;
             }
 
             this._menuManager = null;
@@ -277,6 +294,7 @@ export const DesktopGrid = GObject.registerClass(
             connectSetting('global-foreground-color', () => this._rebuildGrid());
             connectSetting('global-font-family', () => this._rebuildGrid());
             connectSetting('accent-color-override', () => this._rebuildGrid());
+            connectSetting('accent-color-override-enabled', () => this._rebuildGrid());
             connectSetting('image-animate-gif', () => this._rebuildGrid());
             connectSetting('image-show-caption', () => this._rebuildGrid());
             connectSetting('slideshow-show-caption', () => this._rebuildGrid());
@@ -286,6 +304,153 @@ export const DesktopGrid = GObject.registerClass(
             connectSetting('grid-cell-size', () => this._rebuildGrid());
             connectSetting('grid-gap-size', () => this._rebuildGrid());
             connectSetting('show-grid', () => this._toggleGridLines());
+        }
+
+        _startSelectionDrag(event) {
+            this._cancelSelectionDrag();
+            const [stageX, stageY] = event.get_coords();
+            const [gridX, gridY] = this.get_transformed_position();
+            const startX = stageX - gridX;
+            const startY = stageY - gridY;
+            const accentColor = resolveAccentColor(this.settings, this.interfaceSettings);
+            const selection = new St.Widget({
+                name: 'widgetSelectionRectangle',
+                reactive: false,
+                style: `background-color: ${cssColorToRgba(accentColor, 0.22)}; border: 1px solid ${accentColor}; border-radius: 4px;`,
+            });
+            selection.hide();
+            this.add_child(selection);
+
+            const state = { startX, startY, endX: startX, endY: startY, selection, didDrag: false, motionId: 0, releaseId: 0 };
+            const finish = () => this._finishSelectionDrag(state);
+            state.motionId = global.stage.connect('motion-event', (_stage, motionEvent) => {
+                if (!(motionEvent.get_state() & Clutter.ModifierType.BUTTON1_MASK)) {
+                    finish();
+                    return Clutter.EVENT_PROPAGATE;
+                }
+
+                const [x, y] = motionEvent.get_coords();
+                state.endX = x - gridX;
+                state.endY = y - gridY;
+                const left = Math.min(startX, state.endX);
+                const top = Math.min(startY, state.endY);
+                const width = Math.abs(state.endX - startX);
+                const height = Math.abs(state.endY - startY);
+                if (!state.didDrag && (width > 3 || height > 3)) {
+                    state.didDrag = true;
+                    lastClickTime = 0;
+                    if (this._pendingDesktopOpenId) {
+                        GLib.Source.remove(this._pendingDesktopOpenId);
+                        this._pendingDesktopOpenId = 0;
+                    }
+                }
+                if (state.didDrag) {
+                    selection.set_position(left, top);
+                    selection.set_size(width, height);
+                    selection.show();
+                    return Clutter.EVENT_STOP;
+                }
+                return Clutter.EVENT_PROPAGATE;
+            });
+            state.releaseId = global.stage.connect('button-release-event', (_stage, releaseEvent) => {
+                if (releaseEvent.get_button() === BUTTON_PRIMARY)
+                    finish();
+                return Clutter.EVENT_PROPAGATE;
+            });
+            this._selectionDrag = state;
+        }
+
+        _finishSelectionDrag(state) {
+            if (this._selectionDrag !== state)
+                return;
+            this._cancelSelectionDrag();
+
+            if (state.didDrag) {
+                const left = Math.min(state.startX, state.endX);
+                const top = Math.min(state.startY, state.endY);
+                const right = Math.max(state.startX, state.endX);
+                const bottom = Math.max(state.startY, state.endY);
+                const allowAllSizes = this.settings.get_boolean('multi-select-all-widget-sizes');
+                const selectedIds = [];
+
+                for (const [widgetId, node] of this.widgetNodes) {
+                    const widgetData = node.widgetData;
+                    if (!allowAllSizes && (widgetData.width !== 1 || widgetData.height !== 1))
+                        continue;
+                    if (node.x >= left && node.x + node.width <= right &&
+                        node.y >= top && node.y + node.height <= bottom)
+                        selectedIds.push(widgetId);
+                }
+                this._setWidgetSelection(selectedIds);
+            } else {
+                this._clearWidgetSelection();
+            }
+
+            if (!isActorDestroyed(state.selection))
+                state.selection.destroy();
+            state.selection = null;
+        }
+
+        _cancelSelectionDrag() {
+            const state = this._selectionDrag;
+            if (!state)
+                return;
+            if (state.motionId) {
+                global.stage.disconnect(state.motionId);
+                state.motionId = 0;
+            }
+            if (state.releaseId) {
+                global.stage.disconnect(state.releaseId);
+                state.releaseId = 0;
+            }
+            if (state.selection && !isActorDestroyed(state.selection))
+                state.selection.destroy();
+            state.selection = null;
+            this._selectionDrag = null;
+        }
+
+        _setWidgetSelection(widgetIds) {
+            this._clearWidgetSelection();
+            this._selectedWidgetIds = new Set(widgetIds);
+            const accentColor = resolveAccentColor(this.settings, this.interfaceSettings);
+            for (const widgetId of this._selectedWidgetIds) {
+                const node = this.widgetNodes.get(widgetId);
+                if (!node || isActorDestroyed(node))
+                    continue;
+                const indicator = new St.Widget({
+                    name: 'selectedWidgetIndicator',
+                    reactive: false,
+                    style: `background-color: ${cssColorToRgba(accentColor, 0.08)}; border: 2px solid ${accentColor}; border-radius: 8px;`,
+                });
+                indicator.set_size(node.width, node.height);
+                indicator.set_position(node.x, node.y);
+                this.add_child(indicator);
+                this._selectionIndicators.set(widgetId, indicator);
+            }
+        }
+
+        _clearWidgetSelection() {
+            for (const indicator of this._selectionIndicators.values()) {
+                if (!isActorDestroyed(indicator))
+                    indicator.destroy();
+            }
+            this._selectionIndicators.clear();
+            this._selectedWidgetIds.clear();
+        }
+
+        _syncSelectionIndicators() {
+            for (const [widgetId, indicator] of [...this._selectionIndicators]) {
+                const node = this.widgetNodes.get(widgetId);
+                if (!node || isActorDestroyed(node) || isActorDestroyed(indicator)) {
+                    if (!isActorDestroyed(indicator))
+                        indicator.destroy();
+                    this._selectionIndicators.delete(widgetId);
+                    this._selectedWidgetIds.delete(widgetId);
+                    continue;
+                }
+                indicator.set_size(node.width, node.height);
+                indicator.set_position(node.x, node.y);
+            }
         }
 
         _updateStageSize() {
@@ -441,7 +606,7 @@ export const DesktopGrid = GObject.registerClass(
             }
 
             if (this.settings.get_boolean('show-grid')) {
-                const accentColor = readGlobalSettings(this.settings, this.interfaceSettings).globalAccentColor;
+                const accentColor = resolveAccentColor(this.settings, this.interfaceSettings);
                 const accent = parseCssColor(accentColor);
                 this._gridLineCanvas = createGridOverlay(
                     this.gridCols || COLUMNS_COUNT,
@@ -566,6 +731,7 @@ export const DesktopGrid = GObject.registerClass(
         // touch grid size — resizing while children are alive causes allocation
         // issues. Monitor geometry changes arrive via 'monitors-changed'.
         _applyWidgetChanges() {
+            this._clearWidgetSelection();
             this._lastAppliedWidgetsJson = this.settings.get_string('widgets');
 
             const previousCellTotalWidth = this.cellTotalWidth;
@@ -612,6 +778,7 @@ export const DesktopGrid = GObject.registerClass(
             }
         }
         _rebuildGrid() {
+            this._clearWidgetSelection();
             this._lastAppliedWidgetsJson = this.settings.get_string('widgets');
 
             this.widgetNodes.forEach(node => {
@@ -660,7 +827,7 @@ export const DesktopGrid = GObject.registerClass(
             if (show) {
                 if (this.editOverlayCanvases.length > 0) return;
 
-                const accentColor = readGlobalSettings(this.settings, this.interfaceSettings).globalAccentColor;
+                const accentColor = resolveAccentColor(this.settings, this.interfaceSettings);
                 const accent = parseCssColor(accentColor);
                 const canvas = createGridOverlay(
                     this.gridCols || COLUMNS_COUNT,

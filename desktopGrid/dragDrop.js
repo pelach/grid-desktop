@@ -1,4 +1,5 @@
 import Clutter from 'gi://Clutter';
+import Meta from 'gi://Meta';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {
@@ -12,7 +13,8 @@ import {
     getWidgets,
     saveWidgets,
     deleteCacheFile,
-    readGlobalSettings
+    cssColorToRgba,
+    resolveAccentColor,
 } from '../utils/widgetUtils.js';
 import { getWidgetsForMonitor, getPanelHeight, getEffectiveMonitorIndex } from './helpers.js';
 import { registerWidgetCleanup } from '../shell/widgetUIUtils.js';
@@ -24,51 +26,57 @@ import {
 } from './constants.js';
 
 /** Segédfüggvény a célterület előnézeti keretének (Drop Placeholder) kezelésére */
-function updateDropPlaceholder(grid, targetCol, targetRow, colSpan, rowSpan, isValid) {
-    if (!grid._dropPlaceholder) {
-        grid._dropPlaceholder = new St.Widget({
+function updateDropPlaceholder(grid, targetCol, targetRow, colSpan, rowSpan, isValid, key = 'single') {
+    if (!grid._dropPlaceholders)
+        grid._dropPlaceholders = new Map();
+
+    let placeholder = grid._dropPlaceholders.get(key);
+    if (!placeholder) {
+        placeholder = new St.Widget({
             name: 'dropPlaceholder',
             reactive: false
         });
-        // A rácsvonalak fölé, de a widgetek alá/mögé tesszük
-        grid.insert_child_at_index(grid._dropPlaceholder, 1);
+        grid.add_child(placeholder);
+        grid._dropPlaceholders.set(key, placeholder);
     }
 
-    const cellSize = grid.cellSize || (grid.cellTotalWidth - (GRID_GAP_PX || 8));
-    const gap = (typeof GRID_GAP_PX !== 'undefined') ? GRID_GAP_PX : 8;
-    const margin = (typeof GRID_MARGIN_PX !== 'undefined') ? GRID_MARGIN_PX : 8;
+    const cellSize = grid.cellSize || (grid.cellTotalWidth - GRID_GAP_PX);
+    const columnGap = Math.max(0, grid.cellTotalWidth - cellSize);
+    const rowGap = Math.max(0, grid.cellTotalHeight - cellSize);
+    const margin = grid.gridMargin ?? GRID_MARGIN_PX;
 
-    const width = Math.max(1, Math.round((colSpan * cellSize) + ((colSpan - 1) * gap)));
-    const height = Math.max(1, Math.round((rowSpan * cellSize) + ((rowSpan - 1) * gap)));
+    const width = Math.max(1, Math.round((colSpan * cellSize) + ((colSpan - 1) * columnGap)));
+    const height = Math.max(1, Math.round((rowSpan * cellSize) + ((rowSpan - 1) * rowGap)));
     const x = Math.max(0, Math.round(margin + (targetCol * grid.cellTotalWidth)));
     const y = Math.max(0, Math.round(margin + (targetRow * grid.cellTotalHeight)));
 
-    grid._dropPlaceholder.set_size(width, height);
-    grid._dropPlaceholder.set_position(x, y);
+    placeholder.set_size(width, height);
+    placeholder.set_position(x, y);
 
-    const accentColor = readGlobalSettings(grid.settings, grid.interfaceSettings).globalAccentColor || '#3584e4';
+    const accentColor = resolveAccentColor(grid.settings, grid.interfaceSettings);
     
     // Zöld/Kék ha szabad, Piros ha ütközik
     if (isValid) {
-        grid._dropPlaceholder.set_style(`
-            background-color: rgba(53, 132, 228, 0.25);
+        placeholder.set_style(`
+            background-color: ${cssColorToRgba(accentColor, 0.4)};
             border: 2px dashed ${accentColor};
             border-radius: 12px;
         `);
     } else {
-        grid._dropPlaceholder.set_style(`
+        placeholder.set_style(`
             background-color: rgba(224, 27, 36, 0.25);
             border: 2px dashed #e01b24;
             border-radius: 12px;
         `);
     }
-    grid._dropPlaceholder.show();
+    placeholder.show();
 }
 
 function removeDropPlaceholder(grid) {
-    if (grid._dropPlaceholder) {
-        grid._dropPlaceholder.destroy();
-        grid._dropPlaceholder = null;
+    if (grid._dropPlaceholders) {
+        for (const placeholder of grid._dropPlaceholders.values())
+            placeholder.destroy();
+        grid._dropPlaceholders.clear();
     }
 }
 
@@ -91,121 +99,177 @@ function resolveWidgetMonitor(grid, currentMonitor) {
     return String(grid.targetMonitorIndex);
 }
 
+function showDesktopForDrag(state) {
+    const workspace = global.workspace_manager.get_active_workspace();
+    state.minimizedWindows = global.display
+        .get_tab_list(Meta.TabList.NORMAL, workspace)
+        .filter(window => !window.minimized);
+
+    for (const window of state.minimizedWindows)
+        window.minimize();
+}
+
+function restoreDesktopAfterDrag(state) {
+    const windows = state.minimizedWindows;
+    state.minimizedWindows = [];
+
+    for (const window of windows) {
+        if (window.minimized)
+            window.unminimize();
+    }
+}
+
 function endDrag(state, grid, node, widgetData) {
     if (state.dragMotionId) { global.stage.disconnect(state.dragMotionId); state.dragMotionId = 0; }
     if (state.dragReleaseId) { global.stage.disconnect(state.dragReleaseId); state.dragReleaseId = 0; }
     
-    // Eltávolítjuk a célzóna előnézetét
     removeDropPlaceholder(grid);
+    restoreDesktopAfterDrag(state);
 
-    if (state.isDragging) {
-        state.isDragging = false;
+    if (!state.isDragging)
+        return;
+    state.isDragging = false;
+    if (state.groupItems?.length > 1) {
+        endGroupDrag(state, grid);
+        return;
+    }
 
-        const widgets = getWidgets(grid.settings).map(w => {
-            if (!w.monitor) {
-                w.monitor = resolveWidgetMonitor(grid, w.monitor);
-            }
-            return w;
-        });
-        
-        const targetWidget = widgets.find(w => w.id === widgetData.id);
+    const widgets = getWidgets(grid.settings).map(widget => {
+        if (!widget.monitor)
+            widget.monitor = resolveWidgetMonitor(grid, widget.monitor);
+        return widget;
+    });
+    const targetWidget = widgets.find(widget => widget.id === widgetData.id);
+    if (!targetWidget)
+        return;
 
-        if (targetWidget) {
-            const monitorSetting = grid.settings.get_string('global-monitor') || 'primary';
-            const monitors = Main.layoutManager.monitors || [];
+    const monitorSetting = grid.settings.get_string('global-monitor') || 'primary';
+    const monitors = Main.layoutManager.monitors || [];
+    const widgetStageX = grid.x + node.x;
+    const widgetStageY = grid.y + node.y;
+    const widgetCenterX = widgetStageX + node.width / 2;
+    const widgetCenterY = widgetStageY + node.height / 2;
+    let targetMonitorIndex = null;
+    let targetMonitor = null;
 
-            const widgetStageX = grid.x + node.x;
-            const widgetStageY = grid.y + node.y;
-            const widgetCenterX = widgetStageX + (node.width / 2);
-            const widgetCenterY = widgetStageY + (node.height / 2);
-
-            let targetMonitorIndex = null;
-            let targetMonitor = null;
-
-            if (monitorSetting === 'each' && monitors.length > 1) {
-                for (let i = 0; i < monitors.length; i++) {
-                    const mon = monitors[i];
-                    if (widgetCenterX >= mon.x && widgetCenterX < mon.x + mon.width &&
-                        widgetCenterY >= mon.y && widgetCenterY < mon.y + mon.height) {
-                        targetMonitorIndex = i;
-                        targetMonitor = mon;
-                        break;
-                    }
-                }
-            }
-
-            if (targetMonitorIndex !== null && targetMonitor) {
-                const primaryMon = Main.layoutManager.primaryMonitor;
-                const isPrimary = primaryMon ? (targetMonitor === primaryMon) : (targetMonitorIndex === 0);
-                const topOffset = isPrimary ? getPanelHeight() : 0;
-
-                const localX = widgetStageX - targetMonitor.x;
-                const localY = widgetStageY - (targetMonitor.y + topOffset);
-
-                const targetMonWidgets = getWidgetsForMonitor(widgets, targetMonitorIndex, true);
-                const otherWidgetsOnTargetMon = targetMonWidgets.filter(widget => widget.id !== widgetData.id);
-
-                const gridCols = grid.gridCols || COLUMNS_COUNT;
-                const { cellTotalWidth, cellTotalHeight, gridRows } = calculateGridDimensions(targetMonitor.width, targetMonitor.height - topOffset, gridCols);
-
-                const targetCol = Math.max(0, Math.min(gridCols - targetWidget.width, Math.round((localX - GRID_MARGIN_PX) / cellTotalWidth)));
-                const targetRow = Math.max(0, Math.min(gridRows - targetWidget.height, Math.round((localY - GRID_MARGIN_PX) / cellTotalHeight)));
-
-                if (!checkOverlap(targetCol, targetRow, targetWidget.width, targetWidget.height, otherWidgetsOnTargetMon)) {
-                    targetWidget.x = targetCol;
-                    targetWidget.y = targetRow;
-                    targetWidget.monitor = isPrimary ? 'primary' : String(targetMonitorIndex);
-
-                    const movedNode = grid.widgetNodes.get(targetWidget.id);
-                    if (movedNode) {
-                        movedNode.destroy();
-                        grid.widgetNodes.delete(targetWidget.id);
-                        grid._nodeConfigs.delete(targetWidget.id);
-                    }
-                    grid.applyLocalWidgetLayout(widgets);
-                } else {
-                    grid._repositionNode(targetWidget.id, targetWidget.width, targetWidget.height, state.origGridX, state.origGridY);
-                }
-            } else {
-                const activeWidgets = getWidgetsForMonitor(widgets, grid.targetMonitorIndex, true);
-                const gridCols = grid.gridCols || COLUMNS_COUNT;
-                const gridRows = grid.gridRows || ROWS_COUNT;
-                
-                // Ha az asztali ikonok külön listában (is) élnek a grid-en, azokat is vonjuk be az otherWidgets-be:
-                let allOccupiedWidgets = [...activeWidgets];
-                if (grid._desktopIconWidgets && Array.isArray(grid._desktopIconWidgets)) {
-                    // Hozzáfűzzük az asztali ikonok adatait is, ha nem a most mozgatott elemről van szó
-                    for (const dIcon of grid._desktopIconWidgets) {
-                        if (!allOccupiedWidgets.some(w => w.id === dIcon.id)) {
-                            allOccupiedWidgets.push(dIcon);
-                        }
-                    }
-                }
-
-                const otherWidgets = allOccupiedWidgets.filter(widget => widget.id !== widgetData.id);
-
-                const targetCol = Math.max(0, Math.min(gridCols - targetWidget.width, Math.round((node.x - GRID_MARGIN_PX) / grid.cellTotalWidth)));
-                const targetRow = Math.max(0, Math.min(gridRows - targetWidget.height, Math.round((node.y - GRID_MARGIN_PX) / grid.cellTotalHeight)));
-
-                if (!checkOverlap(targetCol, targetRow, targetWidget.width, targetWidget.height, otherWidgets)) {
-                    targetWidget.x = targetCol;
-                    targetWidget.y = targetRow;
-
-                    // Mentsük el a beállításokat, hogy perzisztens maradjon:
-                    grid.applyLocalWidgetLayout(widgets);
-
-                    // FONTOS: Vagy töröljük a node-ot az újraépítés előtt, VAGY csak mozgatjuk!
-                    // A legegyszerűbb és leggyorsabb: csak átpozicionáljuk a meglévő actort,
-                    // és NEM hívunk applyLocalWidgetLayout-ot, ami duplikálná:
-                    grid._repositionNode(targetWidget.id, targetWidget.width, targetWidget.height, targetCol, targetRow);
-                } else {
-                    // Ha ütközik: visszaugrik az eredeti cellájára
-                    grid._repositionNode(targetWidget.id, targetWidget.width, targetWidget.height, state.origGridX, state.origGridY);
-                }
+    if (monitorSetting === 'each' && monitors.length > 1) {
+        for (let i = 0; i < monitors.length; i++) {
+            const monitor = monitors[i];
+            if (widgetCenterX >= monitor.x && widgetCenterX < monitor.x + monitor.width &&
+                widgetCenterY >= monitor.y && widgetCenterY < monitor.y + monitor.height) {
+                targetMonitorIndex = i;
+                targetMonitor = monitor;
+                break;
             }
         }
-       // grid.constructor.toggleAllGridOverlays(false);
     }
+
+    if (targetMonitorIndex !== null && targetMonitor) {
+        const primaryMonitor = Main.layoutManager.primaryMonitor;
+        const isPrimary = primaryMonitor ? targetMonitor === primaryMonitor : targetMonitorIndex === 0;
+        const topOffset = isPrimary ? getPanelHeight() : 0;
+        const localX = widgetStageX - targetMonitor.x;
+        const localY = widgetStageY - (targetMonitor.y + topOffset);
+        const targetWidgets = getWidgetsForMonitor(widgets, targetMonitorIndex, true);
+        const otherWidgets = targetWidgets.filter(widget => widget.id !== widgetData.id);
+        const gridCols = grid.gridCols || COLUMNS_COUNT;
+        const { cellTotalWidth, cellTotalHeight, gridRows } = calculateGridDimensions(
+            targetMonitor.width,
+            targetMonitor.height - topOffset,
+            gridCols
+        );
+        const targetCol = Math.max(0, Math.min(gridCols - targetWidget.width, Math.round((localX - GRID_MARGIN_PX) / cellTotalWidth)));
+        const targetRow = Math.max(0, Math.min(gridRows - targetWidget.height, Math.round((localY - GRID_MARGIN_PX) / cellTotalHeight)));
+
+        if (!checkOverlap(targetCol, targetRow, targetWidget.width, targetWidget.height, otherWidgets)) {
+            targetWidget.x = targetCol;
+            targetWidget.y = targetRow;
+            targetWidget.monitor = isPrimary ? 'primary' : String(targetMonitorIndex);
+            const movedNode = grid.widgetNodes.get(targetWidget.id);
+            if (movedNode) {
+                movedNode.destroy();
+                grid.widgetNodes.delete(targetWidget.id);
+                grid._nodeConfigs.delete(targetWidget.id);
+            }
+            grid.applyLocalWidgetLayout(widgets);
+        } else {
+            grid._repositionNode(targetWidget.id, targetWidget.width, targetWidget.height, state.origGridX, state.origGridY);
+        }
+    } else {
+        const activeWidgets = getWidgetsForMonitor(widgets, grid.targetMonitorIndex, true);
+        const allOccupiedWidgets = [...activeWidgets];
+        if (Array.isArray(grid._desktopIconWidgets)) {
+            for (const icon of grid._desktopIconWidgets) {
+                if (!allOccupiedWidgets.some(widget => widget.id === icon.id))
+                    allOccupiedWidgets.push(icon);
+            }
+        }
+        const otherWidgets = allOccupiedWidgets.filter(widget => widget.id !== widgetData.id);
+        const gridCols = grid.gridCols || COLUMNS_COUNT;
+        const targetCol = Math.max(0, Math.min(gridCols - targetWidget.width, Math.round((node.x - GRID_MARGIN_PX) / grid.cellTotalWidth)));
+        const targetRow = Math.max(0, Math.min((grid.gridRows || ROWS_COUNT) - targetWidget.height, Math.round((node.y - GRID_MARGIN_PX) / grid.cellTotalHeight)));
+
+        if (!checkOverlap(targetCol, targetRow, targetWidget.width, targetWidget.height, otherWidgets)) {
+            targetWidget.x = targetCol;
+            targetWidget.y = targetRow;
+            grid.applyLocalWidgetLayout(widgets);
+            grid._repositionNode(targetWidget.id, targetWidget.width, targetWidget.height, targetCol, targetRow);
+        } else {
+            grid._repositionNode(targetWidget.id, targetWidget.width, targetWidget.height, state.origGridX, state.origGridY);
+        }
+    }
+    grid._syncSelectionIndicators();
+}
+
+function endGroupDrag(state, grid) {
+    const items = state.groupItems;
+    const deltaCols = Math.round((items[0].node.x - items[0].startX) / grid.cellTotalWidth);
+    const deltaRows = Math.round((items[0].node.y - items[0].startY) / grid.cellTotalHeight);
+    const widgets = getWidgets(grid.settings).map(widget => {
+        if (!widget.monitor)
+            widget.monitor = resolveWidgetMonitor(grid, widget.monitor);
+        return widget;
+    });
+    const itemIds = new Set(items.map(item => item.widgetData.id));
+    const targets = items.map(item => widgets.find(widget => widget.id === item.widgetData.id));
+    const gridCols = grid.gridCols || COLUMNS_COUNT;
+    const gridRows = grid.gridRows || ROWS_COUNT;
+    const activeWidgets = getWidgetsForMonitor(widgets, grid.targetMonitorIndex, true);
+    const occupiedWidgets = [...activeWidgets];
+    if (Array.isArray(grid._desktopIconWidgets)) {
+        for (const icon of grid._desktopIconWidgets) {
+            if (!occupiedWidgets.some(widget => widget.id === icon.id))
+                occupiedWidgets.push(icon);
+        }
+    }
+
+    let valid = targets.every(Boolean);
+    const outsideGroup = occupiedWidgets.filter(widget => !itemIds.has(widget.id));
+    const placedTargets = [];
+    if (valid) {
+        for (const target of targets) {
+            const x = target.x + deltaCols;
+            const y = target.y + deltaRows;
+            if (x < 0 || y < 0 || x + target.width > gridCols || y + target.height > gridRows ||
+                checkOverlap(x, y, target.width, target.height, [...outsideGroup, ...placedTargets])) {
+                valid = false;
+                break;
+            }
+            target.x = x;
+            target.y = y;
+            placedTargets.push(target);
+        }
+    }
+
+    if (valid) {
+        grid.applyLocalWidgetLayout(widgets);
+        for (const target of targets)
+            grid._repositionNode(target.id, target.width, target.height, target.x, target.y);
+    } else {
+        for (const item of items)
+            grid._repositionNode(item.widgetData.id, item.widgetData.width, item.widgetData.height, item.widgetData.x, item.widgetData.y);
+    }
+    grid._syncSelectionIndicators();
 }
 
 function getActiveDrag(grid) {
@@ -215,6 +279,60 @@ function getActiveDrag(grid) {
 
 function setActiveDrag(grid, value) {
     grid._activeDrag = value;
+}
+
+function updateGroupDropPlaceholders(grid, state, dx, dy) {
+    const deltaCols = Math.round(dx / grid.cellTotalWidth);
+    const deltaRows = Math.round(dy / grid.cellTotalHeight);
+    const gridCols = grid.gridCols || COLUMNS_COUNT;
+    const gridRows = grid.gridRows || ROWS_COUNT;
+    const widgets = getWidgets(grid.settings).map(widget => {
+        if (!widget.monitor)
+            widget.monitor = resolveWidgetMonitor(grid, widget.monitor);
+        return widget;
+    });
+    const groupIds = new Set(state.groupItems.map(item => item.widgetData.id));
+    const occupiedWidgets = getWidgetsForMonitor(widgets, grid.targetMonitorIndex, true);
+    if (Array.isArray(grid._desktopIconWidgets)) {
+        for (const icon of grid._desktopIconWidgets) {
+            if (!occupiedWidgets.some(widget => widget.id === icon.id))
+                occupiedWidgets.push(icon);
+        }
+    }
+
+    const outsideGroup = occupiedWidgets.filter(widget => !groupIds.has(widget.id));
+    const placedTargets = [];
+    const targets = state.groupItems.map(item => ({
+        widgetData: item.widgetData,
+        x: item.widgetData.x + deltaCols,
+        y: item.widgetData.y + deltaRows,
+    }));
+    let isValid = true;
+
+    for (const target of targets) {
+        const { width, height } = target.widgetData;
+        if (target.x < 0 || target.y < 0 || target.x + width > gridCols || target.y + height > gridRows ||
+            checkOverlap(target.x, target.y, width, height, [...outsideGroup, ...placedTargets])) {
+            isValid = false;
+            break;
+        }
+        placedTargets.push({ ...target.widgetData, x: target.x, y: target.y });
+    }
+
+    for (const target of targets) {
+        const { width, height } = target.widgetData;
+        const visibleCol = Math.max(0, Math.min(gridCols - width, target.x));
+        const visibleRow = Math.max(0, Math.min(gridRows - height, target.y));
+        updateDropPlaceholder(
+            grid,
+            visibleCol,
+            visibleRow,
+            width,
+            height,
+            isValid,
+            target.widgetData.id
+        );
+    }
 }
 
 function cancelInterruptedDrag(grid) {
@@ -228,7 +346,7 @@ function cancelInterruptedDrag(grid) {
 export function attachDragHandlers(grid, node, widgetData) {
     let pressX = 0;
     let pressY = 0;
-    const state = { isDragging: false, dragMotionId: 0, dragReleaseId: 0, startX: 0, startY: 0, origGridX: 0, origGridY: 0 };
+    const state = { isDragging: false, minimizedWindows: [], dragMotionId: 0, dragReleaseId: 0, startX: 0, startY: 0, origGridX: 0, origGridY: 0, groupItems: null };
 
     const finishDrag = () => {
         const currentDrag = getActiveDrag(grid);
@@ -245,11 +363,29 @@ export function attachDragHandlers(grid, node, widgetData) {
         if (event.get_button() === BUTTON_PRIMARY) {
             cancelInterruptedDrag(grid);
 
+            const selection = grid._selectedWidgetIds || new Set();
+            if (!selection.has(widgetData.id) && selection.size > 0)
+                grid._clearWidgetSelection();
+
             [pressX, pressY] = event.get_coords();
             state.startX = node.x;
             state.startY = node.y;
             state.origGridX = widgetData.x;
             state.origGridY = widgetData.y;
+            if (selection.has(widgetData.id) && selection.size > 1) {
+                state.groupItems = [...selection].map(id => {
+                    const selectedNode = grid.widgetNodes.get(id);
+                    const selectedData = selectedNode?.widgetData;
+                    return selectedNode && selectedData ? {
+                        node: selectedNode,
+                        widgetData: selectedData,
+                        startX: selectedNode.x,
+                        startY: selectedNode.y,
+                    } : null;
+                }).filter(Boolean);
+            } else {
+                state.groupItems = null;
+            }
 
             if (state.dragMotionId) { global.stage.disconnect(state.dragMotionId); state.dragMotionId = 0; }
             if (state.dragReleaseId) { global.stage.disconnect(state.dragReleaseId); state.dragReleaseId = 0; }
@@ -267,10 +403,20 @@ export function attachDragHandlers(grid, node, widgetData) {
 
                 if (!state.isDragging && (Math.abs(dx) > DRAG_MOTION_THRESHOLD_PX || Math.abs(dy) > DRAG_MOTION_THRESHOLD_PX)) {
                     state.isDragging = true;
+                    if (grid.settings.get_boolean('show-desktop-while-dragging'))
+                        showDesktopForDrag(state);
                     //grid.constructor.toggleAllGridOverlays(true);
                 }
 
                 if (state.isDragging) {
+                    if (state.groupItems?.length > 1) {
+                        for (const item of state.groupItems)
+                            item.node.set_position(item.startX + dx, item.startY + dy);
+                        grid._syncSelectionIndicators();
+                        updateGroupDropPlaceholders(grid, state, dx, dy);
+                        return Clutter.EVENT_STOP;
+                    }
+
                     const newPosX = state.startX + dx;
                     const newPosY = state.startY + dy;
                     node.set_position(newPosX, newPosY);
@@ -315,6 +461,7 @@ export function attachDragHandlers(grid, node, widgetData) {
         const currentDrag = getActiveDrag(grid);
         if (currentDrag && currentDrag.state === state) setActiveDrag(grid, null);
         cancelInterruptedDragForState(state);
+        restoreDesktopAfterDrag(state);
         removeDropPlaceholder(grid);
     });
 }
@@ -345,6 +492,7 @@ export function onWidgetResized(grid, widgetId, newCols, newRows, newX) {
             targetWidget.x = validX;
             grid.applyLocalWidgetLayout(allWidgets);
             grid._repositionNode(widgetId, validCols, validRows, validX, widget.y);
+            grid._syncSelectionIndicators();
         }
     }
 }
