@@ -5,6 +5,7 @@ import GLib from 'gi://GLib';
 import Gst from 'gi://Gst';
 import Gvc from 'gi://Gvc';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
 import { 
     resolveExplicitFontFamily, 
@@ -23,10 +24,16 @@ import {
 import { BUTTON_PRIMARY } from '../../desktopGrid/constants.js';
 import { RadioMprisService } from './mprisPlayer.js';
 
-try {
-    Gst.init(null);
-} catch (e) {
-    // Shell által inicializálva
+let gstInitialized = false;
+function ensureGstreamer() {
+    if (gstInitialized) return;
+    try {
+        Gst.init(null);
+        gstInitialized = true;
+    } catch (_e) {
+        // Ha a Shell már korábban inicializálta
+        gstInitialized = true;
+    }
 }
 
 const BASE_CONTAINER_WIDTH = 400;
@@ -60,9 +67,64 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH, height / BASE_CONTAINER_HEIGHT));
     const PADDING_H = 12;
 
-    const quickSettings = Main.panel?.statusArea?.quickSettings;
-    const volIndicator = quickSettings?._volumeOutput;
-    const mixerControl = volIndicator?._control;
+    let mixerControl = null;
+    let gvcSignalId = 0;
+
+    function ensureRadioDesktopFile() {
+        try {
+            const appsDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'applications']);
+            GLib.mkdir_with_parents(appsDir, 0o755);
+
+            const desktopPath = GLib.build_filenamev([appsDir, 'grid-desktop.desktop']);
+            const desktopFile = Gio.File.new_for_path(desktopPath);
+
+            if (!desktopFile.query_exists(null)) {
+                // Feloldjuk az extension gyökérútvonalát az import.meta.url-ből
+                const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
+                const currentDir = GLib.path_get_dirname(currentFilePath);
+                const iconPath = Gio.File.new_for_path(currentDir)
+                    .get_parent()
+                    .get_parent()
+                    .get_child('assets')
+                    .get_child('icons')
+                    .get_child('grid-desktop.svg')
+                    .get_path();
+
+                const content = `[Desktop Entry]
+    Name=Grid Radio
+    Comment=Web Radio for GNOME Shell
+    Exec=true
+    Icon=${iconPath}
+    Terminal=false
+    Type=Application
+    NoDisplay=true
+    `;
+                desktopFile.replace_contents_async(
+                    new TextEncoder().encode(content),
+                    null,
+                    false,
+                    Gio.FileCreateFlags.REPLACE_DESTINATION,
+                    null,
+                    null
+                );
+            }
+        } catch (_e) {}
+    }
+
+    function initAudioIntegration() {
+        const quickSettings = Main.panel?.statusArea?.quickSettings;
+        const volIndicator = quickSettings?._volumeOutput;
+        mixerControl = volIndicator?._control || null;
+
+        if (mixerControl) {
+            gvcSignalId = mixerControl.connect('stream-added', () => {
+                GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                    bindRadioStream();
+                    return GLib.SOURCE_REMOVE;
+                });
+            });
+        }
+    };
 
     function toLinearVolume(display) {
         return Math.pow(Math.max(0.0, Math.min(1.0, display)), 3);
@@ -229,16 +291,8 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
             state.player.set_property('volume', state.volume);
         }
     }
+  
 
-    let gvcSignalId = 0;
-    if (mixerControl) {
-        gvcSignalId = mixerControl.connect('stream-added', () => {
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                bindRadioStream();
-                return GLib.SOURCE_REMOVE;
-            });
-        });
-    }
 
     function startRadio() {
         if (!state.player) return;
@@ -340,6 +394,7 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     });
 
     try {
+        ensureGstreamer()
         state.player = Gst.ElementFactory.make('playbin', 'grid-radio-player');
         if (state.player) {
             state.player.set_property('volume', 1.0);
@@ -636,9 +691,11 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     container.connect('destroy', () => {
         if (mixerControl && gvcSignalId) {
             try { mixerControl.disconnect(gvcSignalId); } catch (_) {}
+            gvcSignalId = 0;
         }
         if (state.radioStream && state.streamNotifyId) {
             try { state.radioStream.disconnect(state.streamNotifyId); } catch (_) {}
+            state.streamNotifyId = 0;
         }
         mpris.destroy();
         if (state.player) {
@@ -730,5 +787,12 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         applyScale(Math.max(0.60, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
     });
   
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT_IDLE, 400, () => {
+        if (isActorDestroyed(container)) return GLib.SOURCE_REMOVE;
+        ensureRadioDesktopFile();
+        initAudioIntegration();
+        return GLib.SOURCE_REMOVE;
+    });
+
     return container;
 }

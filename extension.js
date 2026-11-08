@@ -17,40 +17,9 @@ import { clearStorageEngine } from './utils/storageEngine.js';
 import { monitorDesktop, stopMonitor, syncDesktopIcons } from './utils/desktopIcons.js';
 import { getWidgets, saveWidgets } from './utils/widgetUtils.js';
 
-function ensureDesktopEntry(extensionPath) {
-    try {
-        const appsDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'applications']);
-        GLib.mkdir_with_parents(appsDir, 0o755);
-
-        const desktopFile = Gio.File.new_for_path(GLib.build_filenamev([appsDir, 'grid-desktop.desktop']));
-        if (!desktopFile.query_exists(null)) {
-            const iconPath = GLib.build_filenamev([extensionPath, 'assets', 'icons', 'grid-desktop.svg']);
-            const content = `[Desktop Entry]
-Name=Grid Radio
-Comment=Desktop Widgets for GNOME Shell
-Exec=true
-Icon=${iconPath}
-Terminal=false
-Type=Application
-NoDisplay=true
-`;
-            desktopFile.replace_contents(
-                content,
-                null,
-                false,
-                Gio.FileCreateFlags.REPLACE_DESTINATION,
-                null
-            );
-            Shell.AppSystem.get_default().reload();
-        }
-    } catch (_e) {}
-}
-
 
 export default class GridgetsExtension extends Extension {
     enable() {
-
-        ensureDesktopEntry(this.path);
         this._settings = this.getSettings();
 
         const isMigrated = this._settings.get_boolean('grid-migrated-v2');
@@ -134,11 +103,7 @@ export default class GridgetsExtension extends Extension {
             this._volumeMonitor.connect('drive-connected', onStorageStateChanged),
             this._volumeMonitor.connect('drive-disconnected', onStorageStateChanged)
         );
-        // ------------------------------------------------------------------
-        
-        this._createAndShowGrids();
-
-        
+        // ------------------------------------------------------------------  
 
         this._interfaceSignalId = this._interfaceSettings.connect('changed::color-scheme', () => {
             if (this._settings.get_boolean('follow-system-theme'))
@@ -160,6 +125,20 @@ export default class GridgetsExtension extends Extension {
         this._settingSignalIds.push(
             this._settings.connect('changed::show-widget-border', () => this._rebuildGrids())
         );
+
+        if (Main.layoutManager._startingUp) {
+            this._startupCompleteId = Main.layoutManager.connect('startup-complete', () => {
+                if (this._startupCompleteId) {
+                    Main.layoutManager.disconnect(this._startupCompleteId);
+                    this._startupCompleteId = 0;
+                }
+                syncDesktopIcons(this._settings, false);
+                this._createAndShowGrids();
+            });
+        } else {
+            syncDesktopIcons(this._settings, false);
+            this._createAndShowGrids();
+        }
 
         enableDashContextMenu();
     }
@@ -208,6 +187,11 @@ export default class GridgetsExtension extends Extension {
             this._settingSignalIds = [];
         }
         this._settings = null;
+
+        if (this._startupCompleteId > 0) {
+            Main.layoutManager.disconnect(this._startupCompleteId);
+            this._startupCompleteId = 0;
+        }
 
         this._removeAllGrids();
         if (this._screenTimeRelease) {
