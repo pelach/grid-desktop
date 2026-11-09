@@ -21,14 +21,9 @@ function addAppToDesktop(appInfo) {
         const destPath = destFile.get_path();
         GLib.chmod(destPath, 0o755);
 
-        try {
-            const info = Gio.FileInfo.new();
-            info.set_attribute_string('metadata::trusted', 'true');
-            destFile.set_attributes_from_info(info, Gio.FileQueryInfoFlags.NONE, null);
-        } catch (e) {
-            Gio.Subprocess.new(['gio', 'set', destPath, 'metadata::trusted', 'true'], Gio.SubprocessFlags.NONE);
-        }
+        destFile.set_attribute_string('metadata::trusted', 'true', Gio.FileQueryInfoFlags.NONE, null);
     } catch (e) {
+        logError(e, 'Grid-desktop: Failed to add app to desktop');
     }
 }
 

@@ -83,19 +83,7 @@ export function createPowerTogglesNode(config, width, height, xPosition, yPositi
                 );
             }
         } catch (e) {
-            const cmdMap = {
-                suspend: 'systemctl suspend',
-                reboot: 'gnome-session-quit --reboot',
-                shutdown: 'gnome-session-quit --power-off',
-                logout: 'gnome-session-quit --logout',
-            };
-            if (cmdMap[action]) {
-                const proc = new Gio.Subprocess({
-                    argv: ['sh', '-c', cmdMap[action]],
-                    flags: Gio.SubprocessFlags.NONE,
-                });
-                proc.init(null);
-            }
+            logError(e, `Grid-desktop: Failed to execute power action ${action}`);
         }
     };
 

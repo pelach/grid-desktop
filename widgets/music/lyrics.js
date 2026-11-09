@@ -3,6 +3,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
+import Soup from 'gi://Soup?version=3.0';
 
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { resolveWidgetBackgroundColor, resolveWidgetForegroundColor, resolveExplicitFontFamily } from '../../utils/widgetUtils.js';
@@ -12,7 +13,7 @@ import { DBUS_POLL_INTERVAL_MS, extractTrackMetadata, getActiveMediaPlayer, fetc
 const LYRICS_CACHE_DIR = GLib.build_filenamev([
     GLib.get_user_cache_dir(),
     'grid-desktop',
-    'lyrics'
+    'lyrics',
 ]);
 
 const REF_WIDTH = 400;
@@ -27,7 +28,7 @@ function ensureCacheDir() {
     if (!dir.query_exists(null)) {
         try {
             dir.make_directory_with_parents(null);
-        } catch (_e) {}
+        } catch {}
     }
 }
 
@@ -47,10 +48,10 @@ async function loadCachedLyrics(artist, title) {
                         resolve(JSON.parse(new TextDecoder('utf-8').decode(contents)));
                         return;
                     }
-                } catch (_e) {}
+                } catch {}
                 resolve(null);
             });
-        } catch (_e) {
+        } catch {
             resolve(null);
         }
     });
@@ -62,7 +63,7 @@ function saveCachedLyrics(artist, title, data) {
         const file = getLyricsCacheFile(artist, title);
         const raw = new TextEncoder().encode(JSON.stringify(data));
         file.replace_contents(raw, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null);
-    } catch (_e) {}
+    } catch {}
 }
 
 async function fetchLrclibLyrics(artist, title, album, durationSec) {
@@ -72,25 +73,25 @@ async function fetchLrclibLyrics(artist, title, album, durationSec) {
         if (durationSec > 0) url += `&duration=${Math.round(durationSec)}`;
 
         try {
-            const proc = Gio.Subprocess.new(
-                ['curl', '-s', '-m', '5', '-H', 'User-Agent: grid-desktop-gnome', url],
-                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE
-            );
+            const session = new Soup.Session();
+            const message = Soup.Message.new('GET', url);
+            message.request_headers.append('User-Agent', 'grid-desktop-gnome');
 
-            proc.communicate_utf8_async(null, null, (source, res) => {
+            session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (s, res) => {
                 try {
-                    const [ok, stdout] = source.communicate_utf8_finish(res);
-                    if (ok && stdout && stdout.trim().startsWith('{')) {
-                        const json = JSON.parse(stdout);
+                    const bytes = s.send_and_read_finish(res);
+                    if (message.status_code === 200 && bytes) {
+                        const text = new TextDecoder('utf-8').decode(bytes.get_data());
+                        const json = JSON.parse(text);
                         if (json && (json.syncedLyrics || json.plainLyrics)) {
                             resolve(json);
                             return;
                         }
                     }
-                } catch (_e) {}
+                } catch {}
                 resolve(null);
             });
-        } catch (_e) {
+        } catch {
             resolve(null);
         }
     });
@@ -315,18 +316,12 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
             }
         }
 
-        
-
         if (index >= 0 && index < state.lineActors.length) {
             const activeActor = state.lineActors[index];
             const adj = state.scrollView.vscroll?.adjustment || state.scrollView.vadjustment;
             if (!adj) return;
 
-            // 1. A látható ablak valós magassága a görgetősáv pageSize-éből
-            // (Ez a legmegbízhatóbb érték GNOME Shell alatt a tényleges ablakméretre!)
             const viewHeight = adj.get_page_size() || state.scrollView.get_height() || 180;
-
-            // 2. A sor pontos Y pozíciója a belső listán belül
             let actorTop = 0;
             let actorHeight = 24;
 
@@ -334,14 +329,11 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
                 const alloc = activeActor.get_allocation_box();
                 actorTop = alloc.y1;
                 actorHeight = alloc.y2 - alloc.y1;
-            } catch (_e) {
-                // Ha még nincs allokálva, a sorok becsült összegét vesszük
+            } catch {
                 actorTop = (state.topSpacer.get_height() || 70) + index * Math.round(28 * state.scale);
             }
 
-            // 3. Cél: az adott sor közepe essen a látható ablak közepére
             const targetScrollVal = Math.round(actorTop - (viewHeight / 2) + (actorHeight / 2));
-
             if (!isNaN(targetScrollVal)) {
                 smoothScrollTo(Math.max(0, targetScrollVal), 280);
             }
@@ -440,7 +432,7 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
             } else {
                 clearLyricsUI('No active track');
             }
-        } catch (_e) {}
+        } catch {}
     };
 
     updateLyricsFromMpris();

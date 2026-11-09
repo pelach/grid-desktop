@@ -2,6 +2,8 @@ import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
+import Soup from 'gi://Soup?version=3.0';
+
 import { 
     resolveExplicitFontFamily, 
     resolveWidgetForegroundColor 
@@ -73,9 +75,7 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
 
     function getCardDimensions() {
         const pad = Math.max(8, Math.round(10 * scale));
-        // A widget teljes belső hasznos szélessége a paddingok levonásával:
         const cardWidth = Math.max(120, Math.round(currentContainerWidth - (pad * 2)));
-        // Steam header pontos 460 x 215 aránya:
         const cardHeight = Math.round(cardWidth * (215 / 460));
         const borderRadius = Math.round(8 * scale);
 
@@ -91,7 +91,6 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
                 child.set_size(cardWidth, cardHeight);
                 child.width = cardWidth;
                 child.height = cardHeight;
-                // Megtartjuk az eredeti háttérképet, csak a méreteket frissítjük átméretezéskor:
                 const currentBg = child.style.match(/background-image:[^;]+;/);
                 const bgRule = currentBg ? currentBg[0] : '';
                 child.style = `width: ${cardWidth}px; ` +
@@ -107,8 +106,6 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
 
     function createBannerButton(appId, imagePath) {
         const { cardWidth, cardHeight, borderRadius } = getCardDimensions();
-
-        // St CSS-hez kötelező a file:// URI séma:
         const fileUrl = imagePath.startsWith('/') ? `file://${imagePath}` : imagePath;
 
         const btn = new St.Button({
@@ -125,7 +122,7 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
                    `background-image: url("${fileUrl}"); ` +
                    `background-size: cover; ` +
                    `background-position: center; ` +
-                   `border: 1px solid rgba(255, 255, 255, 0.1);`
+                   `border: 1px solid rgba(255, 255, 255, 0.1);`,
         });
         attachButtonFeedback(btn);
 
@@ -140,7 +137,41 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
         return btn;
     }
 
-    function fetchRecentGames() {
+    async function downloadFileAsync(session, url, targetFilePath) {
+        return new Promise((resolve) => {
+            const targetFile = Gio.File.new_for_path(targetFilePath);
+            if (targetFile.query_exists(null)) {
+                return resolve(true);
+            }
+
+            try {
+                const message = Soup.Message.new('GET', url);
+                message.request_headers.append('User-Agent', 'Mozilla/5.0');
+
+                session.send_and_read_async(message, GLib.PRIORITY_LOW, null, (s, res) => {
+                    try {
+                        const bytes = s.send_and_read_finish(res);
+                        if (message.status_code === 200 && bytes && bytes.get_size() > 500) {
+                            targetFile.replace_contents(
+                                bytes.get_data(),
+                                null,
+                                false,
+                                Gio.FileCreateFlags.REPLACE_DESTINATION,
+                                null
+                            );
+                            resolve(true);
+                            return;
+                        }
+                    } catch {}
+                    resolve(false);
+                });
+            } catch {
+                resolve(false);
+            }
+        });
+    }
+
+    async function fetchRecentGames() {
         const rawId = (config.steamId || '').trim();
         if (!rawId) {
             statusLabel.text = 'No Steam ID configured';
@@ -155,62 +186,69 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
         const cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'grid-desktop', 'steam']);
         GLib.mkdir_with_parents(cacheDir, 0o755);
 
-        // Max 3-4 játék bannere az álló dobozba
-        const bashCmd = `
-CACHE="\$1"; URL="\$2";
-APPIDS=\$(curl -s -L -A "Mozilla/5.0" "\$URL" | grep -oE "steam/apps/[0-9]+" | cut -d"/" -f3 | sort -u | head -n 4);
-
-for id in \$APPIDS; do
-  IMG="\$CACHE/\${id}_header.jpg";
-  if [ ! -s "\$IMG" ]; then
-    curl -s -L "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/\${id}/header.jpg" -o "\$IMG"
-    if ! file "\$IMG" | grep -qi "JPEG"; then
-      curl -s -L "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/\${id}/capsule_184x69.jpg" -o "\$IMG"
-    fi
-  fi
-  if [ -s "\$IMG" ] && file "\$IMG" | grep -qi "JPEG"; then
-    echo "\${id}:\${IMG}"
-  fi
-done
-`;
-
         try {
-            const proc = new Gio.Subprocess({
-                argv: ['bash', '-c', bashCmd, 'bash', cacheDir, profileUrl],
-                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
-            });
-            proc.init(null);
+            const session = new Soup.Session();
+            const message = Soup.Message.new('GET', profileUrl);
+            message.request_headers.append('User-Agent', 'Mozilla/5.0');
 
-            proc.communicate_utf8_async(null, null, (source, res) => {
+            session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, async (s, res) => {
+                if (isActorDestroyed(container)) return;
+
                 try {
-                    const [ok, stdout, stderr] = source.communicate_utf8_finish(res);
-                    if (isActorDestroyed(container)) return;
+                    const bytes = s.send_and_read_finish(res);
+                    if (message.status_code !== 200 || !bytes) {
+                        statusLabel.text = 'Failed to load profile';
+                        return;
+                    }
 
-                    const lines = (stdout || '').trim().split('\n').filter(Boolean);
-                    if (lines.length === 0) {
+                    const html = new TextDecoder('utf-8').decode(bytes.get_data());
+                    const matches = [...html.matchAll(/steam\/apps\/([0-9]+)/g)];
+                    const appIds = [...new Set(matches.map(m => m[1]))].slice(0, 4);
+
+                    if (appIds.length === 0) {
                         statusLabel.text = 'No recent games found';
                         return;
                     }
 
-                    cardsCol.destroy_all_children();
+                    const loadedBanners = [];
 
-                    for (const line of lines) {
-                        const [appId, imgPath] = line.split(':');
-                        if (appId && imgPath && GLib.file_test(imgPath, GLib.FileTest.EXISTS)) {
-                            const bannerBtn = createBannerButton(appId, imgPath);
-                            cardsCol.add_child(bannerBtn);
+                    for (const id of appIds) {
+                        const imgPath = GLib.build_filenamev([cacheDir, `${id}_header.jpg`]);
+                        const urlHeader = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`;
+                        
+                        let ok = await downloadFileAsync(session, urlHeader, imgPath);
+                        if (!ok) {
+                            const urlCapsule = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/capsule_184x69.jpg`;
+                            ok = await downloadFileAsync(session, urlCapsule, imgPath);
+                        }
+
+                        if (ok && GLib.file_test(imgPath, GLib.FileTest.EXISTS)) {
+                            loadedBanners.push({ id, imgPath });
                         }
                     }
 
+                    if (isActorDestroyed(container)) return;
+
+                    if (loadedBanners.length === 0) {
+                        statusLabel.text = 'Could not load banners';
+                        return;
+                    }
+
+                    cardsCol.destroy_all_children();
+                    for (const item of loadedBanners) {
+                        const bannerBtn = createBannerButton(item.id, item.imgPath);
+                        cardsCol.add_child(bannerBtn);
+                    }
+
                     updateCardSizes();
-                } catch (e) {
+                } catch {
                     if (!isActorDestroyed(container)) {
                         statusLabel.text = 'Error fetching games';
                     }
                 }
             });
-        } catch (e) {
-            statusLabel.text = 'Failed to start fetcher';
+        } catch {
+            statusLabel.text = 'Failed to initialize request';
         }
     }
 

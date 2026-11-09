@@ -386,24 +386,32 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
 
     const readDisk = () => {
         try {
-            const proc = new Gio.Subprocess({
-                argv: ['sh', '-c', "df -k / | tail -1 | awk '{print $5}'"],
-                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE,
-            });
-            proc.init(null);
-            proc.communicate_utf8_async(null, null, (p, res) => {
-                try {
-                    const [, stdout] = p.communicate_utf8_finish(res);
-                    if (isDisposed || !stdout) return;
-                    const clean = stdout.trim();
-                    if (clean) {
-                        percentLabel.set_text(clean.includes('%') ? clean : `${clean}%`);
-                        const val = parseInt(clean.replace('%', ''), 10);
-                        if (!isNaN(val)) pushSample(val / 100);
+            const rootFile = Gio.File.new_for_path('/');
+            rootFile.query_filesystem_info_async(
+                'filesystem::size,filesystem::free',
+                GLib.PRIORITY_LOW,
+                null,
+                (file, res) => {
+                    try {
+                        const info = file.query_filesystem_info_finish(res);
+                        if (isDisposed || !info) return;
+
+                        const total = info.get_attribute_uint64('filesystem::size');
+                        const free = info.get_attribute_uint64('filesystem::free');
+
+                        if (total > 0) {
+                            const used = total - free;
+                            const usage = Math.round((used / total) * 100);
+                            const safeUsage = Math.max(0, Math.min(100, usage));
+                            percentLabel.set_text(`${safeUsage}%`);
+                            pushSample(safeUsage / 100);
+                        }
+                    } catch (e) {
+                        // Nem dobunk hibát, ha a lemez infó átmenetileg nem elérhető
                     }
-                } catch (e) {}
-            });
-        } catch (e) {}
+                }
+            );
+        } catch (_) {}
     };
 
     const readDiskIo = () => {

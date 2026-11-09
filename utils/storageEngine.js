@@ -33,7 +33,7 @@ class StorageEngine {
             try {
                 callback(cached);
             } catch (e) {
-                console.error(`[StorageEngine] Initial callback error: ${e}`);
+                logError(e, `[StorageEngine] Initial callback error`);
             }
         }
 
@@ -90,7 +90,6 @@ class StorageEngine {
         try {
             const data = await this._scanPathAsync(targetPath);
             
-            // Ha lecsatolták vagy nem elérhető, offline állapotot küldünk:
             const resultData = data || {
                 path: targetPath,
                 isUnmounted: true,
@@ -107,12 +106,12 @@ class StorageEngine {
                     try {
                         cb(resultData);
                     } catch (err) {
-                        console.error(`[StorageEngine] Callback error: ${err}`);
+                        logError(err, `[StorageEngine] Callback error`);
                     }
                 }
             }
         } catch (err) {
-            console.error(`[StorageEngine] Scan failed for ${targetPath}: ${err}`);
+            logError(err, `[StorageEngine] Scan failed for ${targetPath}`);
         }
     }
 
@@ -120,22 +119,9 @@ class StorageEngine {
         const fsInfo = await this._getFsInfoAsync(targetPath);
         if (!fsInfo) return null;
 
-        const breakdown = await this._runFindAwkAsync(targetPath);
-
         const total = fsInfo.total;
         const free = fsInfo.free;
         const used = Math.max(0, total - free);
-
-        const video = breakdown.video || 0;
-        const audio = breakdown.audio || 0;
-        const media = video + audio;
-        const archive = breakdown.archive || 0;
-        const image = breakdown.image || 0;
-        const docs = breakdown.docs || 0;
-        const otherFolder = breakdown.other || 0;
-
-        const categorizedSum = media + archive + image + docs + otherFolder;
-        const system = Math.max(0, used - categorizedSum);
 
         return {
             path: targetPath,
@@ -143,12 +129,12 @@ class StorageEngine {
             free,
             used,
             categories: {
-                system,
-                media,
-                archive,
-                image,
-                docs,
-                other: otherFolder,
+                system: used,
+                media: 0,
+                archive: 0,
+                image: 0,
+                docs: 0,
+                other: 0,
             },
         };
     }
@@ -159,7 +145,7 @@ class StorageEngine {
                 const file = Gio.File.new_for_path(mountPath);
                 file.query_filesystem_info_async(
                     'filesystem::size,filesystem::free',
-                    GLib.PRIORITY_DEFAULT,
+                    GLib.PRIORITY_LOW,
                     null,
                     (f, res) => {
                         try {
@@ -178,52 +164,6 @@ class StorageEngine {
         });
     }
 
-    _runFindAwkAsync(scanPath = '/') {
-        return new Promise((resolve) => {
-            const file = Gio.File.new_for_path(scanPath);
-            if (!file.query_exists(null)) {
-                resolve({});
-                return;
-            }
-
-            const target = (scanPath === '/') ? '$HOME' : `"${scanPath}"`;
-            const shellCommand = `timeout 5s find ${target} -maxdepth 6 -name ".*" -prune -o -type f -printf "%b\\t%p\\n" 2>/dev/null | awk -F'\\t' '{
-                size = $1 * 512;
-                n = split(tolower($2), parts, ".");
-                ext = (n > 1) ? parts[n] : "none";
-                if (ext ~ /^(mp4|mkv|avi|mov|webm)$/) video += size;
-                else if (ext ~ /^(mp3|flac|wav|ogg|aac|m4a|wma)$/) audio += size;
-                else if (ext ~ /^(jpg|jpeg|png|gif|webp|svg|bmp)$/) image += size;
-                else if (ext ~ /^(pdf|doc|docx|odt|ods|odp|txt|xls|xlsx|csv)$/) docs += size;
-                else if (ext ~ /^(zip|tar|gz|7z|rar|iso|deb)$/) archive += size;
-                else other += size;
-            }
-            END {
-                printf "{\\"video\\":%d,\\"audio\\":%d,\\"image\\":%d,\\"docs\\":%d,\\"archive\\":%d,\\"other\\":%d}\\n", video, audio, image, docs, archive, other;
-            }'`;
-
-            try {
-                const proc = Gio.Subprocess.new(
-                    ['/bin/bash', '-c', shellCommand],
-                    Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE
-                );
-
-                proc.communicate_utf8_async(null, null, (p, res) => {
-                    try {
-                        const [, stdout] = p.communicate_utf8_finish(res);
-                        if (stdout) {
-                            const parsed = JSON.parse(stdout.trim());
-                            resolve(parsed);
-                            return;
-                        }
-                    } catch (e) {}
-                    resolve({});
-                });
-            } catch (err) {
-                resolve({});
-            }
-        });
-    }
     destroy() {
         this._stopTimer();
 

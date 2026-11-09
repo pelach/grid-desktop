@@ -220,39 +220,63 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     };
 
     const readOtherStats = () => {
-        const scriptCmd = `
-mem=$(free | awk '/Mem:/ {if($2>0) print int($3*100/$2); else print 40}')
-disk=$(df / 2>/dev/null | awk 'NR==2 {gsub("%","",$5); print $5}')
-temp=$(awk '{print int($1/1000)}' /sys/class/thermal/thermal_zone0/temp 2>/dev/null)
-echo "\${mem:-40};;\${disk:-50};;\${temp:-45}"
-        `.trim();
-
+        // 1. RAM olvasása natívan /proc/meminfo-ból
         try {
-            const proc = new Gio.Subprocess({
-                argv: ['sh', '-c', scriptCmd],
-                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE,
-            });
-            proc.init(null);
-            proc.communicate_utf8_async(null, null, (p, res) => {
+            const memFile = Gio.File.new_for_path('/proc/meminfo');
+            memFile.load_contents_async(null, (f, res) => {
                 try {
-                    const [, stdout] = p.communicate_utf8_finish(res);
-                    if (isDisposed || !stdout) return;
-
-                    const parts = stdout.trim().split(';;');
-                    if (parts.length >= 3) {
-                        currentMetrics.ram = parseInt(parts[0], 10) || 0;
-                        currentMetrics.disk = parseInt(parts[1], 10) || 0;
-                        currentMetrics.temp = parseInt(parts[2], 10) || 0;
-
+                    const [, contents] = f.load_contents_finish(res);
+                    if (isDisposed || !contents) return;
+                    const text = new TextDecoder().decode(contents);
+                    let total = 0, avail = 0;
+                    for (const line of text.split('\n')) {
+                        if (line.startsWith('MemTotal:')) total = parseInt(line.replace(/\D/g, ''), 10);
+                        else if (line.startsWith('MemAvailable:')) avail = parseInt(line.replace(/\D/g, ''), 10);
+                        if (total && avail) break;
+                    }
+                    if (total > 0) {
+                        currentMetrics.ram = Math.round(((total - avail) / total) * 100);
                         if (legendLabels.ram) legendLabels.ram.set_text(`RAM ${currentMetrics.ram}%`);
-                        if (legendLabels.disk) legendLabels.disk.set_text(`Disk ${currentMetrics.disk}%`);
-                        if (legendLabels.temp) legendLabels.temp.set_text(`Temp ${currentMetrics.temp}°`);
-
                         drawingArea.queue_repaint();
                     }
-                } catch (e) {}
+                } catch (_) {}
             });
-        } catch (e) {}
+        } catch (_) {}
+
+        // 2. Lemez olvasása natív GIO-val
+        try {
+            const rootFile = Gio.File.new_for_path('/');
+            rootFile.query_filesystem_info_async('filesystem::size,filesystem::free', GLib.PRIORITY_LOW, null, (f, res) => {
+                try {
+                    const info = f.query_filesystem_info_finish(res);
+                    if (isDisposed || !info) return;
+                    const total = info.get_attribute_uint64('filesystem::size');
+                    const free = info.get_attribute_uint64('filesystem::free');
+                    if (total > 0) {
+                        currentMetrics.disk = Math.round(((total - free) / total) * 100);
+                        if (legendLabels.disk) legendLabels.disk.set_text(`Disk ${currentMetrics.disk}%`);
+                        drawingArea.queue_repaint();
+                    }
+                } catch (_) {}
+            });
+        } catch (_) {}
+
+        // 3. Hőmérséklet olvasása natívan
+        try {
+            const tempFile = Gio.File.new_for_path('/sys/class/thermal/thermal_zone0/temp');
+            tempFile.load_contents_async(null, (f, res) => {
+                try {
+                    const [, contents] = f.load_contents_finish(res);
+                    if (isDisposed || !contents) return;
+                    const milliC = parseInt(new TextDecoder().decode(contents).trim(), 10);
+                    if (!isNaN(milliC)) {
+                        currentMetrics.temp = Math.round(milliC / 1000);
+                        if (legendLabels.temp) legendLabels.temp.set_text(`Temp ${currentMetrics.temp}°`);
+                        drawingArea.queue_repaint();
+                    }
+                } catch (_) {}
+            });
+        } catch (_) {}
     };
 
     const updateAll = () => {

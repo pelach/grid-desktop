@@ -153,8 +153,8 @@ export const DesktopGrid = GObject.registerClass(
                             this._pendingDesktopOpenId = 0;
                             try {
                                 const desktopPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) || `${GLib.get_home_dir()}/Desktop`;
-                                const proc = Gio.Subprocess.new(['nautilus', desktopPath], Gio.SubprocessFlags.NONE);
-                                proc.wait_async(null, null);
+                                const file = Gio.File.new_for_path(desktopPath);
+                                Gio.AppInfo.launch_default_for_uri(file.get_uri(), global.create_app_launch_context(0, -1));
                             } catch (e) {
                                 console.error('Failed to open the desktop folder:', e);
                             }

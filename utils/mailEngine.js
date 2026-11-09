@@ -62,14 +62,11 @@ class MailMonitorEngine {
     }
 
     _getScriptPath() {
-        // utils/mail_fetcher.py elérése a felhasználó home könyvtárából
-        return GLib.build_filenamev([
-            GLib.get_home_dir(),
-            'Bin',
-            'grid-desktop',
-            'utils',
-            'mail_fetcher.py'
-        ]);
+        // import.meta.url = file:///.../utils/mailEngine.js
+        const currentFile = Gio.File.new_for_uri(import.meta.url);
+        const utilsDir = currentFile.get_parent(); // Ez maga a 'utils' mappa
+        const scriptFile = utilsDir.get_child('mail_fetcher.py');
+        return scriptFile.get_path();
     }
 
     _fetch() {
