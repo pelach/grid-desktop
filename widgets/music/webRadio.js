@@ -400,31 +400,41 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                     case Gst.MessageType.TAG: {
                         const tagList = msg.parse_tag();
                         if (tagList) {
-                            let trackTitle = '';
-                            let trackArtist = '';
+                            const extractTag = (tagName) => {
+                                try {
+                                    const res = tagList.get_string(tagName);
+                                    if (Array.isArray(res) && res[0]) return res[1]?.trim() || '';
+                                    if (typeof res === 'string') return res.trim();
+                                } catch (_) {}
+                                return '';
+                            };
 
-                            try {
-                                const titleRes = tagList.get_string('title');
-                                if (Array.isArray(titleRes) && titleRes[0]) trackTitle = titleRes[1];
-                                else if (typeof titleRes === 'string') trackTitle = titleRes;
-                            } catch (_) {}
+                            let trackTitle = extractTag('title');
+                            let trackArtist = extractTag('artist');
 
-                            try {
-                                const artistRes = tagList.get_string('artist');
-                                if (Array.isArray(artistRes) && artistRes[0]) trackArtist = artistRes[1];
-                                else if (typeof artistRes === 'string') trackArtist = artistRes;
-                            } catch (_) {}
+                            if (!trackTitle) {
+                                trackTitle = extractTag('organization') || extractTag('description') || extractTag('comment');
+                            }
 
                             let fullTrack = '';
                             if (trackArtist && trackTitle) {
-                                fullTrack = `${trackArtist} - ${trackTitle}`;
+                                if (trackTitle.toLowerCase().includes(trackArtist.toLowerCase())) {
+                                    fullTrack = trackTitle;
+                                } else {
+                                    fullTrack = `${trackArtist} - ${trackTitle}`;
+                                }
                             } else if (trackTitle) {
                                 fullTrack = trackTitle;
+                            } else if (trackArtist) {
+                                fullTrack = trackArtist;
                             }
 
                             fullTrack = fullTrack.trim();
 
-                            if (fullTrack !== '' && fullTrack !== state.currentTrack) {
+                            const ignoredNames = ['live', 'online', 'stream', 'unknown', 'default'];
+                            const isMeaningless = ignoredNames.includes(fullTrack.toLowerCase());
+
+                            if (fullTrack !== '' && !isMeaningless && fullTrack !== state.currentTrack) {
                                 state.currentTrack = fullTrack;
                                 trackLabel.set_text(state.currentTrack);
 
