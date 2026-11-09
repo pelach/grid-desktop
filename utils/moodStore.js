@@ -1,6 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import { getGridgetsDataDir, loadJsonFromFileAsync, saveJsonToFile, saveJsonToFileSync } from './widgetUtils.js';
+import { getGridgetsDataDir, loadJsonFromFileAsync, saveJsonToFile } from './widgetUtils.js';
 
 import { todayDateString, toDateString } from './widgetUtils.js';
 export { todayDateString, toDateString };

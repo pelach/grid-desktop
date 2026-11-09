@@ -1,7 +1,6 @@
 import GLib from 'gi://GLib';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import Gio from 'gi://Gio';
-import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DesktopGrid } from './desktopGrid/index.js';
 import { clearMoodStoreCache } from './utils/moodStore.js';
@@ -14,7 +13,7 @@ import { clearMusicPolls } from './widgets/music/index.js';
 import { screenTimeEngine } from './utils/screenTimeEngine.js';
 import { enableDashContextMenu, disableDashContextMenu } from './utils/dashIntegration.js';
 import { clearStorageEngine } from './utils/storageEngine.js';
-import { monitorDesktop, stopMonitor, syncDesktopIcons } from './utils/desktopIcons.js';
+import { stopMonitor, syncDesktopIcons } from './utils/desktopIcons.js';
 import { getWidgets, saveWidgets } from './utils/widgetUtils.js';
 
 
@@ -214,9 +213,6 @@ export default class GridgetsExtension extends Extension {
     _spawnGrid(monitorIndex) {
         const grid = new DesktopGrid(this.path, this._settings, this.metadata, monitorIndex, this._interfaceSettings);
         grid.extension = this;
-        // _backgroundGroup is private Shell API, but it is the only layer that
-        // renders above the wallpaper while staying below every window; GNOME
-        // Shell exposes no public accessor for that position.
         Main.layoutManager._backgroundGroup.add_child(grid);
         this._desktopGrids.push(grid);
     }

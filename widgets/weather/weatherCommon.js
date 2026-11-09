@@ -4,7 +4,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
 import Pango from 'gi://Pango';
-import { resolveWidgetBackgroundColor, resolveWidgetForegroundColor, resolveExplicitFontFamily, DEFAULT_BG_COLOR, buildBaseWidgetStyle, celsiusToFahrenheit, parseCssColor, isDarkBackgroundColor } from '../../utils/widgetUtils.js';
+import { resolveWidgetBackgroundColor, resolveWidgetForegroundColor, resolveExplicitFontFamily, DEFAULT_BG_COLOR, buildBaseWidgetStyle, celsiusToFahrenheit, isDarkBackgroundColor } from '../../utils/widgetUtils.js';
 import { isActorDestroyed, watchActorLifecycle } from '../../utils/actorLifecycle.js';
 import { MONTH_NAMES_ABBREVIATED as MONTH_NAMES, resolveWidgetGlassHighlight } from '../../shell/widgetUIUtils.js';
 

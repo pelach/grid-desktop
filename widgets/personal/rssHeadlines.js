@@ -4,9 +4,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import Pango from 'gi://Pango';
 import { 
-    cssColorToRgba, 
     resolveExplicitFontFamily, 
-    resolveWidgetBackgroundColor, 
     resolveWidgetForegroundColor 
 } from '../../utils/widgetUtils.js';
 import { 

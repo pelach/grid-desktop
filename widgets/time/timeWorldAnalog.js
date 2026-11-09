@@ -3,10 +3,7 @@ import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 import Cairo from 'cairo';
 import { 
-    resolveWidgetBackgroundColor, 
-    resolveWidgetForegroundColor, 
-    resolveExplicitFontFamily, 
-    cssColorToRgba 
+    resolveExplicitFontFamily
 } from '../../utils/widgetUtils.js';
 import { 
     createWidgetContainer, 

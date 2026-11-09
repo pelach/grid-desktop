@@ -6,7 +6,6 @@ import GLib from 'gi://GLib';
 import {
     COLUMNS_COUNT,
     ROWS_COUNT,
-    GRID_GAP_PX,
     GRID_MARGIN_PX,
     checkOverlap,
     findEmptySpot,

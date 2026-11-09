@@ -8,9 +8,7 @@ import {
     CAIRO_OPERATOR_OVER,
     SECONDARY_OPACITY,
     cssColorToRgba,
-    parseCssColor,
     resolveExplicitFontFamily,
-    resolveWidgetBackgroundColor,
     resolveWidgetForegroundColor,
 } from '../../utils/widgetUtils.js';
 import {

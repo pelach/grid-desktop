@@ -15,8 +15,7 @@ import {
     isDarkBackgroundColor,
     CAIRO_OPERATOR_CLEAR,
     CAIRO_OPERATOR_OVER,
-    CAIRO_LINE_CAP_ROUND,
-    cssColorToRgba
+    CAIRO_LINE_CAP_ROUND
 } from '../utils/widgetUtils.js';
 
 const CAPTION_PADDING_PIXELS = 12;
