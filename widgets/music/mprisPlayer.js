@@ -1,7 +1,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
-// Tiszta D-Bus interfész leírók (tagolt stringként összefűzve, parse hiba nélkül)
 const MPRIS_ROOT_IFACE = `
 <node>
   <interface name="org.mpris.MediaPlayer2">
@@ -90,29 +89,39 @@ export class RadioMprisService {
     _onBusAcquired(connection) {
         this._connection = connection;
 
-        // Root felület exportálása
+        // Root felület exportálása (invocation lezárással)
         this._exportedRootId = connection.register_object(
             '/org/mpris/MediaPlayer2',
             this._rootNode.interfaces[0],
-            (conn, sender, path, iface, method) => {
-                if (method === 'Quit' && this._callbacks.onQuit) this._callbacks.onQuit();
-                if (method === 'Raise' && this._callbacks.onRaise) this._callbacks.onRaise();
+            (_conn, _sender, _path, _iface, method, _params, invocation) => {
+                try {
+                    if (method === 'Quit' && this._callbacks.onQuit) this._callbacks.onQuit();
+                    if (method === 'Raise' && this._callbacks.onRaise) this._callbacks.onRaise();
+                    invocation.return_value(null);
+                } catch (e) {
+                    invocation.return_error_literal(Gio.DBusError, Gio.DBusError.FAILED, e.message);
+                }
             },
             (_conn, _sender, _path, _iface, prop) => this._handleGetRootProperty(prop),
             null
         );
 
-        // Player felület exportálása
+        // Player felület exportálása (invocation lezárással)
         this._exportedPlayerId = connection.register_object(
             '/org/mpris/MediaPlayer2',
             this._playerNode.interfaces[0],
-            (conn, sender, path, iface, method) => {
-                if (method === 'PlayPause' && this._callbacks.onPlayPause) this._callbacks.onPlayPause();
-                if (method === 'Stop' && this._callbacks.onStop) this._callbacks.onStop();
-                if (method === 'Play' && this._callbacks.onPlay) this._callbacks.onPlay();
-                if (method === 'Pause' && this._callbacks.onPause) this._callbacks.onPause();
-                if (method === 'Next' && this._callbacks.onNext) this._callbacks.onNext();
-                if (method === 'Previous' && this._callbacks.onPrevious) this._callbacks.onPrevious();
+            (_conn, _sender, _path, _iface, method, _params, invocation) => {
+                try {
+                    if (method === 'PlayPause' && this._callbacks.onPlayPause) this._callbacks.onPlayPause();
+                    if (method === 'Stop' && this._callbacks.onStop) this._callbacks.onStop();
+                    if (method === 'Play' && this._callbacks.onPlay) this._callbacks.onPlay();
+                    if (method === 'Pause' && this._callbacks.onPause) this._callbacks.onPause();
+                    if (method === 'Next' && this._callbacks.onNext) this._callbacks.onNext();
+                    if (method === 'Previous' && this._callbacks.onPrevious) this._callbacks.onPrevious();
+                    invocation.return_value(null);
+                } catch (e) {
+                    invocation.return_error_literal(Gio.DBusError, Gio.DBusError.FAILED, e.message);
+                }
             },
             (_conn, _sender, _path, _iface, prop) => this._handleGetPlayerProperty(prop),
             (_conn, _sender, _path, _iface, prop, value) => this._handleSetPlayerProperty(prop, value)
@@ -234,7 +243,7 @@ export class RadioMprisService {
                 parameters
             );
         } catch (_e) {
-            // Nem megszakító hiba ha épp szétkapcsol a busz
+            // Szétkapcsoláskor nem kritikus
         }
     }
 
@@ -244,8 +253,14 @@ export class RadioMprisService {
 
     destroy() {
         if (this._connection) {
-            if (this._exportedRootId) this._connection.unregister_object(this._exportedRootId);
-            if (this._exportedPlayerId) this._connection.unregister_object(this._exportedPlayerId);
+            if (this._exportedRootId) {
+                this._connection.unregister_object(this._exportedRootId);
+                this._exportedRootId = 0;
+            }
+            if (this._exportedPlayerId) {
+                this._connection.unregister_object(this._exportedPlayerId);
+                this._exportedPlayerId = 0;
+            }
         }
         if (this._ownerId) {
             Gio.bus_unown_name(this._ownerId);

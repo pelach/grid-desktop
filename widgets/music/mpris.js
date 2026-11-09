@@ -5,9 +5,6 @@ export const DBUS_POLL_INTERVAL_MS = 1000;
 
 const BROWSER_MPRIS_PATTERNS = ['chromium', 'firefox', 'chrome', 'brave', 'edge', 'opera', 'vivaldi', 'mozilla'];
 
-// Unwraps a GVariant to a plain JS value. Uses deep_unpack() rather than
-// unpack() because array-typed variants (e.g. xesam:artist as "as") only
-// yield plain strings when fully unwrapped.
 export function unpackVariantValue(value) {
     return value ? value.deep_unpack() : value;
 }
@@ -101,7 +98,6 @@ export async function fetchPlayerPosition(playerName) {
     }
 }
 
-// Sends a D-Bus method call to the MPRIS Player interface.
 async function callPlayerMethod(playerName, method) {
     if (!playerName) return;
     try {
@@ -114,7 +110,7 @@ async function callPlayerMethod(playerName, method) {
             Gio.DBusCallFlags.NONE, -1, null
         );
     } catch (error) {
-        console.error(`Error executing ${method} on player ${playerName}:`, error);
+        logError(error, `[MPRIS] Error executing ${method} on player ${playerName}`);
     }
 }
 
