@@ -79,7 +79,6 @@ export const DesktopGrid = GObject.registerClass(
                 });
             });
 
-            // Shared shell-side schema owned by the extension; created only as a fallback.
             this._ownInterfaceSettings = !interfaceSettings;
             this.interfaceSettings = interfaceSettings || Gio.Settings.new('org.gnome.desktop.interface');
             this.targetMonitorIndex = targetMonitorIndex;
@@ -108,19 +107,16 @@ export const DesktopGrid = GObject.registerClass(
             this._backgroundPressId = this.connect('button-press-event', (_actor, event) => {
                 const btn = event.get_button();
 
-                // Jobb klikk: Helyi menü
                 if (btn === BUTTON_SECONDARY) {
                     openContextMenu(this, event);
                     return Clutter.EVENT_STOP;
                 }
 
-                // Bal klikk
                 if (btn === BUTTON_PRIMARY) {
                     removeContextMenu(this);
 
                     const [clickX, clickY] = event.get_coords();
 
-                    // Megnézzük a kattintás koordinátáit: esik-e bármelyik widget vagy ikon területére?
                     let clickedOnWidget = false;
                     for (const [, node] of this.widgetNodes) {
                         if (!node || node.is_finalized?.()) continue;
@@ -137,8 +133,6 @@ export const DesktopGrid = GObject.registerClass(
                         }
                     }
 
-                    // Ha a kattintás koordinátája egy widget területére esik:
-                    // CSAK továbbra engedjük (hogy lehessen húzni/kattintani), de nem indítunk Nautilust!
                     if (clickedOnWidget) {
                         return Clutter.EVENT_PROPAGATE;
                     }
@@ -146,9 +140,8 @@ export const DesktopGrid = GObject.registerClass(
                     this._clearWidgetSelection();
                     
                     const now = event.get_time();
-                    // Ha a két bal klikk között kevesebb mint 400ms telt el -> DUPLA KLIKK!
                     if (now - this._lastClickTime < 400) {
-                        this._lastClickTime = 0; // nullázzuk, hogy ne triplázzon
+                        this._lastClickTime = 0; 
                         this._pendingDesktopOpenId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
                             this._pendingDesktopOpenId = 0;
                             try {
@@ -228,8 +221,6 @@ export const DesktopGrid = GObject.registerClass(
             this.widgetNodes.clear();
             this._nodeConfigs.clear();
 
-            // TÖRÖLVE: this.destroy_all_children();  <-- Kettős törlést és C-szintű segfaultot okozott!
-
             super.destroy();
         }
 
@@ -239,7 +230,6 @@ export const DesktopGrid = GObject.registerClass(
                 this.signalIds.push(id);
             };
 
-            // Desktop ikonok főkapcsolója
             connectSetting('show-desktop-icons', () => {
                 if (this.settings.get_boolean('show-desktop-icons')) {
                     syncDesktopIcons(this.settings, true); // Bekapcsoláskor rendezze el
@@ -247,13 +237,11 @@ export const DesktopGrid = GObject.registerClass(
                 this._rebuildGrid();
             });
 
-            // Címkék ki/be kapcsolása -> KIFEJEZETTEN false, NE rendezze újra a rácsot!
             connectSetting('desktop-icons-show-labels', () => {
                 syncDesktopIcons(this.settings, false);
                 this._rebuildGrid();
             });
 
-            // Tájolás és rendezési irány -> itt kényszerítjük az újrarendezést
             connectSetting('desktop-icons-side', () => {
                 syncDesktopIcons(this.settings, true);
                 this._rebuildGrid();
@@ -263,7 +251,6 @@ export const DesktopGrid = GObject.registerClass(
                 this._rebuildGrid();
             });
 
-            // Különleges ikonok kapcsolói
             connectSetting('desktop-icons-show-home', () => {
                 syncDesktopIcons(this.settings, false);
                 this._rebuildGrid();
@@ -281,7 +268,6 @@ export const DesktopGrid = GObject.registerClass(
                 this._rebuildGrid();
             });
 
-            // Widgetek változása
             connectSetting('widgets', () => {
                 const widgetsJson = this.settings.get_string('widgets');
                 if (widgetsJson === this._lastAppliedWidgetsJson)
@@ -289,7 +275,6 @@ export const DesktopGrid = GObject.registerClass(
                 this._applyWidgetChanges();
             });
 
-            // Globális stílusok és egyéb beállítások
             connectSetting('global-background-color', () => this._rebuildGrid());
             connectSetting('global-foreground-color', () => this._rebuildGrid());
             connectSetting('global-font-family', () => this._rebuildGrid());
@@ -550,7 +535,6 @@ export const DesktopGrid = GObject.registerClass(
 
         _createAndAttachWidget(widgetData, cellSize, cellTotalWidth, cellTotalHeight, globalSettings) {
             const safeCellSize = (Number.isFinite(cellSize) && cellSize > 0) ? cellSize : 80;
-            // A gap a teljes cellaszélesség és a belső méret különbsége:
             const currentGap = (cellTotalWidth && cellSize) ? (cellTotalWidth - cellSize) : 16;
             const safeCellW = (Number.isFinite(cellTotalWidth) && cellTotalWidth > 0) ? cellTotalWidth : (safeCellSize + currentGap);
             const safeCellH = (Number.isFinite(cellTotalHeight) && cellTotalHeight > 0) ? cellTotalHeight : (safeCellSize + currentGap);
@@ -560,7 +544,6 @@ export const DesktopGrid = GObject.registerClass(
             const xUnits = Math.max(0, widgetData.x || 0);
             const yUnits = Math.max(0, widgetData.y || 0);
 
-            // GRID_GAP_PX helyett currentGap!
             const widgetWidth = Math.round((wUnits * safeCellSize) + ((wUnits - 1) * currentGap));
             const widgetHeight = Math.round((hUnits * safeCellSize) + ((hUnits - 1) * currentGap));
             const posX = Math.round(GRID_MARGIN_PX + (xUnits * safeCellW));
@@ -591,10 +574,6 @@ export const DesktopGrid = GObject.registerClass(
             }
         }
 
-        /**
-         * Saves a widget layout change made locally by drag/resize so the settings
-         * listener can recognize its own write and skip the redundant rebuild.
-         */
         applyLocalWidgetLayout(widgets) {
             this._saveLocalWidgets(widgets);
         }
@@ -616,17 +595,13 @@ export const DesktopGrid = GObject.registerClass(
                     this.gridMargin,
                     accent.r, accent.g, accent.b, GRID_LINE_ALPHA
                 );
-                // Keep canvas at bottom so incremental updates don't stack above widgets.
                 this.insert_child_at_index(this._gridLineCanvas, 0);
             }
         }
 
-        // Saves widget configs and pre-seeds the echo guard so our own write's
-        // settings echo is recognized as self-inflicted.
         _saveLocalWidgets(widgets) {
             this._lastAppliedWidgetsJson = serializeWidgets(widgets);
             saveWidgets(this.settings, widgets);
-            // Sync node data so next drag/resize uses fresh geometry.
             this.widgetNodes.forEach((node, widgetId) => {
                 const latest = widgets.find(widget => widget.id === widgetId);
                 if (latest && node.widgetData) {
@@ -639,8 +614,6 @@ export const DesktopGrid = GObject.registerClass(
             });
         }
 
-        /** Reads widget configs and resolves those active on this grid's monitor. */
-
         _resolveActiveWidgets() {
             const monitorMode = this.settings.get_string('global-monitor') || 'primary';
             const isEachMode = (monitorMode === 'each');
@@ -648,19 +621,15 @@ export const DesktopGrid = GObject.registerClass(
 
             let widgets = getWidgets(this.settings);
             
-            // Csak akkor rakjuk bele az aktív listába, ha a kapcsoló be van kapcsolva
             let activeWidgets = widgets.filter(w => {
-                // Ha asztali ikon és ki van kapcsolva a funkció -> kuka
                 if (w.isDesktopIcon && !showDesktop) return false;
                 
-                // Egyébként a szokásos monitor szűrés
                 return getWidgetsForMonitor([w], getEffectiveMonitorIndex(this.targetMonitorIndex, this.settings), isEachMode).length > 0;
             });
 
             return { widgets, activeWidgets };
         }
 
-        /** Stores layout metrics on the grid and refreshes the persistent overlay. */
         _applyGridLayout(layout) {
             this.cellTotalWidth = layout.cellTotalWidth;
             this.cellTotalHeight = layout.cellTotalHeight;
@@ -673,10 +642,6 @@ export const DesktopGrid = GObject.registerClass(
             this._syncGridLines();
         }
 
-        /**
-         * Applies an S/M/L preset: repositions if the new footprint collides,
-         * then destroys and recreates the node so fonts/layout recompute.
-         */
         applySizePreset(widgetId, sizeIndex) {
             const { widgets, activeWidgets } = this._resolveActiveWidgets();
             const target = widgets.find(widget => widget.id === widgetId);
@@ -688,7 +653,6 @@ export const DesktopGrid = GObject.registerClass(
                 return;
 
             const others = activeWidgets.filter(widget => widget.id !== widgetId);
-            // Pin weather variant before resize so it doesn't silently flip.
             if (target.type === 'weather')
                 target.layout = resolveWeatherLayoutVariant(target);
             target.width = size.width;
@@ -715,7 +679,6 @@ export const DesktopGrid = GObject.registerClass(
             this._createNodeFactory(this._layout, globalSettings)(target);
         }
 
-        /** Node creator that keeps one broken widget constructor from aborting the batch. */
         _createNodeFactory(layout, globalSettings) {
             return (widgetData) => {
                 try {
@@ -726,10 +689,6 @@ export const DesktopGrid = GObject.registerClass(
             };
         }
 
-        // Applies widget settings changes incrementally: unchanged nodes are
-        // left untouched (async widgets don't refetch). Deliberately does NOT
-        // touch grid size — resizing while children are alive causes allocation
-        // issues. Monitor geometry changes arrive via 'monitors-changed'.
         _applyWidgetChanges() {
             this._clearWidgetSelection();
             this._lastAppliedWidgetsJson = this.settings.get_string('widgets');
@@ -754,7 +713,7 @@ export const DesktopGrid = GObject.registerClass(
 
             sortedWidgets.forEach(widgetData => {
                 if (this.widgetNodes.has(widgetData.id) && this._nodeConfigs.get(widgetData.id) === JSON.stringify(widgetData)) {
-                    return; // Ha a pozíciója és beállításai nem változtak, NE bántsd!
+                    return; 
                 }
                 const existingNode = this.widgetNodes.get(widgetData.id);
                 if (existingNode) {
@@ -849,5 +808,5 @@ export const DesktopGrid = GObject.registerClass(
             this._syncGridLines();
         }
 
-        
-    });
+    }
+);
