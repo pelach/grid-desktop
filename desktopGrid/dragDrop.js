@@ -364,12 +364,14 @@ export function attachDragHandlers(grid, node, widgetData) {
             cancelInterruptedDrag(grid);
 
             const evModifiers = event.get_state();
-            const hasShift = Boolean(evModifiers & Clutter.ModifierType.SHIFT_MASK);
-
+            const isMultiModifier = Boolean(
+                (evModifiers & Clutter.ModifierType.CONTROL_MASK) ||
+                (evModifiers & Clutter.ModifierType.SHIFT_MASK)
+            );
             const selection = grid._selectedWidgetIds || new Set();
             
             // CSAK AKKOR ürítünk, ha NINCS Shift, és nem egy kijelölt elemre kattintottunk:
-            if (!hasShift && !selection.has(widgetData.id) && selection.size > 0)
+            if (!isMultiModifier && !selection.has(widgetData.id) && selection.size > 0)
                 grid._clearWidgetSelection();
 
             [pressX, pressY] = event.get_coords();
@@ -454,7 +456,10 @@ export function attachDragHandlers(grid, node, widgetData) {
             state.dragReleaseId = global.stage.connect('button-release-event', (_stage, ev) => {
                 if (ev.get_button() === BUTTON_PRIMARY) {
                     const evModifiers = ev.get_state();
-                    const hasShift = Boolean(evModifiers & Clutter.ModifierType.SHIFT_MASK);
+                    const isMultiModifier = Boolean(
+                        (evModifiers & Clutter.ModifierType.CONTROL_MASK) ||
+                        (evModifiers & Clutter.ModifierType.SHIFT_MASK)
+                    );
 
                     // HA NEM TÖRTÉNT DRAG (sima kattintás volt):
                     if (!state.isDragging) {
@@ -462,7 +467,7 @@ export function attachDragHandlers(grid, node, widgetData) {
                         if (allowAllSizes || (widgetData.width === 1 && widgetData.height === 1)) {
                             const currentSelection = new Set(grid._selectedWidgetIds || []);
 
-                            if (hasShift) {
+                            if (isMultiModifier) {
                                 // Shift + Kattintás: hozzáadás vagy kivétel a kijelölésből
                                 if (currentSelection.has(widgetData.id)) {
                                     currentSelection.delete(widgetData.id);
