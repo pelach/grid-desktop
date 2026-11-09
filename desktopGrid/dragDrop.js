@@ -356,6 +356,18 @@ export function attachDragHandlers(grid, node, widgetData) {
 
     node.connect('button-press-event', (_actor, event) => {
         if (event.get_button() === BUTTON_SECONDARY) {
+            const selection = grid._selectedWidgetIds || new Set();
+
+            // Ha az elem még nincs kijelölve: levesszük a régit, és kijelöljük ezt az egyet
+            if (!selection.has(widgetData.id)) {
+                const allowAllSizes = grid.settings.get_boolean('multi-select-all-widget-sizes');
+                if (allowAllSizes || (widgetData.width === 1 && widgetData.height === 1)) {
+                    grid._setWidgetSelection([widgetData.id]);
+                } else {
+                    grid._clearWidgetSelection();
+                }
+            }
+
             openWidgetContextMenu(grid, event, node, widgetData);
             return Clutter.EVENT_STOP;
         }
