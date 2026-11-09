@@ -143,6 +143,8 @@ export const DesktopGrid = GObject.registerClass(
                         return Clutter.EVENT_PROPAGATE;
                     }
 
+                    this._clearWidgetSelection();
+                    
                     const now = event.get_time();
                     // Ha a két bal klikk között kevesebb mint 400ms telt el -> DUPLA KLIKK!
                     if (now - this._lastClickTime < 400) {

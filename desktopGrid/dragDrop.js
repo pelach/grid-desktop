@@ -447,6 +447,15 @@ export function attachDragHandlers(grid, node, widgetData) {
 
             state.dragReleaseId = global.stage.connect('button-release-event', (_stage, ev) => {
                 if (ev.get_button() === BUTTON_PRIMARY) {
+                    // HA NEM TÖRTÉNT DRAG (nem mozdult el az egér küszöbérték fölé):
+                    if (!state.isDragging) {
+                        const allowAllSizes = grid.settings.get_boolean('multi-select-all-widget-sizes');
+                        if (allowAllSizes || (widgetData.width === 1 && widgetData.height === 1)) {
+                            // Egy kattintásra kijelöli ezt az egy elemet:
+                            grid._setWidgetSelection([widgetData.id]);
+                        }
+                    }
+
                     finishDrag();
                 }
                 return Clutter.EVENT_PROPAGATE;
