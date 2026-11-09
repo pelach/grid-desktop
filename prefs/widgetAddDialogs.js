@@ -676,12 +676,12 @@ export function openAddDualClockDialog(parentWindow, settings) {
 
 export function openAddWebRadioDialog(parentWindow, settings) {
     let stations = [
-        { name: 'Retro Rádió', url: 'https://stream.retroradio.hu/mid.mp3' },
-        { name: 'Rádió 1', url: 'https://stream.radio1.hu/mid.mp3' },
-        { name: 'Petőfi Rádió', url: 'https://mr-stream.mediaklikk.hu/play/petofi.mp3' },
-        { name: 'Kossuth Rádió', url: 'https://mr-stream.mediaklikk.hu/play/kossuth.mp3' },
+        { name: 'Retro Rádió', url: 'https://icast.connectmedia.hu/5001/live.mp3' },
+        { name: 'Rádió 1', url: 'https://icast.connectmedia.hu/5201/live.mp3' },
+        { name: 'Petőfi Rádió', url: 'https://icast.connectmedia.hu/4738/mr2.mp3' },
+        { name: 'Kossuth Rádió', url: 'http://mr-stream.mediaconnect.hu/4736/mr1.mp3' },
         { name: 'Smooth Jazz', url: 'https://smoothjazz.cdnstream1.com/2585_128.mp3' },
-        { name: 'Klasszik Rádió', url: 'http://s04.diazol.hu:9600/live.mp3' },
+        { name: 'Klasszik Rádió', url: 'http://online.klasszikradio.hu/klasszik.mp3' },
     ];
 
     const { window, group } = createModernWidgetAddDialog(parentWindow, 'Configure Web Radio Widget', () => {

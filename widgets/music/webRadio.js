@@ -31,7 +31,6 @@ function ensureGstreamer() {
         Gst.init(null);
         gstInitialized = true;
     } catch (_e) {
-        // Ha a Shell már korábban inicializálta
         gstInitialized = true;
     }
 }
@@ -45,12 +44,12 @@ const CARD_BORDER_DARK_ALPHA = 0.06;
 const CARD_BORDER_LIGHT_ALPHA = 0.10;
 
 const DEFAULT_STATIONS = [
-    { name: 'Retro Rádió', url: 'https://stream.retroradio.hu/mid.mp3' },
-    { name: 'Rádió 1', url: 'https://stream.radio1.hu/mid.mp3' },
-    { name: 'Petőfi Rádió', url: 'https://mr-stream.mediaklikk.hu/play/petofi.mp3' },
-    { name: 'Kossuth Rádió', url: 'https://mr-stream.mediaklikk.hu/play/kossuth.mp3' },
+    { name: 'Retro Rádió', url: 'https://icast.connectmedia.hu/5001/live.mp3' },
+    { name: 'Rádió 1', url: 'https://icast.connectmedia.hu/5201/live.mp3' },
+    { name: 'Petőfi Rádió', url: 'https://icast.connectmedia.hu/4738/mr2.mp3' },
+    { name: 'Kossuth Rádió', url: 'http://mr-stream.mediaconnect.hu/4736/mr1.mp3' },
     { name: 'Smooth Jazz', url: 'https://smoothjazz.cdnstream1.com/2585_128.mp3' },
-    { name: 'Klasszik Rádió', url: 'http://s04.diazol.hu:9600/live.mp3' },
+    { name: 'Klasszik Rádió', url: 'http://online.klasszikradio.hu/klasszik.mp3' },
 ];
 
 export function createWebRadioNode(config, width, height, xPosition, yPosition) {
@@ -226,12 +225,10 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         });
     }
 
-    // ── Gvc PipeWire szinkronizáció ──
     function findRadioStream() {
         if (!mixerControl) return null;
         const streams = mixerControl.get_streams ? mixerControl.get_streams() : [];
-        
-        // 1. Megkeressük az összes aktív SinkInputot, ami nem rendszer hangjelzés
+
         const sinkInputs = streams.filter(s => {
             if (!s || !(s instanceof Gvc.MixerSinkInput)) return false;
             const name = (s.get_name ? s.get_name() : '') || '';
@@ -240,17 +237,14 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
 
         if (sinkInputs.length === 0) return null;
 
-        // 2. Ha csak egyetlen app stream van (a rádió), egyből azt adjuk vissza:
         if (sinkInputs.length === 1) return sinkInputs[0];
 
-        // 3. Ha több is fut, kiszűrjük a böngészőket/zenelejátszókat vagy megnézzük a nevet:
         const radioStream = sinkInputs.find(s => {
             const name = (s.get_name ? s.get_name() : '').toLowerCase();
             const app = (s.get_application_id ? s.get_application_id() : '').toLowerCase();
             return name.includes('gstreamer') || name.includes('playbin') || app.includes('gnome-shell') || name.includes('gnome-shell');
         });
 
-        // Ha nincs explicit egyezés, az utoljára megjelent (legfrissebb) stream a miénk:
         return radioStream || sinkInputs[sinkInputs.length - 1];
     }
 
@@ -287,7 +281,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
             }
             state.radioStream.push_volume();
         } else if (state.player) {
-            // Tartalék ág, ha a PipeWire stream még nem jött létre
             state.player.set_property('volume', state.volume);
         }
     }
@@ -307,7 +300,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         statusLabel.set_text('Connecting...');
         liveDot.style = `background-color: #f6d32d; border-radius: 99px; margin-right: 6px;`;
 
-        // 150ms és 400ms múlva is ránézünk, amint a PipeWire stream regisztrálva van:
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
             bindRadioStream();
             return GLib.SOURCE_REMOVE;
@@ -411,7 +403,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                             let trackTitle = '';
                             let trackArtist = '';
 
-                            // 1. Biztonságos string kiolvasás GJS alatt
                             try {
                                 const titleRes = tagList.get_string('title');
                                 if (Array.isArray(titleRes) && titleRes[0]) trackTitle = titleRes[1];
@@ -424,7 +415,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                                 else if (typeof artistRes === 'string') trackArtist = artistRes;
                             } catch (_) {}
 
-                            // Ha az artist üres, de a title tartalmaz kötőjelet ("Előadó - Cím"), hagyjuk egyben
                             let fullTrack = '';
                             if (trackArtist && trackTitle) {
                                 fullTrack = `${trackArtist} - ${trackTitle}`;
@@ -434,7 +424,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
 
                             fullTrack = fullTrack.trim();
 
-                            // 2. Csak akkor frissítünk, ha valódi címet kaptunk
                             if (fullTrack !== '' && fullTrack !== state.currentTrack) {
                                 state.currentTrack = fullTrack;
                                 trackLabel.set_text(state.currentTrack);
@@ -463,9 +452,8 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                             if (state.isPlaying) {
                                 statusLabel.set_text('LIVE');
                                 liveDot.style = `background-color: #33d17a; border-radius: 99px; margin-right: 6px;`;
-                                // NE írjuk felül a trackLabelt "Live"-ra, ha már van címe vagy épp tölt!
                                 if (state.currentTrack === 'No signal' || state.currentTrack === 'Connecting...') {
-                                    trackLabel.set_text('Online adás');
+                                    trackLabel.set_text('Online');
                                 }
                             }
                         }
@@ -481,9 +469,8 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
                                 liveDot.style = `background-color: #33d17a; border-radius: 99px; margin-right: 6px;`;
                                 playPauseIcon.set_icon_name('media-playback-stop-symbolic');
 
-                                // ITT VOLT A HIBA: ha még nem jött meg a tag, ne Live-ot írjunk, hanem tartsuk meg vagy írjuk hogy adásban
                                 if (state.currentTrack === 'Connecting...') {
-                                    state.currentTrack = 'Online adás';
+                                    state.currentTrack = 'Online';
                                     trackLabel.set_text(state.currentTrack);
                                 }
 
@@ -659,8 +646,7 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
         if (dir === Clutter.ScrollDirection.UP) step = 0.05;
         else if (dir === Clutter.ScrollDirection.DOWN) step = -0.05;
 
-        // Nem belső GStreamer volume-ot állítunk, hanem a megtalált Gvc streamet:
-        if (state.radioStream && mixerControl) {
+          if (state.radioStream && mixerControl) {
             const maxNorm = mixerControl.get_vol_max_norm() || 65536;
             const currentNorm = state.radioStream.volume / maxNorm;
             const newNorm = Math.max(0.0, Math.min(1.0, currentNorm + step));
@@ -671,12 +657,10 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
             }
             state.radioStream.push_volume();
 
-            // A felirat azonnal a PipeWire értékét veszi fel:
             state.volume = newNorm;
             volLabel.set_text(`${Math.round(newNorm * 100)}%`);
             mpris.updateState({ volume: newNorm });
         } else {
-            // Fallback, ha a PipeWire stream még nem állt elő
             let currentDisplay = toDisplayVolume(state.volume);
             let newDisplay = Math.max(0.0, Math.min(1.0, currentDisplay + step));
             state.volume = toLinearVolume(newDisplay);
@@ -737,11 +721,9 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
     function applyScale(newScale) {
         scale = newScale;
 
-        // 1. Oszlopok felosztása
         const currentWidth = container.get_width() || BASE_CONTAINER_WIDTH;
         updateDimensions(currentWidth);
 
-        // 2. Bal oldali állomáslista dinamikus méretei
         const listHeaderSize = Math.max(10, Math.round(13 * scale));
         listHeader.style = `${fontCss}color: ${textColor}; font-size: ${listHeaderSize}px; font-weight: bold; opacity: 0.8; margin-bottom: ${Math.round(6 * scale)}px;`;
 
@@ -761,7 +743,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
             }
         });
 
-        // 3. Kiemelések frissítése az új padding/margin értékekkel
         state.stations.forEach((_s, idx) => {
             const btn = stationButtons[idx];
             if (!btn) return;
@@ -771,7 +752,6 @@ export function createWebRadioNode(config, width, height, xPosition, yPosition) 
             btn.style = `background-color: ${bg}; border: 1px solid ${border}; border-radius: ${Math.round(8 * scale)}px; padding: ${padV}px ${padH}px; margin-bottom: ${rowMarginB}px; margin-right: 4px;`;
         });
 
-        // 4. Jobb oldali vezérlők dinamikus skálázása
         const statusFontSize = Math.max(8, Math.round(10 * scale));
         statusLabel.style = `${fontCss}color: ${textColor}; font-size: ${statusFontSize}px; font-weight: bold; opacity: 0.6;`;
 
