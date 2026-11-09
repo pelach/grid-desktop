@@ -95,6 +95,7 @@ export const DesktopGrid = GObject.registerClass(
             this._selectionIndicators = new Map();
             this._selectionDrag = null;
             this._pendingDesktopOpenId = 0;
+            this._lastClickTime = 0;
 
             if (!DesktopGrid._activeInstances) {
                 DesktopGrid._activeInstances = new Set();
@@ -103,8 +104,6 @@ export const DesktopGrid = GObject.registerClass(
 
             this._setupSettingsListeners();
             this._rebuildGrid();
-
-            let lastClickTime = 0;
             
             this._backgroundPressId = this.connect('button-press-event', (_actor, event) => {
                 const btn = event.get_button();
@@ -146,8 +145,8 @@ export const DesktopGrid = GObject.registerClass(
 
                     const now = event.get_time();
                     // Ha a két bal klikk között kevesebb mint 400ms telt el -> DUPLA KLIKK!
-                    if (now - lastClickTime < 400) {
-                        lastClickTime = 0; // nullázzuk, hogy ne triplázzon
+                    if (now - this._lastClickTime < 400) {
+                        this._lastClickTime = 0; // nullázzuk, hogy ne triplázzon
                         this._pendingDesktopOpenId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
                             this._pendingDesktopOpenId = 0;
                             try {
@@ -163,10 +162,9 @@ export const DesktopGrid = GObject.registerClass(
                         return Clutter.EVENT_STOP;
                     }
 
-                    lastClickTime = now;
+                    this._lastClickTime = now;
                     this._startSelectionDrag(event);
                 }
-
                 return Clutter.EVENT_PROPAGATE;
             });
         }
@@ -338,7 +336,7 @@ export const DesktopGrid = GObject.registerClass(
                 const height = Math.abs(state.endY - startY);
                 if (!state.didDrag && (width > 3 || height > 3)) {
                     state.didDrag = true;
-                    lastClickTime = 0;
+                    this._lastClickTime = 0;
                     if (this._pendingDesktopOpenId) {
                         GLib.Source.remove(this._pendingDesktopOpenId);
                         this._pendingDesktopOpenId = 0;
