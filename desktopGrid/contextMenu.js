@@ -9,7 +9,6 @@ import { toggleWidgetResizeHandle } from './widgetEditUtils.js';
 import { onWidgetResized, onWidgetDeleted } from './dragDrop.js';
 import { COLUMNS_COUNT, ROWS_COUNT, getWidgets, supportsSizePresets, SIZE_PRESET_TIERS } from '../utils/widgetUtils.js';
 
-
 export function createPopupMenuAt(grid, event) {
     if (grid._contextMenuCloseIdleId) {
         GLib.Source.remove(grid._contextMenuCloseIdleId);
@@ -20,8 +19,7 @@ export function createPopupMenuAt(grid, event) {
     }
 
     const [stageX, stageY] = event.get_coords();
-    
-    // 1. A dummyActor-t a grid-hez adjuk hozzá, ne a uiGroup-hoz, és legyen explicit mérete
+
     const dummyActor = new St.Widget({
         reactive: false,
         can_focus: false,
@@ -29,12 +27,11 @@ export function createPopupMenuAt(grid, event) {
         x: Math.round(stageX),
         y: Math.round(stageY),
         width: 1,
-        height: 1
+        height: 1,
     });
     grid.add_child(dummyActor);
     grid._contextMenuDummyActor = dummyActor;
 
-    // 2. Menü inicializálása
     grid.contextMenu = new PopupMenu.PopupMenu(dummyActor, 0.0, St.Side.TOP);
     const openedMenu = grid.contextMenu;
 
@@ -69,7 +66,8 @@ export function removeContextMenu(grid) {
     }
     if (grid._contextMenuDummyActor) {
         const parent = grid._contextMenuDummyActor.get_parent();
-        if (parent) parent.remove_child(grid._contextMenuDummyActor);
+        if (parent)
+            parent.remove_child(grid._contextMenuDummyActor);
         grid._contextMenuDummyActor = null;
     }
 }
@@ -78,52 +76,34 @@ export function openPreferences(grid, targetWidgetId = null) {
     if (targetWidgetId) {
         grid.settings.set_string('open-edit-widget-id', targetWidgetId);
     }
+
     const extension = grid.extension || grid._extension;
-    const uuid = extension?.uuid || 'grid-desktop@pelach.github.com';
-
-    // Közvetlen CLI subprocess indítás, ami soha nem dob kezeletlen Promise hibát a Shellben:
-    try {
-        const proc = Gio.Subprocess.new(['gnome-extensions', 'prefs', uuid], Gio.SubprocessFlags.NONE);
-        proc.wait_async(null, null);
-    } catch (e) {
-
+    if (extension && typeof extension.openPreferences === 'function') {
+        extension.openPreferences();
     }
 }
 
-/** Opens a GNOME Settings panel through GIO's app launcher instead of a raw fork/exec. */
 export function launchSettingsPanel(panelName = null) {
     try {
-        // 1. Megpróbáljuk a hivatalos org.gnome.Settings desktop bejegyzésen keresztül
         const appInfo = Gio.DesktopAppInfo.new('org.gnome.Settings.desktop');
         if (appInfo) {
             const context = global.create_app_launch_context(0, -1);
             if (panelName) {
-                // Ha van konkrét alpanel megadva (pl. background, display)
-                Gio.Subprocess.new(['gnome-control-center', panelName], Gio.SubprocessFlags.NONE);
+                appInfo.launch_uris([`gnome-control-center://${panelName}`], context);
             } else {
                 appInfo.launch([], context);
             }
-            return;
         }
     } catch (e) {
-
-    }
-
-    // 2. Tartalék megoldás (Subprocess - string argumentumlista)
-    try {
-        const cmd = panelName ? ['gnome-control-center', panelName] : ['gnome-control-center'];
-        const proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE);
-        proc.wait_async(null, null);
-    } catch (err) {
-
+        logError(e, 'Grid-desktop: Failed to launch Settings');
     }
 }
+
 export function launchFileUri(uri) {
     try {
         const file = Gio.File.new_for_uri(uri);
         const path = file.get_path();
 
-        // Ha .desktop fájlt indítunk, ne szerkesztésre nyissuk, hanem futtassuk az appot!
         if (path && path.endsWith('.desktop')) {
             const appInfo = Gio.DesktopAppInfo.new_from_filename(path);
             if (appInfo) {
@@ -133,49 +113,45 @@ export function launchFileUri(uri) {
             }
         }
 
-        // Minden más normál fájl/mappa megnyitása:
         const appInfo = file.query_default_handler(null);
         if (appInfo) {
             const context = global.create_app_launch_context(0, -1);
             appInfo.launch([file], context);
-            return;
         }
     } catch (e) {
-
-    }
-
-    try {
-        const proc = Gio.Subprocess.new(['gio', 'open', uri], Gio.SubprocessFlags.NONE);
-        proc.wait_async(null, null);
-    } catch (err) {
-
+        logError(e, 'Grid-desktop: Failed to open URI');
     }
 }
 
-/** Fájl kukába helyezése */
 function trashFile(uri, callback) {
     try {
         const file = Gio.File.new_for_uri(uri);
         file.trash_async(GLib.PRIORITY_DEFAULT, null, (source, res) => {
             try {
                 file.trash_finish(res);
-                if (callback) callback();
+                if (callback)
+                    callback();
             } catch (err) {
-
+                logError(err, 'Grid-desktop: Trash operation failed');
             }
         });
     } catch (e) {
-
+        logError(e, 'Grid-desktop: Trash init failed');
     }
 }
 
-/** Kuka ürítése */
 function emptyTrash() {
     try {
-        const proc = Gio.Subprocess.new(['gio', 'trash', '--empty'], Gio.SubprocessFlags.NONE);
-        proc.wait_async(null, null);
+        const trash = Gio.File.new_for_uri('trash:///');
+        trash.delete_async(GLib.PRIORITY_DEFAULT, null, (file, res) => {
+            try {
+                file.delete_finish(res);
+            } catch (e) {
+                logError(e, 'Grid-desktop: Failed to empty trash');
+            }
+        });
     } catch (e) {
-
+        logError(e, 'Grid-desktop: Failed to init trash empty');
     }
 }
 
@@ -185,7 +161,6 @@ function ejectOrUnmountTargetUri(uri) {
         const volumeMonitor = Gio.VolumeMonitor.get();
         const mounts = volumeMonitor.get_mounts();
 
-        // 1. Megkeressük a megfelelő Mount objektumot
         let targetMount = mounts.find(m => {
             const root = m.get_root();
             return root && (root.get_uri() === uri || uri.startsWith(root.get_uri()));
@@ -194,13 +169,12 @@ function ejectOrUnmountTargetUri(uri) {
         if (!targetMount) {
             try {
                 targetMount = file.find_enclosing_mount(null);
-            } catch (e) {}
+            } catch (_) {}
         }
 
         if (targetMount) {
             const mountOp = new Gio.MountOperation();
 
-            // A) Ha közvetlenül kiadható (Pendrive, optikai lemez, kártyaolvasó)
             if (targetMount.can_eject()) {
                 targetMount.eject_with_operation(
                     Gio.MountUnmountFlags.NONE,
@@ -209,13 +183,14 @@ function ejectOrUnmountTargetUri(uri) {
                     (src, res) => {
                         try {
                             src.eject_with_operation_finish(res);
-                        } catch (e) {}
+                        } catch (e) {
+                            logError(e, 'Grid-desktop: Eject failed');
+                        }
                     }
                 );
                 return;
             }
 
-            // B) Ha van mögötte fizikai drive, ami biztonságosan leállítható (külső HDD/SSD)
             const drive = targetMount.get_drive();
             if (drive && drive.can_stop()) {
                 drive.stop(
@@ -225,13 +200,14 @@ function ejectOrUnmountTargetUri(uri) {
                     (src, res) => {
                         try {
                             src.stop_finish(res);
-                        } catch (e) {}
+                        } catch (e) {
+                            logError(e, 'Grid-desktop: Drive stop failed');
+                        }
                     }
                 );
                 return;
             }
 
-            // C) Hálózati megosztás vagy virtuális mount (Samba, SFTP, Google Drive)
             if (targetMount.can_unmount()) {
                 targetMount.unmount_with_operation(
                     Gio.MountUnmountFlags.NONE,
@@ -240,25 +216,18 @@ function ejectOrUnmountTargetUri(uri) {
                     (src, res) => {
                         try {
                             src.unmount_with_operation_finish(res);
-                        } catch (e) {}
+                        } catch (e) {
+                            logError(e, 'Grid-desktop: Unmount failed');
+                        }
                     }
                 );
-                return;
             }
         }
-    } catch (e) {}
-
-    // 2. Tartalék fallback parancs: ha a fentiek nem találták volna meg
-    try {
-        // A gio mount -e (eject) pendrive-ra, -u (unmount) hálózatra
-        const isNetwork = uri.startsWith('smb:') || uri.startsWith('sftp:') || uri.startsWith('nfs:');
-        const flag = isNetwork ? '-u' : '-e';
-        const proc = Gio.Subprocess.new(['gio', 'mount', flag, uri], Gio.SubprocessFlags.NONE);
-        proc.wait_async(null, null);
-    } catch (err) {}
+    } catch (e) {
+        logError(e, 'Grid-desktop: Target unmount failed');
+    }
 }
 
-/** Fájl/Mappa tulajdonságok ablak megnyitása Nautilusban */
 function showProperties(uri) {
     try {
         const bus = Gio.bus_get_sync(Gio.BusType.SESSION, null);
@@ -275,53 +244,46 @@ function showProperties(uri) {
             (connection, res) => {
                 try {
                     connection.call_finish(res);
-                } catch (e) {
+                } catch (_) {
                     launchFileUri(uri);
                 }
             }
         );
-    } catch (e) {
+    } catch (_) {
         launchFileUri(uri);
     }
 }
 
-
-
-/** Asztali ikon saját jobb klikkes menüje */
 function openDesktopIconContextMenu(grid, event, widgetData) {
     const menu = createPopupMenuAt(grid, event);
     const uri = widgetData.uri || '';
     const isTrash = uri.startsWith('trash:') || widgetData.name === 'Kuka';
     const isHome = uri === Gio.File.new_for_path(GLib.get_home_dir()).get_uri();
 
-    // Akkor is Mount-nak tekintjük, ha nem normál fájlrendszer-elérési út (pl. google-drive://, smb://, sftp://)
-    const isNetworkOrMountUri = uri.startsWith('google-drive:') || 
-                                uri.startsWith('smb:') || 
-                                uri.startsWith('sftp:') || 
+    const isNetworkOrMountUri = uri.startsWith('google-drive:') ||
+                                uri.startsWith('smb:') ||
+                                uri.startsWith('sftp:') ||
                                 uri.startsWith('nfs:') ||
                                 uri.startsWith('dav:') ||
                                 uri.startsWith('davs:');
 
-    const isMount = (!isTrash && !isHome) && (!!widgetData.isSpecial || isNetworkOrMountUri);
+    const isMount = (!isTrash && !isHome) && (Boolean(widgetData.isSpecial) || isNetworkOrMountUri);
 
-    // 1. Megnyitás
     const openItem = new PopupMenu.PopupMenuItem('Open');
     openItem.connect('activate', () => launchFileUri(uri));
     menu.addMenuItem(openItem);
 
-    // 2. Kuka esetén: Kuka ürítése
     if (isTrash) {
         const emptyItem = new PopupMenu.PopupMenuItem('Empty Trash');
         emptyItem.connect('activate', () => emptyTrash());
         menu.addMenuItem(emptyItem);
     }
 
-    // 3. Csatolt meghajtó / Google Drive esetén: Leválasztás (Unmount)
     if (isMount) {
-        const isNetworkShare = uri.startsWith('smb:') || 
-                               uri.startsWith('sftp:') || 
-                               uri.startsWith('nfs:') || 
-                               uri.startsWith('dav:') || 
+        const isNetworkShare = uri.startsWith('smb:') ||
+                               uri.startsWith('sftp:') ||
+                               uri.startsWith('nfs:') ||
+                               uri.startsWith('dav:') ||
                                uri.startsWith('davs:');
 
         const menuLabel = isNetworkShare ? 'Unmount' : 'Eject';
@@ -330,7 +292,6 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
         menu.addMenuItem(unmountItem);
     }
 
-    // 4. CSAK akkor Move to Trash, ha normál felhasználói asztali fájl/mappa
     if (!widgetData.isSpecial && !isTrash && !isHome && !isMount) {
         const deleteItem = new PopupMenu.PopupMenuItem('Move to Trash');
         deleteItem.connect('activate', () => {
@@ -341,7 +302,6 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
 
     menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-    // 5. Tulajdonságok
     const propItem = new PopupMenu.PopupMenuItem('Properties');
     propItem.connect('activate', () => showProperties(uri));
     menu.addMenuItem(propItem);
@@ -351,7 +311,6 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
 }
 
 export function openWidgetContextMenu(grid, event, node, widgetData) {
-    // Ha asztali ikonra kattintottak, a saját helyi menüjét nyitjuk meg
     if (widgetData.isDesktopIcon) {
         openDesktopIconContextMenu(grid, event, widgetData);
         return;
@@ -368,7 +327,7 @@ export function openWidgetContextMenu(grid, event, node, widgetData) {
         });
         menu.addMenuItem(sizeMenu);
     } else {
-        const isResizing = !!node.actionOverlay;
+        const isResizing = Boolean(node.actionOverlay);
         const resizeItem = new PopupMenu.PopupMenuItem(isResizing ? 'Hide Resize Handle' : 'Resize Widget');
         resizeItem.connect('activate', () => {
             const allWidgets = getWidgets(grid.settings);
@@ -438,21 +397,17 @@ export function openContextMenu(grid, event) {
     Main.uiGroup.add_child(menu.actor);
     menu.open(BoxPointer.PopupAnimation.NONE);
 }
-/** vágólap kezelések a mentésekhez ** */
 
-/** hol a desktop **/
 function getDesktopPath() {
     return GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) ||
            GLib.build_filenamev([GLib.get_home_dir(), 'Desktop']);
 }
 
-
-/** Név tisztítása és egyedi elérési út generálása az asztalon */
 function getUniqueDesktopPath(desiredName, ext) {
     const desktop = getDesktopPath();
-    // Nem engedélyezett karakterek eltávolítása
     let safeName = desiredName.replace(/[/\\?%*:|"<>]/g, '_').trim();
-    if (!safeName) safeName = `picture_${GLib.DateTime.new_now_local().format('%Y%m%d_%H%M%S')}`;
+    if (!safeName)
+        safeName = `picture_${GLib.DateTime.new_now_local().format('%Y%m%d_%H%M%S')}`;
 
     let filename = `${safeName}.${ext}`;
     let targetFile = Gio.File.new_for_path(GLib.build_filenamev([desktop, filename]));
@@ -467,41 +422,31 @@ function getUniqueDesktopPath(desiredName, ext) {
     return targetFile;
 }
 
-/** Eredeti fájlnév kinyerése a vágólapon lévő HTML kódból */
 function extractImageBasenameFromHtml(htmlText) {
     try {
-        // 1. Kép URL keresése az <img ... src="...">-ből
         const srcMatch = htmlText.match(/<img[^>]+src=["']([^"']+)["']/i);
         if (srcMatch && srcMatch[1]) {
-            let url = srcMatch[1].split('?')[0].split('#')[0]; // Query string és hash levágása
-            let base = GLib.path_get_basename(decodeURIComponent(url));
-            if (base && base.includes('.')) {
-                return base.substring(0, base.lastIndexOf('.')); // Kiterjesztés nélküli tiszta név
-            }
+            const url = srcMatch[1].split('?')[0].split('#')[0];
+            const base = GLib.path_get_basename(decodeURIComponent(url));
+            if (base && base.includes('.'))
+                return base.substring(0, base.lastIndexOf('.'));
         }
 
-        // 2. Tartalék: ha az alt attribútumban van leírás (<img ... alt="...">)
         const altMatch = htmlText.match(/<img[^>]+alt=["']([^"']+)["']/i);
-        if (altMatch && altMatch[1] && altMatch[1].trim()) {
+        if (altMatch && altMatch[1] && altMatch[1].trim())
             return altMatch[1].trim();
-        }
-    } catch (e) {
-
-    }
+    } catch (_) {}
     return null;
 }
 
-/** Vágólap tartalmának mentése az asztalra */
 function pasteClipboardToDesktop() {
     try {
         const display = global.display;
         const selection = display.get_selection();
-
         const mimetypes = selection.get_mimetypes(Meta.SelectionType.SELECTION_CLIPBOARD) || [];
-        const imageMime = mimetypes.find(m => m.startsWith('image/'))
+        const imageMime = mimetypes.find(m => m.startsWith('image/'));
 
         if (imageMime) {
-            // Megnézzük, van-e HTML kísérő adat a név kinyeréséhez
             if (mimetypes.includes('text/html')) {
                 _extractHtmlAndSaveImage(selection, imageMime);
             } else {
@@ -510,13 +455,12 @@ function pasteClipboardToDesktop() {
             return;
         }
     } catch (err) {
-  
+        logError(err, 'Grid-desktop: Clipboard paste error');
     }
 
     _handleTextClipboard();
 }
 
-/** HTML kiolvasása és átadása a képmentőnek */
 function _extractHtmlAndSaveImage(selection, imageMime) {
     const stream = Gio.MemoryOutputStream.new_resizable();
     selection.transfer_async(
@@ -533,21 +477,18 @@ function _extractHtmlAndSaveImage(selection, imageMime) {
                 const bytes = stream.steal_as_bytes();
                 const htmlText = new TextDecoder('utf-8').decode(bytes.get_data());
                 extractedName = extractImageBasenameFromHtml(htmlText);
-            } catch (e) {
-                // Nem sikerült kiolvasni a HTML-t, marad a fallback
-            }
+            } catch (_) {}
             _saveImageFromMutterSelection(selection, imageMime, extractedName);
         }
     );
 }
 
-/** Nyers képadat mentése a Mutter belső adatfolyamából */
 function _saveImageFromMutterSelection(selection, mimeType, baseName = null) {
     let ext = mimeType.split('/')[1] || 'png';
-    if (ext === 'jpeg') ext = 'jpg';
+    if (ext === 'jpeg')
+        ext = 'jpg';
     ext = ext.split(';')[0];
 
-    // Ha találtunk nevet, azt használjuk, egyébként jöhet a dátumos név
     const finalBaseName = baseName || `picture_${GLib.DateTime.new_now_local().format('%Y%m%d_%H%M%S')}`;
     const targetFile = getUniqueDesktopPath(finalBaseName, ext);
 
@@ -566,15 +507,16 @@ function _saveImageFromMutterSelection(selection, mimeType, baseName = null) {
                         sel.transfer_finish(resTransfer);
                         outputStream.close(null);
                     } catch (e) {
+                        logError(e, 'Grid-desktop: Image transfer failed');
                     }
                 }
             );
         } catch (err) {
+            logError(err, 'Grid-desktop: Image file replace failed');
         }
     });
 }
 
-/** Szöveg, Kép URL vagy fájl URI feldolgozása */
 function _handleTextClipboard() {
     const clipboard = St.Clipboard.get_default();
 
@@ -586,7 +528,6 @@ function _handleTextClipboard() {
         const lines = trimmed.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         const firstLine = lines[0];
 
-        // Webes kép URL (pl. "Kép címének másolása")
         if (firstLine.startsWith('http://') || firstLine.startsWith('https://')) {
             const isImage = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(firstLine);
             if (isImage) {
@@ -595,7 +536,6 @@ function _handleTextClipboard() {
             }
         }
 
-        // Helyi fájl URI (file://...)
         if (firstLine.startsWith('file://')) {
             lines.forEach(uri => {
                 if (uri.startsWith('file://'))
@@ -604,7 +544,6 @@ function _handleTextClipboard() {
             return;
         }
 
-        // Sima szöveg
         saveTextToDesktop(trimmed);
     });
 }
@@ -624,6 +563,7 @@ function saveTextToDesktop(text) {
             null
         );
     } catch (e) {
+        logError(e, 'Grid-desktop: Failed to save text');
     }
 }
 
@@ -640,19 +580,11 @@ function downloadImageToDesktop(url) {
 
     const targetFile = Gio.File.new_for_path(GLib.build_filenamev([desktop, basename]));
 
-    uriFile.copy_async(
-        targetFile,
-        Gio.FileCopyFlags.OVERWRITE,
-        GLib.PRIORITY_DEFAULT,
-        null,
-        null,
-        (src, res) => {
-            try {
-                src.copy_finish(res);
-            } catch (e) {
-            }
-        }
-    );
+    try {
+        uriFile.copy(targetFile, Gio.FileCopyFlags.OVERWRITE, null, null);
+    } catch (e) {
+        logError(e, 'Grid-desktop: Download copy failed');
+    }
 }
 
 function copyLocalFileToDesktop(fileUri) {
@@ -663,19 +595,8 @@ function copyLocalFileToDesktop(fileUri) {
             GLib.build_filenamev([desktop, srcFile.get_basename()])
         );
 
-        srcFile.copy_async(
-            targetFile,
-            Gio.FileCopyFlags.OVERWRITE,
-            GLib.PRIORITY_DEFAULT,
-            null,
-            null,
-            (src, res) => {
-                try {
-                    src.copy_finish(res);
-                } catch (e) {
-                }
-            }
-        );
+        srcFile.copy(targetFile, Gio.FileCopyFlags.OVERWRITE, null, null);
     } catch (e) {
+        logError(e, 'Grid-desktop: Local file copy failed');
     }
 }
