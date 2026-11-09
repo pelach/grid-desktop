@@ -363,8 +363,13 @@ export function attachDragHandlers(grid, node, widgetData) {
         if (event.get_button() === BUTTON_PRIMARY) {
             cancelInterruptedDrag(grid);
 
+            const evModifiers = event.get_state();
+            const hasShift = Boolean(evModifiers & Clutter.ModifierType.SHIFT_MASK);
+
             const selection = grid._selectedWidgetIds || new Set();
-            if (!selection.has(widgetData.id) && selection.size > 0)
+            
+            // CSAK AKKOR ürítünk, ha NINCS Shift, és nem egy kijelölt elemre kattintottunk:
+            if (!hasShift && !selection.has(widgetData.id) && selection.size > 0)
                 grid._clearWidgetSelection();
 
             [pressX, pressY] = event.get_coords();
@@ -372,6 +377,7 @@ export function attachDragHandlers(grid, node, widgetData) {
             state.startY = node.y;
             state.origGridX = widgetData.x;
             state.origGridY = widgetData.y;
+
             if (selection.has(widgetData.id) && selection.size > 1) {
                 state.groupItems = [...selection].map(id => {
                     const selectedNode = grid.widgetNodes.get(id);
@@ -447,12 +453,27 @@ export function attachDragHandlers(grid, node, widgetData) {
 
             state.dragReleaseId = global.stage.connect('button-release-event', (_stage, ev) => {
                 if (ev.get_button() === BUTTON_PRIMARY) {
-                    // HA NEM TÖRTÉNT DRAG (nem mozdult el az egér küszöbérték fölé):
+                    const evModifiers = ev.get_state();
+                    const hasShift = Boolean(evModifiers & Clutter.ModifierType.SHIFT_MASK);
+
+                    // HA NEM TÖRTÉNT DRAG (sima kattintás volt):
                     if (!state.isDragging) {
                         const allowAllSizes = grid.settings.get_boolean('multi-select-all-widget-sizes');
                         if (allowAllSizes || (widgetData.width === 1 && widgetData.height === 1)) {
-                            // Egy kattintásra kijelöli ezt az egy elemet:
-                            grid._setWidgetSelection([widgetData.id]);
+                            const currentSelection = new Set(grid._selectedWidgetIds || []);
+
+                            if (hasShift) {
+                                // Shift + Kattintás: hozzáadás vagy kivétel a kijelölésből
+                                if (currentSelection.has(widgetData.id)) {
+                                    currentSelection.delete(widgetData.id);
+                                } else {
+                                    currentSelection.add(widgetData.id);
+                                }
+                                grid._setWidgetSelection([...currentSelection]);
+                            } else {
+                                // Sima kattintás: csak ezt az egy elemet jelöljük ki
+                                grid._setWidgetSelection([widgetData.id]);
+                            }
                         }
                     }
 
