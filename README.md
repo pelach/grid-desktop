@@ -223,6 +223,7 @@ glib-compile-schemas schemas/
 ## Acknowledgments
 Based on the original Gridgets extension by rebatnaath.  
 Refactored, enhanced, and maintained by András Pelach (with development assistance from Google Gemini).
+Special thanks to **Andrea Dieni** ([@AD2076](https://github.com/AD2076)) for key contributions including drive management, selection rectangle, and group drag & drop.
 
 ## License
 This project is licensed under the GPL-3.0 License.
