@@ -475,6 +475,8 @@ export function attachDragHandlers(grid, node, widgetData) {
 
                     // HA NEM TÖRTÉNT DRAG (sima kattintás volt):
                     if (!state.isDragging) {
+                        global.stage.set_key_focus(grid);
+                        
                         const allowAllSizes = grid.settings.get_boolean('multi-select-all-widget-sizes');
                         if (allowAllSizes || (widgetData.width === 1 && widgetData.height === 1)) {
                             const currentSelection = new Set(grid._selectedWidgetIds || []);

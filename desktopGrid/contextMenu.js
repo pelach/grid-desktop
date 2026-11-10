@@ -99,6 +99,40 @@ export function launchSettingsPanel(panelName = null) {
     }
 }
 
+export function previewWithSushi(fileOrUri) {
+    if (!fileOrUri) return;
+
+    // Ha sima útvonal érkezik (/home/...), csinálunk belőle file:// URI-t
+    let uri = fileOrUri;
+    if (!uri.includes('://')) {
+        uri = Gio.File.new_for_path(fileOrUri).get_uri();
+    }
+
+    try {
+        Gio.DBus.session.call(
+            'org.gnome.NautilusPreviewer',
+            '/org/gnome/NautilusPreviewer',
+            'org.gnome.NautilusPreviewer',
+            'ShowFile',
+            new GLib.Variant('(sib)', [uri, 0, true]), // true = szóközre bezárja, ha már nyitva van
+            null,
+            Gio.DBusCallFlags.NONE,
+            -1,
+            null,
+            (connection, res) => {
+                try {
+                    connection.call_finish(res);
+                } catch (e) {
+                    // Ha nincs telepítve a gnome-sushi csomag, nem kell a felhasználót zargatni
+                    logError(e, 'Grid-desktop: Sushi preview not available');
+                }
+            }
+        );
+    } catch (e) {
+        logError(e, 'Grid-desktop: Failed to invoke Sushi D-Bus');
+    }
+}
+
 export function launchFileUri(uri) {
     try {
         const file = Gio.File.new_for_uri(uri);
@@ -272,6 +306,13 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
     const openItem = new PopupMenu.PopupMenuItem('Open');
     openItem.connect('activate', () => launchFileUri(uri));
     menu.addMenuItem(openItem);
+
+    const isDesktopEntry = uri.endsWith('.desktop');
+    if (!widgetData.isSpecial && !isTrash && !isMount && !isDesktopEntry) {
+        const previewItem = new PopupMenu.PopupMenuItem('Quick Look (Sushi)');
+        previewItem.connect('activate', () => previewWithSushi(uri));
+        menu.addMenuItem(previewItem);
+    }
 
     if (isTrash) {
         const emptyItem = new PopupMenu.PopupMenuItem('Empty Trash');

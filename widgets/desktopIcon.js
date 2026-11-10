@@ -4,7 +4,7 @@ import Clutter from 'gi://Clutter';
 import Pango from 'gi://Pango';
 import { WidgetActor } from '../shell/widgetUIUtils.js';
 import { watchActorLifecycle } from '../utils/actorLifecycle.js';
-import { launchFileUri } from '../desktopGrid/contextMenu.js';
+import { launchFileUri} from '../desktopGrid/contextMenu.js';
 
 export function createDesktopIconNode(data, w, h, x, y) {
     const rootContainer = new WidgetActor();

@@ -38,6 +38,7 @@ import { attachDragHandlers } from './dragDrop.js';
 import {
     openContextMenu,
     removeContextMenu,
+    previewWithSushi,
 } from './contextMenu.js';
 import { isActorDestroyed, watchActorLifecycle } from '../utils/actorLifecycle.js';
 import { resolveWeatherLayoutVariant } from '../widgets/weather/weatherCommon.js';
@@ -102,6 +103,38 @@ export const DesktopGrid = GObject.registerClass(
 
             this._setupSettingsListeners();
             this._rebuildGrid();
+
+            this.can_focus = true;
+
+            this._keyPressId = this.connect('key-press-event', (_actor, event) => {
+                const symbol = event.get_key_symbol();
+
+                if (symbol === Clutter.KEY_space) {
+                    const selection = this._selectedWidgetIds;
+                    
+                    // Csak akkor indítjuk, ha pontosan 1 widget van kijelölve
+                    if (selection && selection.size === 1) {
+                        const selectedId = [...selection][0];
+                        const node = this.widgetNodes.get(selectedId);
+                        const widgetData = node?.widgetData;
+
+                        if (widgetData && widgetData.isDesktopIcon) {
+                            const uri = widgetData.uri || '';
+                            const isDesktop = uri.endsWith('.desktop');
+
+                            if (uri && !isDesktop && !widgetData.isSpecial) {
+                                previewWithSushi(uri);
+                                return Clutter.EVENT_STOP;
+                            }
+                        }
+                    }
+                }
+                if (symbol === Clutter.KEY_Escape) {
+                    this._clearWidgetSelection();
+                    return Clutter.EVENT_STOP;
+                }
+                return Clutter.EVENT_PROPAGATE;
+            });
             
             this._backgroundPressId = this.connect('button-press-event', (_actor, event) => {
                 const btn = event.get_button();
@@ -112,6 +145,7 @@ export const DesktopGrid = GObject.registerClass(
                 }
 
                 if (btn === BUTTON_PRIMARY) {
+                    global.stage.set_key_focus(this);
                     removeContextMenu(this);
 
                     const [clickX, clickY] = event.get_coords();
@@ -219,6 +253,11 @@ export const DesktopGrid = GObject.registerClass(
             });
             this.widgetNodes.clear();
             this._nodeConfigs.clear();
+
+            if (this._keyPressId) {
+                this.disconnect(this._keyPressId);
+                this._keyPressId = 0;
+            }
 
             super.destroy();
         }
