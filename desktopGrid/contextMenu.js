@@ -174,6 +174,160 @@ export function trashFile(uri, callback) {
     }
 }
 
+function chooseDestinationFolder(title, callback) {
+    try {
+        const bus = Gio.DBus.session;
+        // Egyedi token a kérelemhez, így előre tudjuk a válasz D-Bus elérési útját
+        const token = `grid_${GLib.random_int()}`;
+        const sender = bus.get_unique_name().replace(/^\:/, '').replace(/\./g, '_');
+        const expectedPath = `/org/freedesktop/portal/desktop/request/${sender}/${token}`;
+
+        let signalId = 0;
+
+        // 1. ELŐSZÖR feliratkozunk a szignálra, hogy kizárjuk a versenyhelyzetet
+        signalId = bus.signal_subscribe(
+            'org.freedesktop.portal.Desktop',
+            'org.freedesktop.portal.Request',
+            'Response',
+            expectedPath,
+            null,
+            Gio.DBusSignalFlags.NONE,
+            (_conn, _sender, _path, _iface, _signal, params) => {
+                if (signalId) {
+                    bus.signal_unsubscribe(signalId);
+                    signalId = 0;
+                }
+
+                try {
+                    const unpacked = params.recursiveUnpack();
+                    const responseCode = unpacked[0];
+                    const results = unpacked[1] || {};
+
+                    // 0 = Success (a felhasználó kiválasztotta a mappát)
+                    if (responseCode === 0 && results.uris && results.uris.length > 0) {
+                        callback(results.uris[0]);
+                    }
+                } catch (e) {
+                    logError(e, 'Grid-desktop: Failed to parse portal response');
+                }
+            }
+        );
+
+        // 2. Ezután küldjük el a kérést az előre megadott handle_token-nel
+        bus.call(
+            'org.freedesktop.portal.Desktop',
+            '/org/freedesktop/portal/desktop',
+            'org.freedesktop.portal.FileChooser',
+            'OpenFile',
+            new GLib.Variant('(ssa{sv})', [
+                '', // parent window
+                title,
+                {
+                    'handle_token': new GLib.Variant('s', token),
+                    'directory': new GLib.Variant('b', true), // Csak mappa választható
+                    'modal': new GLib.Variant('b', true),
+                }
+            ]),
+            null,
+            Gio.DBusCallFlags.NONE,
+            -1,
+            null,
+            (_conn, res) => {
+                try {
+                    bus.call_finish(res);
+                } catch (e) {
+                    if (signalId) {
+                        bus.signal_unsubscribe(signalId);
+                        signalId = 0;
+                    }
+                    logError(e, 'Grid-desktop: FileChooser portal call failed');
+                }
+            }
+        );
+    } catch (e) {
+        logError(e, 'Grid-desktop: Failed to initialize folder chooser portal');
+    }
+}
+
+function getUniqueDestinationFile(destDir, basename) {
+    let target = destDir.get_child(basename);
+    if (!target.query_exists(null))
+        return target;
+
+    let name = basename;
+    let ext = '';
+    const dotIdx = basename.lastIndexOf('.');
+    if (dotIdx > 0) {
+        name = basename.substring(0, dotIdx);
+        ext = basename.substring(dotIdx);
+    }
+
+    let counter = 1;
+    while (target.query_exists(null)) {
+        target = destDir.get_child(`${name} (${counter})${ext}`);
+        counter++;
+    }
+    return target;
+}
+
+export function transferFilesTo(uris, destDirUri, isMove = false, onComplete = null) {
+    if (!uris || uris.length === 0 || !destDirUri) return;
+
+    const destDir = Gio.File.new_for_uri(destDirUri);
+    const flags = Gio.FileCopyFlags.ALL_METADATA;
+
+    let pendingCount = uris.length;
+    const checkDone = () => {
+        pendingCount--;
+        if (pendingCount === 0 && typeof onComplete === 'function') {
+            onComplete();
+        }
+    };
+
+    for (const uri of uris) {
+        const srcFile = Gio.File.new_for_uri(uri);
+        const basename = srcFile.get_basename();
+        const targetFile = getUniqueDestinationFile(destDir, basename);
+
+        if (isMove) {
+            srcFile.move_async(
+                targetFile,
+                flags,
+                GLib.PRIORITY_DEFAULT,
+                null, // Cancellable
+                null, // Progress callback
+                (file, res) => {
+                    try {
+                        file.move_finish(res);
+                    } catch (e) {
+                        logError(e, `Grid-desktop: Move failed for ${basename}`);
+                    } finally {
+                        checkDone();
+                    }
+                }
+            );
+        } else {
+            srcFile.copy_async(
+                targetFile,
+                flags,
+                GLib.PRIORITY_DEFAULT,
+                null,
+                null,
+                (file, res) => {
+                    try {
+                        file.copy_finish(res);
+                    } catch (e) {
+                        logError(e, `Grid-desktop: Copy failed for ${basename}`);
+                    } finally {
+                        checkDone();
+                    }
+                }
+            );
+        }
+    }
+}
+
+
 function emptyTrash() {
     try {
         const trash = Gio.File.new_for_uri('trash:///');
@@ -334,6 +488,61 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
     }
 
     if (!widgetData.isSpecial && !isTrash && !isHome && !isMount) {
+        // Segédfüggvény: összegyűjti az összes kijelölt fájl URI-ját (vagy csak ezt az egyet)
+        const getTargetUris = () => {
+            const selection = grid._selectedWidgetIds;
+            if (selection && selection.has(widgetData.id) && selection.size > 1) {
+                const uris = [];
+                for (const id of selection) {
+                    const node = grid.widgetNodes.get(id);
+                    const data = node?.widgetData;
+                    if (data && data.isDesktopIcon && data.uri && !data.isSpecial) {
+                        uris.push(data.uri);
+                    }
+                }
+                if (uris.length > 0) return uris;
+            }
+            return [uri];
+        };
+
+        const copyItem = new PopupMenu.PopupMenuItem('Copy to…');
+        copyItem.connect('activate', () => {
+            const fileUris = getTargetUris();
+            chooseDestinationFolder('Select Destination Folder to Copy', (targetUri) => {
+                transferFilesTo(fileUris, targetUri, false);
+            });
+        });
+        menu.addMenuItem(copyItem);
+
+        const moveItem = new PopupMenu.PopupMenuItem('Move to…');
+        moveItem.connect('activate', () => {
+            const fileUris = getTargetUris();
+            chooseDestinationFolder('Select Destination Folder to Move', (targetUri) => {
+                transferFilesTo(fileUris, targetUri, true, () => {
+                    // Áthelyezés után azonnal tüntessük el az ikonokat a képernyőről
+                    if (grid._selectedWidgetIds && grid._selectedWidgetIds.has(widgetData.id)) {
+                        for (const id of grid._selectedWidgetIds) {
+                            const node = grid.widgetNodes.get(id);
+                            if (node && node.widgetData?.isDesktopIcon) {
+                                node.destroy();
+                                grid.widgetNodes.delete(id);
+                                grid._nodeConfigs.delete(id);
+                            }
+                        }
+                        grid._clearWidgetSelection();
+                    } else {
+                        const node = grid.widgetNodes.get(widgetData.id);
+                        if (node) {
+                            node.destroy();
+                            grid.widgetNodes.delete(widgetData.id);
+                            grid._nodeConfigs.delete(widgetData.id);
+                        }
+                    }
+                });
+            });
+        });
+        menu.addMenuItem(moveItem);
+
         const deleteItem = new PopupMenu.PopupMenuItem('Move to Trash');
         deleteItem.connect('activate', () => {
             trashFile(uri, () => {});
@@ -396,6 +605,9 @@ export function openWidgetContextMenu(grid, event, node, widgetData) {
     const deleteItem = new PopupMenu.PopupMenuItem('Delete Widget');
     deleteItem.connect('activate', () => onWidgetDeleted(grid, widgetData.id));
     menu.addMenuItem(deleteItem);
+
+
+
 
     Main.uiGroup.add_child(menu.actor);
     menu.open(BoxPointer.PopupAnimation.NONE);
