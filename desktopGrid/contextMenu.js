@@ -157,7 +157,7 @@ export function launchFileUri(uri) {
     }
 }
 
-function trashFile(uri, callback) {
+export function trashFile(uri, callback) {
     try {
         const file = Gio.File.new_for_uri(uri);
         file.trash_async(GLib.PRIORITY_DEFAULT, null, (source, res) => {

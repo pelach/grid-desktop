@@ -19,6 +19,7 @@ import {
     cssColorToRgba,
     resolveAccentColor,
     resolveWidgetSizePreset,
+    deleteCacheFile,
 } from '../utils/widgetUtils.js';
 import {
     DEFAULT_STAGE_WIDTH,
@@ -39,6 +40,7 @@ import {
     openContextMenu,
     removeContextMenu,
     previewWithSushi,
+    trashFile,
 } from './contextMenu.js';
 import { isActorDestroyed, watchActorLifecycle } from '../utils/actorLifecycle.js';
 import { resolveWeatherLayoutVariant } from '../widgets/weather/weatherCommon.js';
@@ -108,6 +110,14 @@ export const DesktopGrid = GObject.registerClass(
 
             this._keyPressId = this.connect('key-press-event', (_actor, event) => {
                 const symbol = event.get_key_symbol();
+
+                // DELETE: Egyedi vagy csoportos törlés biztonsági szűréssel
+                if (symbol === Clutter.KEY_Delete || symbol === Clutter.KEY_KP_Delete) {
+                    if (this._selectedWidgetIds && this._selectedWidgetIds.size > 0) {
+                        this._deleteSelectedWidgets();
+                        return Clutter.EVENT_STOP;
+                    }
+                }
 
                 if (symbol === Clutter.KEY_space) {
                     const selection = this._selectedWidgetIds;
@@ -459,6 +469,94 @@ export const DesktopGrid = GObject.registerClass(
             }
             this._selectionIndicators.clear();
             this._selectedWidgetIds.clear();
+        }
+
+
+        _deleteSelectedWidgets() {
+            const selection = this._selectedWidgetIds;
+            if (!selection || selection.size === 0)
+                return;
+
+            const toDeleteIds = new Set(selection);
+            const filesToTrash = [];
+            const trashingIconNodeIds = []; // Csak a ténylegesen kukázandó ikonok node ID-jai
+            const normalWidgetIds = [];
+
+            const homeUri = Gio.File.new_for_path(GLib.get_home_dir()).get_uri();
+
+            for (const widgetId of toDeleteIds) {
+                const node = this.widgetNodes.get(widgetId);
+                const widgetData = node?.widgetData;
+                if (!widgetData)
+                    continue;
+
+                if (widgetData.isDesktopIcon) {
+                    const uri = widgetData.uri || '';
+                    const isTrash = uri.startsWith('trash:') || widgetData.name === 'Kuka';
+                    const isHome = (uri === homeUri || uri === `${homeUri}/`);
+
+                    const isNetworkOrMountUri = uri.startsWith('google-drive:') ||
+                                                uri.startsWith('smb:') ||
+                                                uri.startsWith('sftp:') ||
+                                                uri.startsWith('nfs:') ||
+                                                uri.startsWith('dav:') ||
+                                                uri.startsWith('davs:');
+
+                    const isMount = (!isTrash && !isHome) && (Boolean(widgetData.isSpecial) || isNetworkOrMountUri);
+
+                    // Csak a valódi, nem védett fájlok mehetnek a kukába
+                    if (!widgetData.isSpecial && !isTrash && !isHome && !isMount && uri) {
+                        filesToTrash.push(uri);
+                        trashingIconNodeIds.push(widgetId);
+                    }
+                } else {
+                    normalWidgetIds.push(widgetId);
+                }
+            }
+
+            // 1. Csak a ténylegesen törölhető fájlok mennek a kukába
+            for (const uri of filesToTrash) {
+                trashFile(uri, () => {});
+            }
+
+            // 2. Csak a ténylegesen törölt asztali ikonok node-jait távolítjuk el
+            for (const widgetId of trashingIconNodeIds) {
+                const node = this.widgetNodes.get(widgetId);
+                if (node) {
+                    node.destroy();
+                    this.widgetNodes.delete(widgetId);
+                    this._nodeConfigs.delete(widgetId);
+                }
+            }
+
+            // 3. Normál widgetek törlése (óra, időjárás, jegyzet stb.)
+            if (normalWidgetIds.length > 0) {
+                const normalSet = new Set(normalWidgetIds);
+
+                for (const widgetId of normalWidgetIds) {
+                    const node = this.widgetNodes.get(widgetId);
+                    const type = node?.widgetData?.type;
+                    if (type === 'notes' || type === 'clipboard' || type === 'todo' || type === 'github') {
+                        deleteCacheFile(type === 'todo' ? 'todos' : type, widgetId);
+                    }
+                }
+
+                for (const widgetId of normalWidgetIds) {
+                    const node = this.widgetNodes.get(widgetId);
+                    if (node) {
+                        node.destroy();
+                        this.widgetNodes.delete(widgetId);
+                        this._nodeConfigs.delete(widgetId);
+                    }
+                }
+
+                const currentWidgets = getWidgets(this.settings);
+                const remaining = currentWidgets.filter(w => !normalSet.has(w.id));
+                saveWidgets(this.settings, remaining);
+            }
+
+            // 4. Kijelölési keretek törlése
+            this._clearWidgetSelection();
         }
 
         _syncSelectionIndicators() {

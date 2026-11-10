@@ -356,6 +356,8 @@ export function attachDragHandlers(grid, node, widgetData) {
 
     node.connect('button-press-event', (_actor, event) => {
         if (event.get_button() === BUTTON_SECONDARY) {
+            global.stage.set_key_focus(grid);
+            
             const selection = grid._selectedWidgetIds || new Set();
 
             // Ha az elem még nincs kijelölve: levesszük a régit, és kijelöljük ezt az egyet
@@ -467,6 +469,8 @@ export function attachDragHandlers(grid, node, widgetData) {
 
             state.dragReleaseId = global.stage.connect('button-release-event', (_stage, ev) => {
                 if (ev.get_button() === BUTTON_PRIMARY) {
+                    global.stage.set_key_focus(grid);
+
                     const evModifiers = ev.get_state();
                     const isMultiModifier = Boolean(
                         (evModifiers & Clutter.ModifierType.CONTROL_MASK) ||
@@ -475,8 +479,6 @@ export function attachDragHandlers(grid, node, widgetData) {
 
                     // HA NEM TÖRTÉNT DRAG (sima kattintás volt):
                     if (!state.isDragging) {
-                        global.stage.set_key_focus(grid);
-                        
                         const allowAllSizes = grid.settings.get_boolean('multi-select-all-widget-sizes');
                         if (allowAllSizes || (widgetData.width === 1 && widgetData.height === 1)) {
                             const currentSelection = new Set(grid._selectedWidgetIds || []);
