@@ -728,14 +728,8 @@ export function openMultiSelectionContextMenu(grid, event) {
     }
     menu.addMenuItem(openItem);
 
-    // 4. SUSHI (Csoportosnál szürke)
-    const sushiItem = new PopupMenu.PopupMenuItem('Quick Look (Sushi)');
-    sushiItem.setSensitive(false);
-    menu.addMenuItem(sushiItem);
 
-    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-    // 5. COPY TO...
+    // 4. COPY TO...
     const copyItem = new PopupMenu.PopupMenuItem(`Copy to… (${transferableFileUris.length})`);
     if (transferableFileUris.length > 0) {
         copyItem.connect('activate', () => {
@@ -748,7 +742,7 @@ export function openMultiSelectionContextMenu(grid, event) {
     }
     menu.addMenuItem(copyItem);
 
-    // 6. MOVE TO...
+    // 5. MOVE TO...
     const moveItem = new PopupMenu.PopupMenuItem(`Move to… (${transferableFileUris.length})`);
     if (transferableFileUris.length > 0) {
         moveItem.connect('activate', () => {
@@ -776,7 +770,7 @@ export function openMultiSelectionContextMenu(grid, event) {
 
     menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-    // 7. TÖRLÉS
+    // 6. TÖRLÉS
     const deletableCount = widgetCount + transferableFileUris.length;
     const deleteItem = new PopupMenu.PopupMenuItem(`Delete / Move to Trash (${deletableCount})`);
     if (deletableCount > 0) {
