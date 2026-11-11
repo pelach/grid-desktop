@@ -777,9 +777,9 @@ export function openMultiSelectionContextMenu(grid, event) {
     menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
     // 7. TÖRLÉS
-    const deleteItem = new PopupMenu.PopupMenuItem(`Delete / Move to Trash (${count})`);
-    const canDelete = (widgetCount > 0 || transferableFileUris.length > 0);
-    if (canDelete) {
+    const deletableCount = widgetCount + transferableFileUris.length;
+    const deleteItem = new PopupMenu.PopupMenuItem(`Delete / Move to Trash (${deletableCount})`);
+    if (deletableCount > 0) {
         deleteItem.connect('activate', () => {
             grid._deleteSelectedWidgets();
         });
