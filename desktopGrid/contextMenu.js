@@ -650,8 +650,146 @@ export function openContextMenu(grid, event) {
     Main.uiGroup.add_child(menu.actor);
     menu.open(BoxPointer.PopupAnimation.NONE);
 }
-export function openMultiSelectionContextMenu(grid, event) {
 
+//csoportos kijelölés menüje. (teszt!!)
+export function openMultiSelectionContextMenu(grid, event) {
+    const selection = grid._selectedWidgetIds;
+    if (!selection || selection.size <= 1)
+        return;
+
+    const menu = createPopupMenuAt(grid, event);
+    const count = selection.size;
+
+    // 1. Elemek kategorizálása és szűrése
+    const homeUri = Gio.File.new_for_path(GLib.get_home_dir()).get_uri();
+    const openableUris = [];
+    const transferableFileUris = []; // Copy / Move célokra
+    let widgetCount = 0;
+
+    for (const id of selection) {
+        const node = grid.widgetNodes.get(id);
+        const data = node?.widgetData;
+        if (!data)
+            continue;
+
+        if (data.isDesktopIcon) {
+            const uri = data.uri || '';
+            const isTrash = uri.startsWith('trash:') || data.name === 'Kuka';
+            const isHome = (uri === homeUri || uri === `${homeUri}/`);
+            const isNetworkOrMount = Boolean(data.isSpecial) ||
+                                     uri.startsWith('google-drive:') ||
+                                     uri.startsWith('smb:') ||
+                                     uri.startsWith('sftp:') ||
+                                     uri.startsWith('nfs:') ||
+                                     uri.startsWith('dav:') ||
+                                     uri.startsWith('davs:');
+
+            const isProtected = isTrash || isHome || isNetworkOrMount || Boolean(data.isSpecial);
+
+            if (uri) {
+                // Megnyitni a védetteket is meg lehet (pl. Home mappát Nautilusszal), csak a Kukát nem feltétlen
+                openableUris.push(uri);
+
+                // Másolni / mozgatni viszont CSAK a normál fájlokat szabad!
+                if (!isProtected) {
+                    transferableFileUris.push(uri);
+                }
+            }
+        } else {
+            widgetCount++;
+        }
+    }
+
+    // 2. Fejléc
+    let headerText = `${count} items selected`;
+    if (openableUris.length > 0 && widgetCount > 0) {
+        headerText = `${count} items selected (${openableUris.length} files, ${widgetCount} widgets)`;
+    } else if (openableUris.length > 0) {
+        headerText = `${openableUris.length} files selected`;
+    } else if (widgetCount > 0) {
+        headerText = `${widgetCount} widgets selected`;
+    }
+
+    const headerItem = new PopupMenu.PopupMenuItem(headerText);
+    headerItem.setSensitive(false);
+    menu.addMenuItem(headerItem);
+    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    // 3. MEGNYITÁS (Open)
+    const openItem = new PopupMenu.PopupMenuItem(`Open (${openableUris.length})`);
+    if (openableUris.length > 0 && widgetCount === 0) {
+        openItem.connect('activate', () => {
+            for (const uri of openableUris) {
+                launchFileUri(uri);
+            }
+        });
+    } else {
+        openItem.setSensitive(false);
+    }
+    menu.addMenuItem(openItem);
+
+    // 4. SUSHI (Csoportosnál szürke)
+    const sushiItem = new PopupMenu.PopupMenuItem('Quick Look (Sushi)');
+    sushiItem.setSensitive(false);
+    menu.addMenuItem(sushiItem);
+
+    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    // 5. COPY TO...
+    const copyItem = new PopupMenu.PopupMenuItem(`Copy to… (${transferableFileUris.length})`);
+    if (transferableFileUris.length > 0) {
+        copyItem.connect('activate', () => {
+            chooseDestinationFolder('Select Destination Folder to Copy', (targetUri) => {
+                transferFilesTo(transferableFileUris, targetUri, false);
+            });
+        });
+    } else {
+        copyItem.setSensitive(false);
+    }
+    menu.addMenuItem(copyItem);
+
+    // 6. MOVE TO...
+    const moveItem = new PopupMenu.PopupMenuItem(`Move to… (${transferableFileUris.length})`);
+    if (transferableFileUris.length > 0) {
+        moveItem.connect('activate', () => {
+            chooseDestinationFolder('Select Destination Folder to Move', (targetUri) => {
+                transferFilesTo(transferableFileUris, targetUri, true, () => {
+                    for (const id of selection) {
+                        const node = grid.widgetNodes.get(id);
+                        if (node && node.widgetData?.isDesktopIcon) {
+                            const u = node.widgetData.uri;
+                            if (transferableFileUris.includes(u)) {
+                                node.destroy();
+                                grid.widgetNodes.delete(id);
+                                grid._nodeConfigs.delete(id);
+                            }
+                        }
+                    }
+                    grid._clearWidgetSelection();
+                });
+            });
+        });
+    } else {
+        moveItem.setSensitive(false);
+    }
+    menu.addMenuItem(moveItem);
+
+    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    // 7. TÖRLÉS
+    const deleteItem = new PopupMenu.PopupMenuItem(`Delete / Move to Trash (${count})`);
+    const canDelete = (widgetCount > 0 || transferableFileUris.length > 0);
+    if (canDelete) {
+        deleteItem.connect('activate', () => {
+            grid._deleteSelectedWidgets();
+        });
+    } else {
+        deleteItem.setSensitive(false);
+    }
+    menu.addMenuItem(deleteItem);
+
+    Main.uiGroup.add_child(menu.actor);
+    menu.open(BoxPointer.PopupAnimation.FULL);
 }
 
 function getDesktopPath() {
