@@ -18,7 +18,7 @@ import {
 } from '../utils/widgetUtils.js';
 import { getWidgetsForMonitor, getPanelHeight, getEffectiveMonitorIndex } from './helpers.js';
 import { registerWidgetCleanup } from '../shell/widgetUIUtils.js';
-import { openWidgetContextMenu } from './contextMenu.js';
+import { openWidgetContextMenu, openMultiSelectionContextMenu } from './contextMenu.js';
 import {
     BUTTON_PRIMARY,
     BUTTON_SECONDARY,
@@ -370,7 +370,11 @@ export function attachDragHandlers(grid, node, widgetData) {
                 }
             }
 
-            openWidgetContextMenu(grid, event, node, widgetData);
+            if (grid._selectedWidgetIds && grid._selectedWidgetIds.size > 1) {
+                openMultiSelectionContextMenu(grid, event);
+            } else {
+                openWidgetContextMenu(grid, event, node, widgetData);
+            }
             return Clutter.EVENT_STOP;
         }
 

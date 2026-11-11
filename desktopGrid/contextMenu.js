@@ -650,6 +650,9 @@ export function openContextMenu(grid, event) {
     Main.uiGroup.add_child(menu.actor);
     menu.open(BoxPointer.PopupAnimation.NONE);
 }
+export function openMultiSelectionContextMenu(grid, event) {
+
+}
 
 function getDesktopPath() {
     return GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP) ||

@@ -41,6 +41,7 @@ import {
     removeContextMenu,
     previewWithSushi,
     trashFile,
+    openMultiSelectionContextMenu,
 } from './contextMenu.js';
 import { isActorDestroyed, watchActorLifecycle } from '../utils/actorLifecycle.js';
 import { resolveWeatherLayoutVariant } from '../widgets/weather/weatherCommon.js';
@@ -150,7 +151,11 @@ export const DesktopGrid = GObject.registerClass(
                 const btn = event.get_button();
 
                 if (btn === BUTTON_SECONDARY) {
-                    openContextMenu(this, event);
+                    if (this._selectedWidgetIds && this._selectedWidgetIds.size > 1) {
+                        openMultiSelectionContextMenu(this, event);
+                    } else {
+                        openContextMenu(this, event);
+                    }
                     return Clutter.EVENT_STOP;
                 }
 
