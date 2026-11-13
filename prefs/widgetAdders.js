@@ -422,3 +422,7 @@ export function addWebRadioWidget(settings, width = 4, height = 2, stations = nu
     }
     addWidget(settings, config, width, height);
 }
+
+export function addF1Widget(settings, width = 4, height = 4) {
+    addWidget(settings, { id: nextWidgetId(settings, 'f1'), type: 'f1' }, width, height);
+}

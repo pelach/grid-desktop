@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Első szárny -->
+  <rect x="4" y="1" width="8" height="1.5" rx="0.5" fill="#000000" />
+  <!-- Orrkúp és kasztni -->
+  <path d="M 7.2 2.5 L 8.8 2.5 L 9.5 6 L 10.5 7 L 10.5 11.5 L 9 13 L 7 13 L 5.5 11.5 L 5.5 7 L 6.5 6 Z" fill="#000000" />
+  <!-- Hátsó szárny -->
+  <rect x="4.5" y="13.5" width="7" height="1.8" rx="0.5" fill="#000000" />
+  <!-- Első kerekek -->
+  <rect x="3" y="3.2" width="1.8" height="3" rx="0.6" fill="#000000" />
+  <rect x="11.2" y="3.2" width="1.8" height="3" rx="0.6" fill="#000000" />
+  <!-- Hátsó kerekek -->
+  <rect x="2.8" y="10" width="2" height="3.2" rx="0.6" fill="#000000" />
+  <rect x="11.2" y="10" width="2" height="3.2" rx="0.6" fill="#000000" />
+</svg>

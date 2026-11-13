@@ -310,6 +310,14 @@ export const STORE_WIDGETS = Object.freeze({
         thumbnail: 'productivity/calculator.svg',
         fallbackIconName: 'accessories-calculator-symbolic',
     },
+    f1: {
+        title: 'F1',
+        description: 'Follow the next Formula 1 race weekend with live countdown, session schedule, circuit map, and driver standings.',
+        gridSize: '4x4',
+        thumbnail: 'personal/f1.svg',
+        customIcon: 'icons/f1-symbolic.svg',
+        fallbackIconName: 'trophy-symbolic',
+    },
 
     // ── Time & Calendar ────────────────────────────────────────────────
     timeAndDate: {
@@ -561,7 +569,8 @@ export const STORE_CATEGORIES = Object.freeze({
         'steamRecent',
         'memoryDonut',
         'audioMixer',
-        'calculator'
+        'calculator',
+        'f1'
 
     ],
 });
@@ -731,6 +740,8 @@ function getStoreWidgetKey(widget) {
             return 'timerPreset';
         case 'webRadio':
             return 'webRadio';
+        case 'f1':
+            return 'f1';
         default:
             return null;
     }

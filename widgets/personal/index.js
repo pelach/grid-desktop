@@ -11,3 +11,4 @@ export { createScreenTimeNode } from './screenTimeWidget.js';
 export { createTodayHistoryNode } from './todayHistory.js';
 export { createWatermindNode } from './watermind.js';
 export { createSteamRecentNode } from './steamRecent.js';
+export { createF1HubNode } from './f1Hub.js';

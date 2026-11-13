@@ -94,7 +94,8 @@ import {
     createScreenTimeNode,
     createTodayHistoryNode,
     createWatermindNode,
-    createSteamRecentNode
+    createSteamRecentNode,
+    createF1HubNode,
 } from '../widgets/personal/index.js';
 
 const weatherCreator = (data, w, h, x, y) => {
@@ -177,6 +178,7 @@ const WIDGET_CREATORS = {
     'calculator': (data, w, h, x, y) => createCalculatorNode(data, w, h, x, y),
     'timerPreset': (data, w, h, x, y) => createTimerPresetNode(data, w, h, x, y),
     'webRadio': (data, w, h, x, y) => createWebRadioNode(data, w, h, x, y),
+    'f1': (data, w, h, x, y) => createF1HubNode(data, w, h, x, y),
 };
 
 export function createWidgetNode(data, width, height, x, y) {

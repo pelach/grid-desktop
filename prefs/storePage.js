@@ -66,7 +66,8 @@ import {
     addMoodWidget,
     addQuotesWidget,
     addScreenTimeWidget,
-    addTodayHistoryWidget
+    addTodayHistoryWidget,
+    addF1Widget,
 } from './widgetAdders.js';
 
 // ── Widget Dialogs (kategóriák szerint rendezve) ────────────────────────
@@ -317,6 +318,7 @@ export function buildStorePage(window, settings, extensionPath) {
                 def(STORE_WIDGETS.githubWidget, () => openAddGithubDialog(window, settings)),
                 def(STORE_WIDGETS.lavaLamp, () => addLavaLampWidget(settings)),
                 def(STORE_WIDGETS.steamRecent, () => openAddSteamRecentDialog(window, settings)),
+                def(STORE_WIDGETS.f1, () => addF1Widget(settings)),
             ]
         }
     ];

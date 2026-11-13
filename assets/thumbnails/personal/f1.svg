@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Külső keret és kártya háttér (#212126) -->
+  <rect x="6" y="6" width="188" height="188" rx="28" fill="#212126" stroke="#2d2d34" stroke-width="6" />
+
+  <!-- Fejléc (Round + Főcím) -->
+  <rect x="24" y="24" width="52" height="5" rx="2.5" fill="#FF3B30" />
+  <rect x="24" y="34" width="76" height="10" rx="3" fill="#ffffff" fill-opacity="0.9" />
+  <rect x="24" y="49" width="48" height="5" rx="2.5" fill="#ffffff" fill-opacity="0.45" />
+
+  <!-- Pályarajz sziluett + Rajt/cél pont -->
+  <path d="M 142 23 L 151 23 L 154 29 L 164 29 L 167 34 L 163 39 L 156 39 L 156 54 L 165 54 L 165 60 L 138 60 L 135 55 L 135 34 Z" fill="none" stroke="#ffffff" stroke-opacity="0.65" stroke-width="3.2" stroke-linejoin="round" />
+  <circle cx="158" cy="60" r="3.2" fill="#FF3B30" />
+
+  <!-- Visszaszámláló -->
+  <rect x="24" y="64" width="38" height="4.5" rx="2" fill="#ffffff" fill-opacity="0.45" />
+  <rect x="24" y="73" width="66" height="14" rx="3.5" fill="#ffffff" fill-opacity="0.95" />
+
+  <!-- Hétvégi menetrend sáv -->
+  <rect x="22" y="96" width="156" height="24" rx="6" fill="#ffffff" fill-opacity="0.07" />
+  <!-- 5 oszlop a sávban -->
+  <g fill-opacity="0.85">
+    <rect x="31" y="102" width="14" height="4" rx="2" fill="#FF3B30" />
+    <rect x="33" y="109" width="10" height="3.5" rx="1.5" fill="#ffffff" fill-opacity="0.4" />
+
+    <rect x="62" y="102" width="14" height="4" rx="2" fill="#ffffff" />
+    <rect x="64" y="109" width="10" height="3.5" rx="1.5" fill="#ffffff" fill-opacity="0.4" />
+
+    <rect x="93" y="102" width="14" height="4" rx="2" fill="#ffffff" />
+    <rect x="95" y="109" width="10" height="3.5" rx="1.5" fill="#ffffff" fill-opacity="0.4" />
+
+    <rect x="124" y="102" width="14" height="4" rx="2" fill="#ffffff" />
+    <rect x="126" y="109" width="10" height="3.5" rx="1.5" fill="#ffffff" fill-opacity="0.4" />
+
+    <rect x="155" y="102" width="14" height="4" rx="2" fill="#ffffff" />
+    <rect x="157" y="109" width="10" height="3.5" rx="1.5" fill="#ffffff" fill-opacity="0.4" />
+  </g>
+
+  <!-- Elválasztó vonal -->
+  <line x1="22" y1="128" x2="178" y2="128" stroke="#ffffff" stroke-opacity="0.14" stroke-width="1.2" />
+
+  <!-- Top 5 Tabella sorok (csapatszínekkel) -->
+  <!-- 1. Mercedes -->
+  <rect x="24" y="135" width="3" height="7" rx="1.5" fill="#00D7B6" />
+  <rect x="31" y="136" width="22" height="5" rx="2" fill="#ffffff" fill-opacity="0.85" />
+  <rect x="58" y="136.5" width="46" height="4" rx="2" fill="#ffffff" fill-opacity="0.4" />
+  <rect x="152" y="136" width="24" height="5" rx="2" fill="#ffffff" fill-opacity="0.85" />
+
+  <!-- 2. Red Bull -->
+  <rect x="24" y="147" width="3" height="7" rx="1.5" fill="#4781D7" />
+  <rect x="31" y="148" width="22" height="5" rx="2" fill="#ffffff" fill-opacity="0.85" />
+  <rect x="58" y="148.5" width="52" height="4" rx="2" fill="#ffffff" fill-opacity="0.4" />
+  <rect x="154" y="148" width="22" height="5" rx="2" fill="#ffffff" fill-opacity="0.7" />
+
+  <!-- 3. McLaren -->
+  <rect x="24" y="159" width="3" height="7" rx="1.5" fill="#F47600" />
+  <rect x="31" y="160" width="22" height="5" rx="2" fill="#ffffff" fill-opacity="0.85" />
+  <rect x="58" y="160.5" width="42" height="4" rx="2" fill="#ffffff" fill-opacity="0.4" />
+  <rect x="154" y="160" width="22" height="5" rx="2" fill="#ffffff" fill-opacity="0.7" />
+
+  <!-- 4. Ferrari -->
+  <rect x="24" y="171" width="3" height="7" rx="1.5" fill="#ED1131" />
+  <rect x="31" y="172" width="22" height="5" rx="2" fill="#ffffff" fill-opacity="0.85" />
+  <rect x="58" y="172.5" width="48" height="4" rx="2" fill="#ffffff" fill-opacity="0.4" />
+  <rect x="154" y="172" width="22" height="5" rx="2" fill="#ffffff" fill-opacity="0.7" />
+</svg>
