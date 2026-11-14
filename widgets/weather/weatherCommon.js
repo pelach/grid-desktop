@@ -6,7 +6,7 @@ import Soup from 'gi://Soup?version=3.0';
 import Pango from 'gi://Pango';
 import { resolveWidgetBackgroundColor, resolveWidgetForegroundColor, resolveExplicitFontFamily, DEFAULT_BG_COLOR, buildBaseWidgetStyle, celsiusToFahrenheit, isDarkBackgroundColor } from '../../utils/widgetUtils.js';
 import { isActorDestroyed, watchActorLifecycle } from '../../utils/actorLifecycle.js';
-import { MONTH_NAMES_ABBREVIATED as MONTH_NAMES, resolveWidgetGlassHighlight } from '../../shell/widgetUIUtils.js';
+import { resolveWidgetGlassHighlight } from '../../shell/widgetUIUtils.js';
 
 
 export const REFRESH_INTERVAL_SECONDS = 1800;
@@ -59,7 +59,6 @@ export function buildFontCss(widgetData) {
 }
 
 const decoder = new TextDecoder('utf-8');
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MILLISECONDS_PER_SECOND = 1000;
 const LAYOUT_PADDING_PX = 12;
 // In-session cache of geocode coords keyed by location name.
@@ -135,7 +134,45 @@ export function getGnomeDefaultWeatherCity() {
     }
     return null;
 }
+let _extSettingsCache = null;
 
+export function getExtensionSettings() {
+    if (_extSettingsCache) return _extSettingsCache;
+    try {
+        const schemaDir = GLib.build_filenamev([weatherBaseDir, '..', '..', 'schemas']);
+        const schemaSource = Gio.SettingsSchemaSource.new_from_directory(
+            schemaDir,
+            Gio.SettingsSchemaSource.get_default(),
+            false
+        );
+        const schema = schemaSource.lookup('org.gnome.shell.extensions.grid-desktop', true);
+        if (schema) {
+            _extSettingsCache = new Gio.Settings({ settings_schema: schema });
+            return _extSettingsCache;
+        }
+    } catch (e) {}
+    return null;
+}
+
+export function resolveUse24Hour(widgetData) {
+    if (widgetData?.use24Hour !== undefined) return Boolean(widgetData.use24Hour);
+    if (widgetData?.globalUse24Hour !== undefined) return Boolean(widgetData.globalUse24Hour);
+    if (widgetData?.timeFormat24h !== undefined) return Boolean(widgetData.timeFormat24h);
+
+    const extSettings = widgetData?.settings || getExtensionSettings();
+    if (extSettings) {
+        try {
+            return extSettings.get_boolean('time-format-24h');
+        } catch (e) {}
+    }
+
+    try {
+        const iface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
+        return iface.get_string('clock-format') === '24h';
+    } catch (e) {
+        return true;
+    }
+}
 
 export function getWeatherAssets(extensionPath, code, isDay, folderName = '3x3', text = '') {
     const effectiveCode = resolveConditionCode(code, text);
@@ -283,7 +320,7 @@ export function getAssetSizeForWidget(widgetData) {
     return '3x3';
 }
 
-export function updateHourlyForecastUi(json, uiElements, currentEpoch, extensionPath, useFahrenheit, folderName = '3x3') {
+export function updateHourlyForecastUi(json, uiElements, currentEpoch, extensionPath, useFahrenheit, folderName = '3x3', use24Hour = true) {
     if (!uiElements.hourlyActors || uiElements.hourlyActors.length === 0 || !json.forecast || !json.forecast.forecastday)
         return;
 
@@ -316,11 +353,18 @@ export function updateHourlyForecastUi(json, uiElements, currentEpoch, extension
             } else {
                 hours = new Date(hourData.time_epoch * 1000).getHours();
             }
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12 || 12;
+
+            let timeText;
+            if (use24Hour) {
+                timeText = `${String(hours).padStart(2, '0')}:00`;
+            } else {
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const hour12 = hours % 12 || 12;
+                timeText = `${hour12} ${ampm}`;
+            }
 
             const displayTemperature = useFahrenheit ? hourData.temp_f : hourData.temp_c;
-            uiElements.hourlyActors[i].timeLbl.text = `${hours} ${ampm}`;
+            uiElements.hourlyActors[i].timeLbl.text = timeText;
             uiElements.hourlyActors[i].tempLbl.text = `${Math.round(displayTemperature)}°`;
 
             const condCode = resolveConditionCode(hourData.condition ? hourData.condition.code : null, hourData.condition ? hourData.condition.text : '');
@@ -357,6 +401,8 @@ export function updateDailyForecastUi(json, uiElements, extensionPath, useFahren
     if (!uiElements.dailyActors || uiElements.dailyActors.length === 0 || !json.forecast || !json.forecast.forecastday)
         return;
 
+    const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+
     const forecastDays = json.forecast.forecastday;
     // Skip today to display the upcoming 5 days
     const displayDays = forecastDays.length > 1 ? forecastDays.slice(1, 6) : forecastDays.slice(0, 5);
@@ -380,7 +426,8 @@ export function updateDailyForecastUi(json, uiElements, extensionPath, useFahren
         let dayName = '--';
         if (dayData.date) {
             const dateObj = new Date(dayData.date + 'T00:00:00');
-            dayName = DAY_NAMES[dateObj.getDay()];
+            const formatted = weekdayFormatter.format(dateObj);
+            dayName = formatted.charAt(0).toUpperCase() + formatted.slice(1);
         }
         actor.dayLabel.text = dayName;
 
@@ -442,7 +489,12 @@ export function updateTextLabels(json, uiElements, useFahrenheit) {
     if (uiElements.dateLabel) {
         const epoch = current.last_updated_epoch ? current.last_updated_epoch * 1000 : Date.now();
         const date = new Date(epoch);
-        uiElements.dateLabel.text = `${DAY_NAMES[date.getDay()]}, ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
+        const dateHeaderFormatter = new Intl.DateTimeFormat(undefined, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+        });
+        uiElements.dateLabel.text = dateHeaderFormatter.format(date);
     }
 }
 
@@ -497,10 +549,12 @@ export function updateWidgetStyle(widgetNode, bgImageActor, widgetData, assets, 
 }
 
 export function updateWeatherUi(json, context) {
+    context.lastWeatherJson = json;
     const { widgetData, uiElements, widgetNode, bgImageActor, isDynamicColor, isDynamicImage, extensionPath } = context;
     if (isActorDestroyed(widgetNode) || !json || !json.current) return;
 
     const useFahrenheit = widgetData.useFahrenheit !== undefined ? widgetData.useFahrenheit : (widgetData.globalUseFahrenheit === true);
+    const use24Hour = resolveUse24Hour(widgetData);
     const isDay = json.current.is_day !== undefined ? (json.current.is_day === 1 || json.current.is_day === true) : true;
     const condCode = resolveConditionCode(json.current.condition ? json.current.condition.code : null, json.current.condition ? json.current.condition.text : '');
     const folderName = getAssetSizeForWidget(widgetData);
@@ -513,7 +567,7 @@ export function updateWeatherUi(json, context) {
         uiElements.conditionIcon.gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(assets.iconPath) });
     }
 
-    updateHourlyForecastUi(json, uiElements, json.current.last_updated_epoch, extensionPath, useFahrenheit, folderName);
+    updateHourlyForecastUi(json, uiElements, json.current.last_updated_epoch, extensionPath, useFahrenheit, folderName, use24Hour);
     updateDailyForecastUi(json, uiElements, extensionPath, useFahrenheit, folderName);
     
     if (uiElements && uiElements.isCardsLayout && typeof uiElements.updateCards === 'function') {

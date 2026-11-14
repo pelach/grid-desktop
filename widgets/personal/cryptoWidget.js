@@ -133,6 +133,7 @@ export function createCryptoTrackerNode(config, width, height, xPosition, yPosit
     let marketData = {};
     let isDisposed = false;
     const coinButtons = {};
+    const httpSession = new Soup.Session();
 
     const updateButtonStyles = () => {
         const btnFontSize = Math.max(10, Math.round(12 * scale));
@@ -306,19 +307,20 @@ export function createCryptoTrackerNode(config, width, height, xPosition, yPosit
 
     // ── API Lekérés ──
     const fetchRates = () => {
+        if (isDisposed || isActorDestroyed(container)) return;
         try {
             const ids = COINS.map(c => c.id).join(',');
             const vsCurrency = targetCurrency.toLowerCase();
             const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vsCurrency}&ids=${ids}&sparkline=true`;
 
-            const httpSession = new Soup.Session();
             const message = Soup.Message.new('GET', url);
-            message.request_headers.append('User-Agent', 'GNOME-Shell-CryptoWidget/1.0');
+            message.request_headers.append('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64) GNOME-Shell-GridDesktop/1.0');
 
             httpSession.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (s, res) => {
                 try {
                     const bytes = s.send_and_read_finish(res);
                     if (isDisposed || !bytes || isActorDestroyed(container)) return;
+                    if (message.get_status() !== Soup.Status.OK) return;
 
                     const jsonText = new TextDecoder().decode(bytes.get_data());
                     const data = JSON.parse(jsonText);
@@ -343,6 +345,7 @@ export function createCryptoTrackerNode(config, width, height, xPosition, yPosit
     });
 
     registerWidgetCleanup(container, () => {
+        httpSession.abort();
         isDisposed = true;
         if (timeoutId) GLib.source_remove(timeoutId);
     });

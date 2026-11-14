@@ -5,8 +5,10 @@ import {
     createBackgroundImageActor,
     createMainLayout,
     fetchWeatherViaOpenMeteo,
+    getExtensionSettings,
     releaseWeatherSession,
     resolveWeatherLayoutVariant,
+    updateWeatherUi,
 } from './weatherCommon.js';
 import { buildForecastLayout, attachForecastScaler } from './weatherForecast.js';
 import { buildSimpleLayout, attachSimpleScaler } from './weatherSimple.js';
@@ -70,6 +72,16 @@ export function createWeatherNode(widgetData, width, height, xPosition, yPositio
     };
 
     triggerWeatherFetch();
+
+    const extSettings = widgetData.settings || getExtensionSettings();
+    if (extSettings) {
+        const timeFormatSigId = extSettings.connect('changed::time-format-24h', () => {
+            if (!isActorDestroyed(widgetNode) && context.lastWeatherJson) {
+                updateWeatherUi(context.lastWeatherJson, context);
+            }
+        });
+        registerWidgetCleanup(widgetNode, () => extSettings.disconnect(timeFormatSigId));
+    }
 
     const state = { timerId: null };
     state.timerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REFRESH_INTERVAL_SECONDS, () => {

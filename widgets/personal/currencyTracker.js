@@ -116,6 +116,8 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
     let historyRates = [];
     let isDisposed = false;
     let isPositiveTrend = true;
+    const httpSession = new Soup.Session();
+    
 
     // ── Reszponzív skálázó függvény (applyScale) ──
     function applyScale(newScale, currentWidth) {
@@ -205,14 +207,16 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
 
     // ── API Lekérés ──
     const fetchRates = () => {
+        if (isDisposed || isActorDestroyed(container)) return;
         try {
             const now = GLib.DateTime.new_now_local();
             const past = now.add_days(-30);
             const startDateStr = past.format('%Y-%m-%d');
 
             const url = `https://api.frankfurter.app/${startDateStr}..?from=${baseCurrency}&to=${targetCurrency}`;
-            const httpSession = new Soup.Session();
+          
             const message = Soup.Message.new('GET', url);
+            message.request_headers.append('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64) GNOME-Shell-GridDesktop/1.0');
 
             httpSession.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (s, res) => {
                 try {
@@ -258,6 +262,7 @@ export function createCurrencyTrackerNode(config, width, height, xPosition, yPos
     });
 
     registerWidgetCleanup(container, () => {
+        httpSession.abort();
         isDisposed = true;
         if (timeoutId) GLib.source_remove(timeoutId);
     });
