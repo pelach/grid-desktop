@@ -14,16 +14,12 @@ const MONTH_FONT_SIZE_PX = 15;
 const MONTH_MARGIN_BOTTOM_PX = 6;
 const CONTENT_BG_ALPHA = 0.06;
 
-function getToday() {
-    const now = GLib.DateTime.new_now_local();
-    return { year: now.get_year(), month: now.get_month(), day: now.get_day_of_month() };
-}
+const fullWeekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
+const fullMonthFormatter = new Intl.DateTimeFormat(undefined, { month: 'long' });
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTH_NAMES = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-];
+function capitalize(str) {
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
 
 export function createCalendarNode(config, width, height, xPosition, yPosition) {
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
@@ -99,14 +95,10 @@ export function createCalendarNode(config, width, height, xPosition, yPosition) 
     }
 
     function render() {
-        const today = getToday();
-        const now = GLib.DateTime.new_now_local();
-        const dayOfWeek = now.get_day_of_week();
-        const dayIndex = dayOfWeek === 7 ? 0 : dayOfWeek;
-
-        dayLabel.set_text(DAY_NAMES[dayIndex]);
-        dateNumber.set_text(String(today.day));
-        monthLabel.set_text(MONTH_NAMES[today.month]);
+        const now = new Date();
+        dayLabel.set_text(capitalize(fullWeekdayFormatter.format(now)));
+        dateNumber.set_text(String(now.getDate()));
+        monthLabel.set_text(capitalize(fullMonthFormatter.format(now)));
     }
 
     const state = { timerId: null };

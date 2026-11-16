@@ -17,13 +17,13 @@ import {
     attachResponsiveScaler,
     connectTimerCleanup,
     startPollingTimer,
-    MONTH_NAMES_ABBREVIATED,
 } from '../../shell/widgetUIUtils.js';
 import {
     fetchWeatherViaOpenMeteo,
     releaseWeatherSession,
     resolveConditionCode,
     getWeatherAssets,
+    resolveUse24Hour,
 } from '../weather/weatherCommon.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
@@ -31,8 +31,10 @@ const BASE_WIDTH = 400;
 const BASE_HEIGHT = 200;
 const DATE_POLL_INTERVAL_MS = 60000;
 const WEATHER_POLL_INTERVAL_S = 1800;
-
-const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const narrowWeekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'narrow' });
+const WEEKDAY_LABELS = Array.from({ length: 7 }, (_, i) =>
+    narrowWeekdayFormatter.format(new Date(2024, 0, 1 + i)).toUpperCase()
+);
 const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const WEEKS_IN_GRID = 6;
 
@@ -340,7 +342,13 @@ export function createCalendarEventsNode(config, width, height, xPosition, yPosi
         if (isSelectedToday) {
             taskDateLabel.text = 'TODAY';
         } else {
-            taskDateLabel.text = selectedDate.format('%b %e, %a').toUpperCase();
+            const selectedDateFormatter = new Intl.DateTimeFormat(undefined, {
+                month: 'short',
+                day: 'numeric',
+                weekday: 'short',
+            });
+            const jsSelected = new Date(selectedDate.get_year(), selectedDate.get_month() - 1, selectedDate.get_day_of_month());
+            taskDateLabel.text = selectedDateFormatter.format(jsSelected).toUpperCase();
         }
 
         const cardPadding = Math.max(4, Math.round(5 * scale));
@@ -398,7 +406,8 @@ export function createCalendarEventsNode(config, width, height, xPosition, yPosi
 
                 if (!isAllDay) {
                     const dt = GLib.DateTime.new_from_unix_local(Math.floor(startJs.getTime() / 1000));
-                    timeStr = dt.format('%H:%M');
+                    const use24Hour = resolveUse24Hour(config);
+                    timeStr = use24Hour ? dt.format('%H:%M') : dt.format('%I:%M %p').replace(/^0/, '');
                     sortTime = dt.get_hour() * 60 + dt.get_minute();
                 }
             }
@@ -449,7 +458,10 @@ export function createCalendarEventsNode(config, width, height, xPosition, yPosi
 
     function fillCalendarGrid() {
         const now = GLib.DateTime.new_now_local();
-        calMonthLabel.text = `${MONTH_NAMES_ABBREVIATED[viewMonth - 1]} ${viewYear}`;
+        const monthYearFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' });
+       
+        const rawMonth = monthYearFormatter.format(new Date(viewYear, viewMonth - 1, 1));
+        calMonthLabel.text = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
 
         const firstDayCol = (GLib.DateTime.new_local(viewYear, viewMonth, 1, 12, 0, 0).get_day_of_week() + 6) % 7;
         const daysInMonth = getDaysInMonth(viewYear, viewMonth);

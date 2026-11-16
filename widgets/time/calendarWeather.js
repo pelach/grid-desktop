@@ -27,13 +27,14 @@ const BASE_HEIGHT = 200;
 const DATE_POLL_INTERVAL_MS = 60000;
 const WEATHER_POLL_INTERVAL_S = 1800;
 
-// Magyar / európai konvenció szerint hétfőtől vasárnapig:
-const WEEKDAY_NAMES_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MONTH_NAMES_FULL = [
-    'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
-];
-const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const fullMonthFormatter = new Intl.DateTimeFormat(undefined, { month: 'long' });
+const fullWeekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
+const narrowWeekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'narrow' });
+
+const WEEKDAY_LABELS = Array.from({ length: 7 }, (_, i) =>
+    narrowWeekdayFormatter.format(new Date(2024, 0, 1 + i)).toUpperCase()
+);
+
 const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const WEEKS_IN_GRID = 6;
 
@@ -76,15 +77,18 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
     const leftColumn = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         y_expand: true,
+        x_align: Clutter.ActorAlign.END,
     });
     rootLayout.add_child(leftColumn);
 
     const monthLabel = new St.Label({
         text: '',
+        x_align: Clutter.ActorAlign.END,
         style: `${fontCss}color: ${textColor}; font-weight: 800; opacity: 0.6;`,
     });
     const weekdayLabel = new St.Label({
         text: '',
+        x_align: Clutter.ActorAlign.END,
         style: `${fontCss}color: ${accentColor}; font-weight: 700;`,
     });
     leftColumn.add_child(monthLabel);
@@ -93,7 +97,7 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
     const bigDayBox = new St.Bin({
         x_expand: true,
         y_expand: true,
-        x_align: Clutter.ActorAlign.START,
+        x_align: Clutter.ActorAlign.END,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const bigDayLabel = new St.Label({
@@ -105,6 +109,7 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
 
     const weatherRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
+        x_align: Clutter.ActorAlign.END,
         y_align: Clutter.ActorAlign.CENTER,
     });
     const weatherIcon = new St.Icon({
@@ -120,15 +125,11 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
     weatherRow.add_child(weatherTempLabel);
     leftColumn.add_child(weatherRow);
 
-    const divider = new St.Widget({
-        style: `background-color: ${textColor}; opacity: 0.12;`,
-        y_expand: true,
-    });
-    rootLayout.add_child(divider);
 
     // ==========================================
     // 2. JOBB OLDAL (Naptárrács)
     // ==========================================
+    
     const rightColumn = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
@@ -141,6 +142,12 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
         x_expand: true,
     });
     rightColumn.add_child(weekdaysRow);
+    const headerUnderline = new St.Widget({
+        style: `background-color: ${cssColorToRgba(textColor, 0.12)}; height: 1px; margin-top: 3px; margin-bottom: 4px;`,
+        x_expand: true,
+        height: 1,
+    });
+    rightColumn.add_child(headerUnderline);
 
     const weekdaySlots = [];
     for (let i = 0; i < 7; i++) {
@@ -202,9 +209,11 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
         const dow = now.get_day_of_week();
         const mondayBasedIndex = dow - 1; // 0 = Hétfő ... 6 = Vasárnap
 
-        monthLabel.text = MONTH_NAMES_FULL[month - 1];
-        weekdayLabel.text = WEEKDAY_NAMES_FULL[mondayBasedIndex];
-        bigDayLabel.text = String(today);
+        const nowJs = new Date();
+        monthLabel.text = fullMonthFormatter.format(nowJs).toUpperCase();
+        const rawWeekday = fullWeekdayFormatter.format(nowJs);
+        weekdayLabel.text = rawWeekday.charAt(0).toUpperCase() + rawWeekday.slice(1); // "Hétfő"
+        bigDayLabel.text = String(nowJs.getDate());
 
         // Hétfővel kezdődő hónapkezdés
         const firstDayCol = (GLib.DateTime.new_local(year, month, 1, 12, 0, 0).get_day_of_week() + 6) % 7;
@@ -229,12 +238,14 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
             }
 
             if (dayNumber === today) {
-                const pad = Math.round(2 * state.scale);
+                const padY = Math.round(2 * state.scale);
+                const padX = Math.round(6 * state.scale);
+                const radius = Math.round(6 * state.scale);
                 label.text = String(dayNumber);
                 const todayTextColor = resolveTextOnAccentColor(accentColor);
                 label.style = `${fontCss}font-size: ${fontSize}px; color: ${todayTextColor}; `
                     + `background-color: ${cssColorToRgba(accentColor, 1)}; `
-                    + `border-radius: 999px; padding: ${pad}px ${pad}px; font-weight: bold;`;
+                    + `border-radius: ${radius}px; padding: ${padY}px ${padX}px; font-weight: bold;`;
                 continue;
             }
 
@@ -247,30 +258,29 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
     function applyLayout(currentWidth, currentHeight) {
         if (!currentWidth || currentWidth <= 0) return;
         const s = state.scale;
-        const pad = Math.round(16 * s);
+        const pad = Math.round(14 * s);
+        const colGap = Math.round(14 * s);
 
-        rootLayout.style = `padding: ${pad}px; spacing: ${Math.round(18 * s)}px;`;
-        
-        // 1. Bal oszlop szélessége
-        leftColumn.width = Math.round(130 * s);
-        leftColumn.set_width(Math.round(130 * s));
-        divider.width = 1;
+        rootLayout.style = `padding: ${pad}px; spacing: ${colGap}px;`;
 
-        monthLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(11 * s)}px; font-weight: 800; opacity: 0.6;`;
-        weekdayLabel.style = `${fontCss}color: ${accentColor}; font-size: ${Math.round(16 * s)}px; font-weight: 700; margin-bottom: 2px;`;
-        bigDayLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(54 * s)}px; font-weight: 300; line-height: 1;`;
+        const leftWidth = Math.round(115 * s);
+        leftColumn.width = leftWidth;
+        leftColumn.set_width(leftWidth);
+       
+        monthLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(10.5 * s)}px; font-weight: 800; opacity: 0.6;`;
+        weekdayLabel.style = `${fontCss}color: ${accentColor}; font-size: ${Math.round(15 * s)}px; font-weight: 700; margin-bottom: 2px;`;
+        bigDayLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(52 * s)}px; font-weight: 300; line-height: 1;`;
 
         weatherIcon.icon_size = Math.round(16 * s);
         weatherTempLabel.style = `${fontCss}color: ${textColor}; font-size: ${Math.round(12 * s)}px; font-weight: 600;`;
 
-        // 2. Jobb oszlop kompakt cellamérete (nem nyújtjuk szét a végtelenbe)
-        const cellWidth = Math.round(25 * s);
+        // 2. Jobb oszlop: a fennmaradó hely teljes szélességét kitölti arányosan
+        const rightAvailableW = Math.max(140, currentWidth - (pad * 2) - leftWidth - colGap);
+        const cellWidth = Math.floor(rightAvailableW / 7);
         const cellHeight = Math.round(21 * s);
-        const gridTotalWidth = cellWidth * 7;
 
-        // A jobb oszlop teljes tartalma kerüljön vízszintesen középre a fennmaradó helyen:
-        rightColumn.set_x_align(Clutter.ActorAlign.CENTER);
-        rightColumn.width = gridTotalWidth;
+        rightColumn.set_x_align(Clutter.ActorAlign.FILL);
+        rightColumn.width = cellWidth * 7;
 
         state.weekdayCells.forEach(slot => {
             slot.width = cellWidth;
@@ -289,9 +299,9 @@ export function createCalendarWeatherNode(config, width, height, xPosition, yPos
 
         weekdaySlots.forEach((label, idx) => {
             const isTodayHeader = (idx === currentMondayIndex);
-            label.style = `${fontCss}font-size: ${Math.round(9 * s)}px; `
+            label.style = `${fontCss}font-size: ${Math.round(9.5 * s)}px; `
                 + `color: ${isTodayHeader ? accentColor : textColor}; `
-                + `font-weight: 700; opacity: ${isTodayHeader ? 1.0 : 0.4};`;
+                + `font-weight: 700; opacity: ${isTodayHeader ? 1.0 : 0.45};`;
         });
 
         daysGrid.style = `spacing: ${Math.round(2 * s)}px;`;

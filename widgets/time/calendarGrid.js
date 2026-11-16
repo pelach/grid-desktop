@@ -2,7 +2,7 @@ import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 import { resolveWidgetForegroundColor, resolveExplicitFontFamily, cssColorToRgba, resolveTextOnAccentColor } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, attachResponsiveScaler, connectTimerCleanup, startPollingTimer, MONTH_NAMES_ABBREVIATED as MONTH_NAMES } from '../../shell/widgetUIUtils.js';
+import { createWidgetContainer, attachResponsiveScaler, connectTimerCleanup, startPollingTimer } from '../../shell/widgetUIUtils.js';
 
 const REF_SIZE_PX = 200;
 const REF_PADDING_PX = 12;
@@ -13,7 +13,13 @@ const DAY_FONT_SIZE_PX = 11.5;
 const DATE_POLL_INTERVAL_MS = 60000;
 const ROW_GAP_PX = 3;
 
-const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const narrowWeekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'narrow' });
+const monthYearFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' });
+
+const WEEKDAY_LABELS = Array.from({ length: 7 }, (_, i) =>
+    narrowWeekdayFormatter.format(new Date(2024, 0, 1 + i)).toUpperCase()
+);
+
 const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const WEEKS_IN_GRID = 6;
 
@@ -120,7 +126,9 @@ export function createCalendarGridNode(config, width, height, xPosition, yPositi
         const month = now.get_month();
         const today = now.get_day_of_month();
 
-        headerLabel.text = `${MONTH_NAMES[month - 1]} ${year}`;
+        const headerDate = new Date(year, month - 1, 1);
+        const rawHeader = monthYearFormatter.format(headerDate);
+        headerLabel.text = rawHeader.charAt(0).toUpperCase() + rawHeader.slice(1);
 
         const firstDayCol = (GLib.DateTime.new_local(year, month, 1, 12, 0, 0).get_day_of_week() + 6) % 7;
         const daysInMonth = getDaysInMonth(year, month);
