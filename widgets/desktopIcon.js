@@ -17,7 +17,7 @@ export function createDesktopIconNode(data, w, h, x, y) {
     rootContainer.clip_to_allocation = false;
     rootContainer.reactive = true;
     rootContainer.can_focus = true;
-    rootContainer.track_hover = true;
+    
     
     if (typeof rootContainer.set_layout_manager === 'function') {
         rootContainer.set_layout_manager(new Clutter.BinLayout());
