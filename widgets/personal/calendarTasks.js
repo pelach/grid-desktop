@@ -378,6 +378,7 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
 
     let hasLoaded = false;
     let fallbackTimerId = null;
+    let initDelayTimerId = null;
     let mapSignalId = 0;
 
     const triggerInitialLoad = () => {
@@ -387,7 +388,8 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
     };
 
     if (container.get_stage() && container.is_mapped()) {
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        initDelayTimerId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            initDelayTimerId = null;
             triggerInitialLoad();
             return GLib.SOURCE_REMOVE;
         });
@@ -398,7 +400,8 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
                     container.disconnect(mapSignalId);
                     mapSignalId = 0;
                 }
-                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                initDelayTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                    initDelayTimerId = null;
                     triggerInitialLoad();
                     return GLib.SOURCE_REMOVE;
                 });
@@ -407,8 +410,8 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
     }
 
     fallbackTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-        triggerInitialLoad();
         fallbackTimerId = null;
+        triggerInitialLoad();
         return GLib.SOURCE_REMOVE;
     });
 
@@ -422,6 +425,10 @@ export function createCalendarTasksNode(config, width, height, xPosition, yPosit
         if (mapSignalId) {
             try { container.disconnect(mapSignalId); } catch (_) {}
             mapSignalId = 0;
+        }
+        if (initDelayTimerId) {
+            GLib.source_remove(initDelayTimerId);
+            initDelayTimerId = null;
         }
         if (fallbackTimerId) {
             GLib.source_remove(fallbackTimerId);

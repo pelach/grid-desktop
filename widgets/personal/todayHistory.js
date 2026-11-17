@@ -1,16 +1,17 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import Soup from 'gi://Soup';
+import Soup from 'gi://Soup?version=3.0';
 import Pango from 'gi://Pango';
 import {
     resolveWidgetForegroundColor,
     resolveExplicitFontFamily,
 } from '../../utils/widgetUtils.js';
-import { 
-    createWidgetContainer, 
-    registerWidgetCleanup, 
-    attachResponsiveScaler 
+import {
+    createWidgetContainer,
+    registerWidgetCleanup,
+    attachResponsiveScaler,
 } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
@@ -35,7 +36,7 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
     });
     container.add_child(mainLayout);
 
-    // ── 1. Fejléc: Ikon + Címke + Lapozó gombok ──
+    // ── 1. Fejléc ──
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -68,24 +69,15 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
         y_align: Clutter.ActorAlign.CENTER,
     });
 
-    const prevBtn = new St.Button({
-        label: '‹',
-        reactive: true,
-        can_focus: true,
-    });
-
-    const nextBtn = new St.Button({
-        label: '›',
-        reactive: true,
-        can_focus: true,
-    });
+    const prevBtn = new St.Button({ label: '‹', reactive: true, can_focus: true });
+    const nextBtn = new St.Button({ label: '›', reactive: true, can_focus: true });
 
     navBox.add_child(prevBtn);
     navBox.add_child(nextBtn);
     headerBox.add_child(navBox);
     mainLayout.add_child(headerBox);
 
-    // ── 2. Törzs: Görgethető eseményleírás ──
+    // ── 2. Törzs ──
     const scrollView = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
@@ -106,9 +98,7 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
         y_align: Clutter.ActorAlign.CENTER,
     });
 
-    const yearPill = new St.Label({
-        text: '----',
-    });
+    const yearPill = new St.Label({ text: '----' });
     yearRow.add_child(yearPill);
     bodyBox.add_child(yearRow);
 
@@ -121,27 +111,20 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
     descLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
     bodyBox.add_child(descLabel);
 
-    // ── 3. Lábléc: Forrás + Sorszámláló ──
+    // ── 3. Lábléc ──
     const footerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
         y_align: Clutter.ActorAlign.CENTER,
     });
 
-    const footerLabel = new St.Label({
-        text: 'Wikipedia',
-        x_expand: true,
-    });
-
-    const counterLabel = new St.Label({
-        text: '- / -',
-    });
+    const footerLabel = new St.Label({ text: 'Wikipedia', x_expand: true });
+    const counterLabel = new St.Label({ text: '- / -' });
 
     footerBox.add_child(footerLabel);
     footerBox.add_child(counterLabel);
     mainLayout.add_child(footerBox);
 
-    // ── Reszponzív skálázás (200x200 bázis) ──
     function applyScale(newScale) {
         scale = newScale;
 
@@ -168,7 +151,7 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
 
         const pillFontSize = Math.max(9, Math.round(10.5 * scale));
         yearPill.style = `${fontCss}font-size: ${pillFontSize}px; font-weight: bold; padding: 1px 6px; border-radius: 4px; background-color: #fed049; color: #1e1e24; margin-bottom: 2px;`;
-        
+
         const descFontSize = Math.max(11, Math.round(13.5 * scale));
         descLabel.style = `${fontCss}color: ${textColor}; font-size: ${descFontSize}px; line-height: 1.35; opacity: 0.92;`;
 
@@ -185,13 +168,15 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
         applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH_PX, h / BASE_CONTAINER_HEIGHT_PX)));
     });
 
-    // ── Állapotkezelés ──
     let eventsList = [];
     let currentIndex = 0;
     let isDisposed = false;
     let autoRotateSourceId = null;
+    const cancellable = new Gio.Cancellable();
+    const httpSession = new Soup.Session({ user_agent: 'GNOME-Shell-TodayHistoryWidget/1.0' });
 
     const renderCurrentEvent = () => {
+        if (isDisposed || isActorDestroyed(container)) return;
         if (!eventsList || eventsList.length === 0) {
             yearPill.set_text('----');
             descLabel.set_text('No historical events found for today.');
@@ -207,7 +192,7 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
         try {
             const adj = scrollView.vscroll?.adjustment || scrollView.vadjustment;
             if (adj) adj.set_value(0);
-        } catch (e) {}
+        } catch (_e) {}
     };
 
     const nextEvent = () => {
@@ -232,8 +217,8 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
         restartRotationTimer();
     });
 
-    // ── API Lekérés ──
     const fetchHistory = () => {
+        if (isDisposed || isActorDestroyed(container)) return;
         try {
             const now = GLib.DateTime.new_now_local();
             const mm = now.get_month().toString().padStart(2, '0');
@@ -250,31 +235,30 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
             footerLabel.set_text(`${dateStr} · Wikipedia (${language.toUpperCase()})`);
 
             const url = `https://${language}.wikipedia.org/api/rest_v1/feed/onthisday/${category}/${mm}/${dd}`;
-            const httpSession = new Soup.Session();
             const message = Soup.Message.new('GET', url);
-            message.request_headers.append('User-Agent', 'GNOME-Shell-TodayHistoryWidget/1.0');
 
-            httpSession.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (s, res) => {
+            httpSession.send_and_read_async(message, GLib.PRIORITY_DEFAULT, cancellable, (s, res) => {
+                if (isDisposed || cancellable.is_cancelled() || isActorDestroyed(container)) return;
                 try {
                     const bytes = s.send_and_read_finish(res);
-                    if (isDisposed || !bytes || isActorDestroyed(container)) return;
+                    if (!bytes || message.status_code !== 200) {
+                        descLabel.set_text('Failed to load events.');
+                        return;
+                    }
 
                     const jsonText = new TextDecoder().decode(bytes.get_data());
                     const data = JSON.parse(jsonText);
 
                     const rawList = data[category] || data.events || data.selected || [];
-                    if (Array.isArray(rawList) && rawList.length > 0) {
-                        eventsList = rawList;
-                        currentIndex = 0;
-                        renderCurrentEvent();
-                    } else {
-                        renderCurrentEvent();
-                    }
-                } catch (e) {
-                    descLabel.set_text('Failed to load events.');
+                    eventsList = Array.isArray(rawList) ? rawList : [];
+                    currentIndex = 0;
+                    renderCurrentEvent();
+                } catch (_e) {
+                    if (!isDisposed && !cancellable.is_cancelled())
+                        descLabel.set_text('Failed to load events.');
                 }
             });
-        } catch (e) {}
+        } catch (_e) {}
     };
 
     const restartRotationTimer = () => {
@@ -283,7 +267,10 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
             autoRotateSourceId = null;
         }
         autoRotateSourceId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 30, () => {
-            if (isDisposed) return GLib.SOURCE_REMOVE;
+            if (isDisposed || isActorDestroyed(container)) {
+                autoRotateSourceId = null;
+                return GLib.SOURCE_REMOVE;
+            }
             nextEvent();
             return GLib.SOURCE_CONTINUE;
         });
@@ -292,16 +279,27 @@ export function createTodayHistoryNode(config, width, height, xPosition, yPositi
     fetchHistory();
     restartRotationTimer();
 
-    const dayCheckTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3600, () => {
-        if (isDisposed) return GLib.SOURCE_REMOVE;
+    let dayCheckTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3600, () => {
+        if (isDisposed || isActorDestroyed(container)) {
+            dayCheckTimeoutId = null;
+            return GLib.SOURCE_REMOVE;
+        }
         fetchHistory();
         return GLib.SOURCE_CONTINUE;
     });
 
     registerWidgetCleanup(container, () => {
         isDisposed = true;
-        if (autoRotateSourceId) GLib.source_remove(autoRotateSourceId);
-        if (dayCheckTimeoutId) GLib.source_remove(dayCheckTimeoutId);
+        cancellable.cancel();
+        httpSession.abort();
+        if (autoRotateSourceId) {
+            GLib.source_remove(autoRotateSourceId);
+            autoRotateSourceId = null;
+        }
+        if (dayCheckTimeoutId) {
+            GLib.source_remove(dayCheckTimeoutId);
+            dayCheckTimeoutId = null;
+        }
     });
 
     return container;

@@ -4,11 +4,11 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
 
-import { 
-    resolveExplicitFontFamily, 
-    resolveWidgetForegroundColor 
+import {
+    resolveExplicitFontFamily,
+    resolveWidgetForegroundColor,
 } from '../../utils/widgetUtils.js';
-import { createWidgetContainer, attachResponsiveScaler, attachButtonFeedback } from '../../shell/widgetUIUtils.js';
+import { createWidgetContainer, attachResponsiveScaler, attachButtonFeedback, registerWidgetCleanup } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
 const BASE_CONTAINER_WIDTH_PX = 200;
@@ -21,6 +21,9 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
     let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
+    let isDisposed = false;
+    const cancellable = new Gio.Cancellable();
+    const httpSession = new Soup.Session({ user_agent: 'Mozilla/5.0' });
 
     const mainBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -29,7 +32,6 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
     });
     container.add_child(mainBox);
 
-    // ── 1. Fejléc: Steam Recent ──
     const headerRow = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         y_align: Clutter.ActorAlign.CENTER,
@@ -51,7 +53,6 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
     titleLabel.clutter_text.ellipsize = 0;
     headerRow.add_child(titleLabel);
 
-    // ── 2. Függőleges oszlop a fekvő bannereknek ──
     const cardsCol = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_align: Clutter.ActorAlign.FILL,
@@ -78,13 +79,11 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
         const cardWidth = Math.max(120, Math.round(currentContainerWidth - (pad * 2)));
         const cardHeight = Math.round(cardWidth * (215 / 460));
         const borderRadius = Math.round(8 * scale);
-
         return { cardWidth, cardHeight, borderRadius };
     }
 
     function updateCardSizes() {
         const { cardWidth, cardHeight, borderRadius } = getCardDimensions();
-
         const children = cardsCol.get_children();
         for (const child of children) {
             if (child instanceof St.Button) {
@@ -137,8 +136,9 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
         return btn;
     }
 
-    async function downloadFileAsync(session, url, targetFilePath) {
+    function downloadFileAsync(url, targetFilePath) {
         return new Promise((resolve) => {
+            if (isDisposed || cancellable.is_cancelled()) return resolve(false);
             const targetFile = Gio.File.new_for_path(targetFilePath);
             if (targetFile.query_exists(null)) {
                 return resolve(true);
@@ -146,9 +146,8 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
 
             try {
                 const message = Soup.Message.new('GET', url);
-                message.request_headers.append('User-Agent', 'Mozilla/5.0');
-
-                session.send_and_read_async(message, GLib.PRIORITY_LOW, null, (s, res) => {
+                httpSession.send_and_read_async(message, GLib.PRIORITY_LOW, cancellable, (s, res) => {
+                    if (isDisposed || cancellable.is_cancelled()) return resolve(false);
                     try {
                         const bytes = s.send_and_read_finish(res);
                         if (message.status_code === 200 && bytes && bytes.get_size() > 500) {
@@ -162,16 +161,16 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
                             resolve(true);
                             return;
                         }
-                    } catch {}
+                    } catch (_e) {}
                     resolve(false);
                 });
-            } catch {
+            } catch (_e) {
                 resolve(false);
             }
         });
     }
 
-    async function fetchRecentGames() {
+    function fetchRecentGames() {
         const rawId = (config.steamId || '').trim();
         if (!rawId) {
             statusLabel.text = 'No Steam ID configured';
@@ -180,46 +179,50 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
 
         const isNumeric = /^[0-9]+$/.test(rawId);
         const profileUrl = isNumeric
-            ? `https://steamcommunity.com/profiles/${rawId}/`
-            : `https://steamcommunity.com/id/${rawId}/`;
+            ? `https://steamcommunity.com/profiles/${rawId}/?xml=1`
+            : `https://steamcommunity.com/id/${rawId}/?xml=1`;
 
         const cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'grid-desktop', 'steam']);
         GLib.mkdir_with_parents(cacheDir, 0o755);
 
         try {
-            const session = new Soup.Session();
             const message = Soup.Message.new('GET', profileUrl);
-            message.request_headers.append('User-Agent', 'Mozilla/5.0');
-
-            session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, async (s, res) => {
-                if (isActorDestroyed(container)) return;
+            httpSession.send_and_read_async(message, GLib.PRIORITY_DEFAULT, cancellable, async (s, res) => {
+                if (isDisposed || cancellable.is_cancelled() || isActorDestroyed(container)) return;
 
                 try {
                     const bytes = s.send_and_read_finish(res);
-                    if (message.status_code !== 200 || !bytes) {
-                        statusLabel.text = 'Failed to load profile';
+                    const status = Number(message.status_code ?? message.get_status());
+                    if (status !== 200 || !bytes) {
+                        statusLabel.text = `Failed (${status})`;
                         return;
                     }
 
-                    const html = new TextDecoder('utf-8').decode(bytes.get_data());
-                    const matches = [...html.matchAll(/steam\/apps\/([0-9]+)/g)];
-                    const appIds = [...new Set(matches.map(m => m[1]))].slice(0, 4);
+                    const body = new TextDecoder('utf-8').decode(bytes.get_data());
+                    const xmlMatches = [...body.matchAll(/<appID>([0-9]+)<\/appID>/g)];
+                    const htmlMatches = [...body.matchAll(/steam\/apps\/([0-9]+)/g)];
+                    const rawIds = xmlMatches.length > 0
+                        ? xmlMatches.map(m => m[1])
+                        : htmlMatches.map(m => m[1]);
+                    const appIds = [...new Set(rawIds)].slice(0, 4);
 
                     if (appIds.length === 0) {
-                        statusLabel.text = 'No recent games found';
+                        statusLabel.text = body.includes('<privacyState>private')
+                            ? 'Steam profile is private'
+                            : 'No recent games found';
                         return;
                     }
 
                     const loadedBanners = [];
-
                     for (const id of appIds) {
+                        if (isDisposed || cancellable.is_cancelled()) return;
                         const imgPath = GLib.build_filenamev([cacheDir, `${id}_header.jpg`]);
                         const urlHeader = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`;
-                        
-                        let ok = await downloadFileAsync(session, urlHeader, imgPath);
-                        if (!ok) {
+
+                        let ok = await downloadFileAsync(urlHeader, imgPath);
+                        if (!ok && !isDisposed) {
                             const urlCapsule = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/capsule_184x69.jpg`;
-                            ok = await downloadFileAsync(session, urlCapsule, imgPath);
+                            ok = await downloadFileAsync(urlCapsule, imgPath);
                         }
 
                         if (ok && GLib.file_test(imgPath, GLib.FileTest.EXISTS)) {
@@ -227,7 +230,7 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
                         }
                     }
 
-                    if (isActorDestroyed(container)) return;
+                    if (isDisposed || cancellable.is_cancelled() || isActorDestroyed(container)) return;
 
                     if (loadedBanners.length === 0) {
                         statusLabel.text = 'Could not load banners';
@@ -236,18 +239,17 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
 
                     cardsCol.destroy_all_children();
                     for (const item of loadedBanners) {
-                        const bannerBtn = createBannerButton(item.id, item.imgPath);
-                        cardsCol.add_child(bannerBtn);
+                        cardsCol.add_child(createBannerButton(item.id, item.imgPath));
                     }
 
                     updateCardSizes();
-                } catch {
-                    if (!isActorDestroyed(container)) {
+                } catch (_e) {
+                    if (!isDisposed && !cancellable.is_cancelled() && !isActorDestroyed(container)) {
                         statusLabel.text = 'Error fetching games';
                     }
                 }
             });
-        } catch {
+        } catch (_e) {
             statusLabel.text = 'Failed to initialize request';
         }
     }
@@ -269,6 +271,12 @@ export function createSteamRecentNode(config, width, height, xPosition, yPositio
         cardsCol.style = `spacing: ${Math.round(12 * scale)}px;`;
         updateCardSizes();
     }
+
+    registerWidgetCleanup(container, () => {
+        isDisposed = true;
+        cancellable.cancel();
+        httpSession.abort();
+    });
 
     applyScale(scale, width);
     fetchRecentGames();

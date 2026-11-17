@@ -9,10 +9,11 @@ import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
 const BASE_CONTAINER_WIDTH_PX = 200;
 const BASE_CONTAINER_HEIGHT_PX = 200;
-
 const QUOTE_ROTATE_INTERVAL_SEC = 30;
 
 let quotesJsonPath = null;
+let cachedQuotes = null;
+
 try {
     const currentFilePath = Gio.File.new_for_uri(import.meta.url).get_path();
     const currentDir = GLib.path_get_dirname(currentFilePath);
@@ -28,6 +29,7 @@ export function createQuotesNode(config, width, height, xPosition, yPosition) {
     const fontCss = fontFamily ? `font-family: ${fontFamily}; ` : '';
 
     let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
+    let isDisposed = false;
 
     const outerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -55,45 +57,44 @@ export function createQuotesNode(config, width, height, xPosition, yPosition) {
     });
     outerBox.add_child(authorLabel);
 
-    const state = { timerId: null, refreshTimerId: null, cancellable: new Gio.Cancellable() };
-    let quotes = [];
+    const state = { refreshTimerId: null, cancellable: new Gio.Cancellable() };
 
-    function showQuote(quote) {
+    function showRandomQuote() {
+        if (isDisposed || isActorDestroyed(container) || !cachedQuotes || cachedQuotes.length === 0) return;
+        const quote = cachedQuotes[Math.floor(Math.random() * cachedQuotes.length)];
         quoteLabel.set_text(quote.text);
         authorLabel.set_text(`— ${quote.author}`);
     }
 
-    function fetchQuotes() {
+    function loadAndShowQuotes() {
+        if (cachedQuotes && cachedQuotes.length > 0) {
+            showRandomQuote();
+            return;
+        }
         if (!quotesJsonPath || !GLib.file_test(quotesJsonPath, GLib.FileTest.EXISTS)) {
             console.error('Quotes JSON file does not exist at:', quotesJsonPath);
             return;
         }
 
         const file = Gio.File.new_for_path(quotesJsonPath);
-
         file.load_contents_async(state.cancellable, (sourceFile, res) => {
-            if (isActorDestroyed(container)) return;
+            if (isDisposed || isActorDestroyed(container)) return;
             try {
                 const [success, contents] = sourceFile.load_contents_finish(res);
-                if (!success || !contents || contents.length === 0) {
-                    console.error('Failed to read quotes JSON or file is empty');
-                    return;
-                }
-
-                const raw = new TextDecoder().decode(contents);
-                quotes = JSON.parse(raw);
-
-                if (quotes && quotes.length > 0) {
-                    const quote = quotes[Math.floor(Math.random() * quotes.length)];
-                    showQuote(quote);
+                if (!success || !contents || contents.length === 0) return;
+                const parsed = JSON.parse(new TextDecoder().decode(contents));
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    cachedQuotes = parsed;
+                    showRandomQuote();
                 }
             } catch (err) {
-                console.error('Failed to parse local quotes JSON:', err);
+                if (!err.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    console.error('Failed to parse local quotes JSON:', err);
             }
         });
     }
 
-    fetchQuotes();
+    loadAndShowQuotes();
 
     function applyScale(newScale) {
         scale = newScale;
@@ -115,11 +116,16 @@ export function createQuotesNode(config, width, height, xPosition, yPosition) {
     });
 
     state.refreshTimerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, QUOTE_ROTATE_INTERVAL_SEC, () => {
-        fetchQuotes();
+        if (isDisposed || isActorDestroyed(container)) {
+            state.refreshTimerId = null;
+            return GLib.SOURCE_REMOVE;
+        }
+        showRandomQuote();
         return GLib.SOURCE_CONTINUE;
     });
 
     registerWidgetCleanup(container, () => {
+        isDisposed = true;
         if (state.refreshTimerId) {
             GLib.Source.remove(state.refreshTimerId);
             state.refreshTimerId = null;
