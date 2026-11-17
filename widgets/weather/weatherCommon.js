@@ -8,7 +8,6 @@ import { resolveWidgetBackgroundColor, resolveWidgetForegroundColor, resolveExpl
 import { isActorDestroyed, watchActorLifecycle } from '../../utils/actorLifecycle.js';
 import { resolveWidgetGlassHighlight } from '../../shell/widgetUIUtils.js';
 
-
 export const REFRESH_INTERVAL_SECONDS = 1800;
 export const FALLBACK_LOCATION = 'London';
 export const HTTP_STATUS_OK = 200;
@@ -24,18 +23,24 @@ const WEATHER_CACHE = new Map();
 const WEATHER_PROMISES = new Map();
 const CACHE_TTL_MS = 60 * 1000;
 
-async function fetchCachedJson(session, url) {
+let sharedWeatherSession = null;
+export function getSharedWeatherSession() {
+    if (!sharedWeatherSession)
+        sharedWeatherSession = new Soup.Session({ user_agent: 'grid-desktop-gnome' });
+    return sharedWeatherSession;
+}
+
+export async function fetchCachedJson(url, cancellable = null) {
     const now = Date.now();
     const cached = WEATHER_CACHE.get(url);
-    if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
+    if (cached && (now - cached.timestamp < CACHE_TTL_MS))
         return cached.data;
-    }
 
-    if (WEATHER_PROMISES.has(url)) {
+    if (WEATHER_PROMISES.has(url))
         return WEATHER_PROMISES.get(url);
-    }
 
-    const promise = fetchJsonAsync(session, url).then(data => {
+    const session = getSharedWeatherSession();
+    const promise = fetchJsonAsync(session, url, cancellable).then(data => {
         WEATHER_CACHE.set(url, { timestamp: Date.now(), data });
         WEATHER_PROMISES.delete(url);
         return data;
@@ -48,11 +53,18 @@ async function fetchCachedJson(session, url) {
     return promise;
 }
 
+export function buildOpenMeteoForecastUrl(latitude, longitude) {
+    return 'https://api.open-meteo.com/v1/forecast?latitude='
+        + `${latitude}&longitude=${longitude}`
+        + '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_gusts_10m,uv_index'
+        + '&past_days=1&forecast_days=6'
+        + '&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,precipitation,weather_code,surface_pressure,cloud_cover,wind_speed_10m,wind_gusts_10m,uv_index,is_day'
+        + '&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto';
+}
+
 const TEXT_COLOR_ON_LIGHT_BG = '#000000';
 const TEXT_COLOR_ON_DARK_BG = '#ffffff';
 
-
-// Font-family CSS or empty string to inherit the system theme font.
 export function buildFontCss(widgetData) {
     const fontFamily = resolveExplicitFontFamily(widgetData);
     return fontFamily ? `font-family: ${fontFamily}; ` : '';
@@ -61,7 +73,6 @@ export function buildFontCss(widgetData) {
 const decoder = new TextDecoder('utf-8');
 const MILLISECONDS_PER_SECOND = 1000;
 const LAYOUT_PADDING_PX = 12;
-// In-session cache of geocode coords keyed by location name.
 const GEOCODE_CACHE = new Map();
 const GEOCODE_CACHE_LIMIT = 32;
 
@@ -71,7 +82,6 @@ function cacheBounded(map, limit, key, value) {
     map.set(key, value);
 }
 
-// Configures an St.Label for multi-line wrapping with no ellipsization.
 export function configureWrappingLabel(label, alignment = Pango.Alignment.LEFT) {
     label.clutter_text.single_line_mode = false;
     label.clutter_text.line_wrap = true;
@@ -93,7 +103,6 @@ const WEATHER_CODE_THUNDERSTORMS_GROUP = [1087, 1273, 1276, 1279, 1282];
 const WEATHER_CODE_SNOW_BLIZZARD = 1117;
 const WEATHER_CODE_SNOW_GROUP = [1066, 1114, 1210, 1213, 1219, 1222, 1225];
 
-// Resolves code or text description to a standard WeatherAPI condition code.
 export function resolveConditionCode(code, text = '') {
     if (typeof code === 'number' && code > 0) return code;
     const lower = (text || '').toLowerCase();
@@ -111,31 +120,25 @@ export function resolveConditionCode(code, text = '') {
     return WEATHER_CODE_CLEAR;
 }
 
-/**
- * Megpróbálja kiolvasni a GNOME Shell beépített időjárás-helyszínét.
- * Visszaadja a város nevét (string), vagy null-t, ha nincs beállítva.
- */
+let _gnomeWeatherSettings = undefined;
 export function getGnomeDefaultWeatherCity() {
     try {
-        const weatherSettings = new Gio.Settings({ schema_id: 'org.gnome.shell.weather' });
-        const locations = weatherSettings.get_value('locations').deep_unpack();
-
-        if (locations && locations.length > 0) {
-            // A locations GVariant egy szerializált GWeather.Location objektumokat tartalmazó lista
-            // Az első bejegyzésből kibontható a helyszín neve:
-            const firstLoc = locations[0];
-            // GNOME alatt a szerializált struktúra 1. indexén található a városnév (vagy címke)
-            if (Array.isArray(firstLoc) && firstLoc[0]) {
-                return firstLoc[0];
-            }
+        if (_gnomeWeatherSettings === undefined) {
+            const schemaSource = Gio.SettingsSchemaSource.get_default();
+            const schema = schemaSource?.lookup('org.gnome.shell.weather', true);
+            _gnomeWeatherSettings = schema ? new Gio.Settings({ settings_schema: schema }) : null;
         }
-    } catch (e) {
-        // Ha nem érhető el a séma vagy még nincs város beállítva a tálcán
-    }
+        if (!_gnomeWeatherSettings) return null;
+
+        const locations = _gnomeWeatherSettings.get_value('locations').deep_unpack();
+        if (locations && locations.length > 0 && Array.isArray(locations[0]) && locations[0][0]) {
+            return locations[0][0];
+        }
+    } catch (_e) {}
     return null;
 }
-let _extSettingsCache = null;
 
+let _extSettingsCache = null;
 export function getExtensionSettings() {
     if (_extSettingsCache) return _extSettingsCache;
     try {
@@ -150,10 +153,11 @@ export function getExtensionSettings() {
             _extSettingsCache = new Gio.Settings({ settings_schema: schema });
             return _extSettingsCache;
         }
-    } catch (e) {}
+    } catch (_e) {}
     return null;
 }
 
+let _ifaceSettingsCache = undefined;
 export function resolveUse24Hour(widgetData) {
     if (widgetData?.use24Hour !== undefined) return Boolean(widgetData.use24Hour);
     if (widgetData?.globalUse24Hour !== undefined) return Boolean(widgetData.globalUse24Hour);
@@ -163,13 +167,15 @@ export function resolveUse24Hour(widgetData) {
     if (extSettings) {
         try {
             return extSettings.get_boolean('time-format-24h');
-        } catch (e) {}
+        } catch (_e) {}
     }
 
     try {
-        const iface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
-        return iface.get_string('clock-format') === '24h';
-    } catch (e) {
+        if (_ifaceSettingsCache === undefined) {
+            _ifaceSettingsCache = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
+        }
+        return _ifaceSettingsCache.get_string('clock-format') === '24h';
+    } catch (_e) {
         return true;
     }
 }
@@ -187,7 +193,6 @@ export function getWeatherAssets(extensionPath, code, isDay, folderName = '3x3',
         bgEnd: DEFAULT_BG_COLOR,
         bgImagePath: '',
     };
-
 
     if (effectiveCode === WEATHER_CODE_CLEAR) {
         assets.iconPath = isDay ? getIconPath('clear-day') : getIconPath('clear-night');
@@ -288,7 +293,6 @@ export function createFallbackIcon(extensionPath) {
     });
 }
 
-// Resolves the effective layout variant with the same rule the widget factory uses.
 export function resolveWeatherLayoutVariant(widgetData) {
     if (!widgetData) return 'standard';
 
@@ -301,7 +305,6 @@ export function resolveWeatherLayoutVariant(widgetData) {
 
     if (widgetData.layout) return widgetData.layout;
 
-    // Fallback csak akkor, ha nincs típus vagy layout beállítva:
     const w = widgetData.width || 4;
     const h = widgetData.height || 4;
 
@@ -312,8 +315,6 @@ export function resolveWeatherLayoutVariant(widgetData) {
 
 export function getAssetSizeForWidget(widgetData) {
     const layoutVariant = resolveWeatherLayoutVariant(widgetData);
-    // A fekvő/széles forecast és a nagy rácsos bars / simple a 4x6-os hátteret kéri,
-    // a standard és a négyzetes kártyák a 3x3-as mappából kapják a képeket:
     if (layoutVariant === 'forecast' || layoutVariant === 'bars') {
         return '4x6';
     }
@@ -325,10 +326,10 @@ export function updateHourlyForecastUi(json, uiElements, currentEpoch, extension
         return;
 
     let allHours = [];
-    if (json.forecast.forecastday.length > 0 && json.forecast.forecastday[0].hour)
-        allHours = allHours.concat(json.forecast.forecastday[0].hour);
-    if (json.forecast.forecastday.length > 1 && json.forecast.forecastday[1].hour)
-        allHours = allHours.concat(json.forecast.forecastday[1].hour);
+    for (const dayEntry of json.forecast.forecastday) {
+        if (dayEntry?.hour)
+            allHours = allHours.concat(dayEntry.hour);
+    }
 
     const currentHourStr = json.current ? json.current.last_updated_hour : null;
     let futureHours;
@@ -404,12 +405,12 @@ export function updateDailyForecastUi(json, uiElements, extensionPath, useFahren
     const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 
     const forecastDays = json.forecast.forecastday;
-    // Skip today to display the upcoming 5 days
-    const displayDays = forecastDays.length > 1 ? forecastDays.slice(1, 6) : forecastDays.slice(0, 5);
+    const todayStr = json.current?.last_updated_hour?.slice(0, 10);
+    const futureDays = todayStr ? forecastDays.filter(d => d.date > todayStr) : forecastDays.slice(1);
+    const displayDays = (futureDays.length > 0 ? futureDays : forecastDays).slice(0, 5);
 
     if (displayDays.length === 0) return;
 
-    // Global min and max to normalize the bar ranges
     let globalMin = Math.min(...displayDays.map(d => useFahrenheit ? d.day.mintemp_f : d.day.mintemp_c));
     let globalMax = Math.max(...displayDays.map(d => useFahrenheit ? d.day.maxtemp_f : d.day.maxtemp_c));
     if (globalMin === globalMax) globalMax += 1;
@@ -422,7 +423,6 @@ export function updateDailyForecastUi(json, uiElements, extensionPath, useFahren
         const minVal = useFahrenheit ? dayData.day.mintemp_f : dayData.day.mintemp_c;
         const maxVal = useFahrenheit ? dayData.day.maxtemp_f : dayData.day.maxtemp_c;
 
-        // 1. Day of week
         let dayName = '--';
         if (dayData.date) {
             const dateObj = new Date(dayData.date + 'T00:00:00');
@@ -431,26 +431,12 @@ export function updateDailyForecastUi(json, uiElements, extensionPath, useFahren
         }
         actor.dayLabel.text = dayName;
 
-        // 2. Condition Icon
         const condCode = resolveConditionCode(dayData.day.condition ? dayData.day.condition.code : null);
         const assets = getWeatherAssets(extensionPath, condCode, true, folderName, dayData.day.condition ? dayData.day.condition.text : '');
         actor.icon.gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(assets.iconPath) });
 
-        // 3. Min/Max Labels
         actor.minLabel.text = `${Math.round(minVal)}°`;
         actor.maxLabel.text = `${Math.round(maxVal)}°`;
-
-        // 4. Dynamic bar positioning and width calculation
-        let barWidth = actor.barBg ? actor.barBg.width : 0;
-        if (barWidth <= 0 && actor.barBg) {
-            barWidth = actor.barBg.get_allocation_box().get_width();
-        }
-        if (barWidth <= 0) {
-            barWidth = 60;
-        }
-
-        let activeLeft = 0;
-        let activeWidth = 8;
 
         if (totalRange > 0 && Number.isFinite(minVal) && Number.isFinite(maxVal)) {
             const leftRatio = Math.max(0, Math.min(1, (minVal - globalMin) / totalRange));
@@ -461,10 +447,8 @@ export function updateDailyForecastUi(json, uiElements, extensionPath, useFahren
             actor._leftRatio = 0;
             actor._widthRatio = 0.2;
         }
-        
 
         refreshDailyBarGeometry(actor);
-
     });
 }
 
@@ -472,7 +456,10 @@ export function updateTextLabels(json, uiElements, useFahrenheit) {
     const current = json.current;
     if (!current) return;
 
-    const forecast = (json.forecast && json.forecast.forecastday && json.forecast.forecastday[0]) ? json.forecast.forecastday[0].day : null;
+    const todayStr = current.last_updated_hour?.slice(0, 10);
+    const forecastDays = json.forecast?.forecastday || [];
+    const todayForecast = (todayStr ? forecastDays.find(d => d.date === todayStr) : null) || forecastDays[0];
+    const forecast = todayForecast ? todayForecast.day : null;
     const unit = useFahrenheit ? '°F' : '°C';
 
     const currentTemp = useFahrenheit ? current.temp_f : current.temp_c;
@@ -505,17 +492,15 @@ export function updateWidgetStyle(widgetNode, bgImageActor, widgetData, assets, 
     }
 
     const glassHighlight = resolveWidgetGlassHighlight(widgetData);
-    
     const fontCss = buildFontCss(widgetData);
     const baseStyle = buildBaseWidgetStyle(widgetData);
 
     if (isDynamicColor) {
         const bgEnd = assets.bgEnd || assets.bgStart;
-        
         const textColor = isDarkBackgroundColor(assets.bgStart || DEFAULT_BG_COLOR)
             ? TEXT_COLOR_ON_DARK_BG
             : TEXT_COLOR_ON_LIGHT_BG;
-        
+
         widgetNode.style = `background-gradient-direction: vertical; `
             + `background-gradient-start: ${assets.bgStart}; `
             + `background-gradient-end: ${bgEnd}; `
@@ -539,7 +524,6 @@ export function updateWidgetStyle(widgetNode, bgImageActor, widgetData, assets, 
             ? Math.round(rawRadius)
             : DEFAULT_WEATHER_BORDER_RADIUS_PX;
 
-        // Csak a Clutter St által ténylegesen támogatott tulajdonságokat adjuk át:
         bgImageActor.style = `background-image: url("${assets.bgImagePath}"); `
             + `border-radius: ${borderRadius}px;`;
         bgImageActor.show();
@@ -569,7 +553,7 @@ export function updateWeatherUi(json, context) {
 
     updateHourlyForecastUi(json, uiElements, json.current.last_updated_epoch, extensionPath, useFahrenheit, folderName, use24Hour);
     updateDailyForecastUi(json, uiElements, extensionPath, useFahrenheit, folderName);
-    
+
     if (uiElements && uiElements.isCardsLayout && typeof uiElements.updateCards === 'function') {
         uiElements.updateCards(json, useFahrenheit);
     }
@@ -609,18 +593,17 @@ function wmoToWeatherApiCode(wmo) {
     return 1000;
 }
 
-function fetchJsonAsync(session, url) {
+function fetchJsonAsync(session, url, cancellable = null) {
     return new Promise((resolve, reject) => {
         const message = Soup.Message.new('GET', url);
-        session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (s, res) => {
+        session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, cancellable, (s, res) => {
             try {
                 const bytes = s.send_and_read_finish(res);
-                
-                // Biztonságos státuszkód-lekérés (elkerüli a Soup.Status enum crasht 429-nél):
+
                 let statusCode = 0;
                 try {
                     statusCode = Number(message.status_code ?? message.get_status());
-                } catch (e) {
+                } catch (_e) {
                     statusCode = 429;
                 }
 
@@ -635,10 +618,10 @@ function fetchJsonAsync(session, url) {
         });
     });
 }
-// Fetches Open-Meteo free API fallback data when WeatherAPI key is missing.
+
 export async function fetchOpenMeteoFallback(locationName, context) {
     const { widgetNode } = context;
-    if (isActorDestroyed(widgetNode) || !widgetNode.weatherSession) return;
+    if (isActorDestroyed(widgetNode)) return;
 
     try {
         const cached = GEOCODE_CACHE.get(locationName);
@@ -648,7 +631,7 @@ export async function fetchOpenMeteoFallback(locationName, context) {
         }
 
         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName)}&count=1&language=en&format=json`;
-        const geoJson = await fetchJsonAsync(widgetNode.weatherSession, geoUrl);
+        const geoJson = await fetchCachedJson(geoUrl);
 
         if (isActorDestroyed(widgetNode) || !geoJson.results || geoJson.results.length === 0) return;
         const { latitude, longitude, name } = geoJson.results[0];
@@ -661,64 +644,68 @@ export async function fetchOpenMeteoFallback(locationName, context) {
     }
 }
 
-// Clears the geocoding cache; called from the extension's disable().
 export function clearGeocodeCache() {
     GEOCODE_CACHE.clear();
+    WEATHER_CACHE.clear();
+    WEATHER_PROMISES.clear();
 }
 
 async function fetchOpenMeteoWeather({ latitude, longitude, name }, context) {
     const { widgetNode, uiElements } = context;
-    if (isActorDestroyed(widgetNode) || !widgetNode.weatherSession) return;
+    if (isActorDestroyed(widgetNode)) return;
 
     try {
-        const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude='
-            + `${latitude}&longitude=${longitude}`
-            + '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_gusts_10m,uv_index'
-            + '&forecast_days=6'
-            + '&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,precipitation,weather_code,surface_pressure,cloud_cover,wind_speed_10m,wind_gusts_10m,uv_index,is_day'
-            + '&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto';
-      
+        const weatherUrl = buildOpenMeteoForecastUrl(latitude, longitude);
         const metric = (context.widgetData?.weatherMetric || '').toLowerCase();
         const needsAqi = (uiElements && uiElements.aqiCard) || metric === 'aqi';
 
-        const requests = [fetchCachedJson(widgetNode.weatherSession, weatherUrl)];
-
+        const requests = [fetchCachedJson(weatherUrl)];
         if (needsAqi) {
             const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&current=us_aqi&hourly=us_aqi&timezone=auto`;
-            requests.push(fetchCachedJson(widgetNode.weatherSession, aqiUrl).catch(() => null));
+            requests.push(fetchCachedJson(aqiUrl).catch(() => null));
         }
 
         const [wJson, aqiJson] = await Promise.all(requests);
 
-        if (isActorDestroyed(widgetNode) || (!wJson.current && !wJson.current_weather)) return;
+        if (isActorDestroyed(widgetNode) || !wJson.current) return;
 
-        const currentCode = wJson.current?.weather_code 
-            ?? wJson.current_weather?.weathercode 
-            ?? (wJson.hourly?.weather_code ? wJson.hourly.weather_code[0] : 0);
+        const cur = wJson.current || {};
+        const h = wJson.hourly || {};
+
+        let curHourIdx = 0;
+        if (h.time && cur.time) {
+            const curTimePrefix = cur.time.slice(0, 13);
+            const foundIdx = h.time.findIndex(t => t.startsWith(curTimePrefix));
+            if (foundIdx !== -1) curHourIdx = foundIdx;
+        }
+
+        const currentCode = cur.weather_code ?? (h.weather_code ? h.weather_code[curHourIdx] : 0);
         const mappedCode = wmoToWeatherApiCode(currentCode);
         const conditionText = getWmoConditionText(currentCode);
 
         const utcOffsetSeconds = wJson.utc_offset_seconds || 0;
-        const nowUtcMs = Date.now();
-        const nowLocationMs = nowUtcMs + (utcOffsetSeconds * MILLISECONDS_PER_SECOND);
+        const nowLocationMs = Date.now() + (utcOffsetSeconds * MILLISECONDS_PER_SECOND);
         const nowDate = new Date(nowLocationMs);
         const pad2 = (n) => String(n).padStart(2, '0');
         const nowLocationHourStr =
             `${nowDate.getUTCFullYear()}-${pad2(nowDate.getUTCMonth() + 1)}-${pad2(nowDate.getUTCDate())}` +
             `T${pad2(nowDate.getUTCHours())}`;
 
+        const curTemp = cur.temperature_2m ?? (h.temperature_2m ? h.temperature_2m[curHourIdx] : 0);
+        const curIsDay = cur.is_day ?? 1;
+
         const dailyGroups = new Map();
-        if (wJson.hourly && wJson.hourly.time && wJson.hourly.temperature_2m) {
-            wJson.hourly.time.forEach((timeStr, i) => {
-                const code = (wJson.hourly.weathercode && wJson.hourly.weathercode[i] !== undefined) ? wJson.hourly.weathercode[i] : currentCode;
-                const isDay = wJson.hourly.is_day && wJson.hourly.is_day[i] !== undefined
-                    ? (wJson.hourly.is_day[i] === 1 || wJson.hourly.is_day[i] === true)
-                    : (wJson.current_weather.is_day === 1 || wJson.current_weather.is_day === true);
+        if (h.time && h.temperature_2m) {
+            h.time.forEach((timeStr, i) => {
+                const code = (h.weather_code && h.weather_code[i] !== undefined) ? h.weather_code[i] : currentCode;
+                const isDay = (h.is_day && h.is_day[i] !== undefined)
+                    ? (h.is_day[i] === 1 || h.is_day[i] === true)
+                    : (curIsDay === 1 || curIsDay === true);
                 const hourEntry = {
                     time_epoch: Math.floor(new Date(timeStr).getTime() / 1000),
                     time_str: timeStr,
-                    temp_c: wJson.hourly.temperature_2m[i],
-                    temp_f: celsiusToFahrenheit(wJson.hourly.temperature_2m[i]),
+                    temp_c: h.temperature_2m[i],
+                    temp_f: celsiusToFahrenheit(h.temperature_2m[i]),
                     is_day: isDay,
                     condition: {
                         code: wmoToWeatherApiCode(code),
@@ -734,10 +721,10 @@ async function fetchOpenMeteoWeather({ latitude, longitude, name }, context) {
         }
 
         const forecastday = (wJson.daily && wJson.daily.time) ? wJson.daily.time.map((dayKey, dayIndex) => {
-            const dayHigh = wJson.daily.temperature_2m_max[dayIndex] ?? wJson.current_weather.temperature;
-            const dayLow = wJson.daily.temperature_2m_min[dayIndex] ?? wJson.current_weather.temperature;
-            const dailyCode = (wJson.daily.weathercode && wJson.daily.weathercode[dayIndex] !== undefined)
-                ? wJson.daily.weathercode[dayIndex]
+            const dayHigh = wJson.daily.temperature_2m_max[dayIndex] ?? curTemp;
+            const dayLow = wJson.daily.temperature_2m_min[dayIndex] ?? curTemp;
+            const dailyCode = (wJson.daily.weather_code && wJson.daily.weather_code[dayIndex] !== undefined)
+                ? wJson.daily.weather_code[dayIndex]
                 : currentCode;
 
             return {
@@ -756,43 +743,24 @@ async function fetchOpenMeteoWeather({ latitude, longitude, name }, context) {
             };
         }) : [];
 
-        let curHourIdx = 0;
-        if (wJson.hourly && wJson.hourly.time) {
-            const curTime = wJson.current?.time || wJson.current_weather?.time;
-            if (curTime) {
-                const curTimePrefix = curTime.slice(0, 13);
-                const foundIdx = wJson.hourly.time.findIndex(t => t.startsWith(curTimePrefix));
-                if (foundIdx !== -1) curHourIdx = foundIdx;
-            }
-        }
-
-        const cur = wJson.current || {};
-        const h = wJson.hourly || {};
-
-        const curTemp = cur.temperature_2m ?? cur.temperature ?? wJson.current_weather?.temperature ?? (h.temperature_2m ? h.temperature_2m[curHourIdx] : null);
         const curFeelsLike = cur.apparent_temperature ?? (h.apparent_temperature ? h.apparent_temperature[curHourIdx] : null);
-        const curHumidity = cur.relative_humidity_2m ?? cur.humidity ?? (h.relative_humidity_2m ? h.relative_humidity_2m[curHourIdx] : null);
+        const curHumidity = cur.relative_humidity_2m ?? (h.relative_humidity_2m ? h.relative_humidity_2m[curHourIdx] : null);
         const curUv = cur.uv_index ?? (h.uv_index ? h.uv_index[curHourIdx] : null);
-        const curWind = cur.wind_speed_10m ?? cur.windspeed ?? wJson.current_weather?.windspeed ?? (h.wind_speed_10m ? h.wind_speed_10m[curHourIdx] : (h.windspeed_10m ? h.windspeed_10m[curHourIdx] : null));
+        const curWind = cur.wind_speed_10m ?? (h.wind_speed_10m ? h.wind_speed_10m[curHourIdx] : null);
         const curPressure = cur.surface_pressure ?? (h.surface_pressure ? h.surface_pressure[curHourIdx] : null);
         const curGusts = cur.wind_gusts_10m ?? (h.wind_gusts_10m ? h.wind_gusts_10m[curHourIdx] : null);
-        const curDewPoint = (h.dew_point_2m ? h.dew_point_2m[curHourIdx] : null);
+        const curDewPoint = h.dew_point_2m ? h.dew_point_2m[curHourIdx] : null;
         const curCloud = cur.cloud_cover ?? (h.cloud_cover ? h.cloud_cover[curHourIdx] : null);
         const curPrecip = cur.precipitation ?? (h.precipitation ? h.precipitation[curHourIdx] : 0);
 
-        const resolvedHumidity = wJson.current?.relative_humidity_2m 
-            ?? wJson.current?.humidity 
-            ?? (wJson.hourly?.relative_humidity_2m ? wJson.hourly.relative_humidity_2m[curHourIdx] : null);
-
-        const resolvedUv = wJson.current?.uv_index 
-            ?? (wJson.hourly?.uv_index ? wJson.hourly.uv_index[curHourIdx] : null);
+        const trendSliceEnd = Math.min(h.time ? h.time.length : 48, curHourIdx + 24);
 
         const mapped = {
             location: { name },
             current: {
                 temp_c: curTemp,
                 temp_f: curTemp !== null ? celsiusToFahrenheit(curTemp) : null,
-                is_day: cur.is_day ?? wJson.current_weather?.is_day ?? 1,
+                is_day: curIsDay,
                 humidity: curHumidity,
                 uv_index: curUv,
                 windspeed: curWind,
@@ -811,16 +779,16 @@ async function fetchOpenMeteoWeather({ latitude, longitude, name }, context) {
             },
             forecast: { forecastday },
             hourly_trends: {
-                humidity: h.relative_humidity_2m ? h.relative_humidity_2m.slice(0, 24) : [],
-                uv: h.uv_index ? h.uv_index.slice(0, 24) : [],
-                wind: (h.wind_speed_10m || h.windspeed_10m) ? (h.wind_speed_10m || h.windspeed_10m).slice(0, 24) : [],
-                aqi: (aqiJson && aqiJson.hourly && aqiJson.hourly.us_aqi) ? aqiJson.hourly.us_aqi.slice(0, 24) : [],
-                pressure: h.surface_pressure ? h.surface_pressure.slice(0, 24) : [],
-                feels_like: h.apparent_temperature ? h.apparent_temperature.slice(0, 24) : [],
-                gusts: h.wind_gusts_10m ? h.wind_gusts_10m.slice(0, 24) : [],
-                dew_point: h.dew_point_2m ? h.dew_point_2m.slice(0, 24) : [],
-                cloud: h.cloud_cover ? h.cloud_cover.slice(0, 24) : [],
-                precipitation: h.precipitation ? h.precipitation.slice(0, 24) : [],
+                humidity: h.relative_humidity_2m ? h.relative_humidity_2m.slice(curHourIdx, trendSliceEnd) : [],
+                uv: h.uv_index ? h.uv_index.slice(curHourIdx, trendSliceEnd) : [],
+                wind: h.wind_speed_10m ? h.wind_speed_10m.slice(curHourIdx, trendSliceEnd) : [],
+                aqi: (aqiJson?.hourly?.us_aqi) ? aqiJson.hourly.us_aqi.slice(curHourIdx, trendSliceEnd) : [],
+                pressure: h.surface_pressure ? h.surface_pressure.slice(curHourIdx, trendSliceEnd) : [],
+                feels_like: h.apparent_temperature ? h.apparent_temperature.slice(curHourIdx, trendSliceEnd) : [],
+                gusts: h.wind_gusts_10m ? h.wind_gusts_10m.slice(curHourIdx, trendSliceEnd) : [],
+                dew_point: h.dew_point_2m ? h.dew_point_2m.slice(curHourIdx, trendSliceEnd) : [],
+                cloud: h.cloud_cover ? h.cloud_cover.slice(curHourIdx, trendSliceEnd) : [],
+                precipitation: h.precipitation ? h.precipitation.slice(curHourIdx, trendSliceEnd) : [],
             },
         };
 
@@ -836,19 +804,11 @@ export function fetchWeatherViaOpenMeteo(context) {
     if (isActorDestroyed(widgetNode)) return;
 
     const gnomeCity = getGnomeDefaultWeatherCity();
-    const location = widgetData.location || widgetData.globalWeatherCity || gnomeCity || FALLBACK_LOCATION; //[: 4]
-
-    if (!widgetNode.weatherSession) {
-        widgetNode.weatherSession = new Soup.Session();
-    }
+    const location = widgetData.location || widgetData.globalWeatherCity || gnomeCity || FALLBACK_LOCATION;
 
     fetchOpenMeteoFallback(location, context);
 }
 
-// Aborts the widget's weather session; pairs with the session created above.
-export function releaseWeatherSession(widgetNode) {
-    if (widgetNode.weatherSession) {
-        widgetNode.weatherSession.abort();
-        widgetNode.weatherSession = null;
-    }
+export function releaseWeatherSession(_widgetNode) {
+    // Megosztott sessiont használunk, így widgetenként nincs mit bontani.
 }

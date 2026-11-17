@@ -3,18 +3,18 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Clutter from 'gi://Clutter';
 import Cairo from 'gi://cairo';
-import Soup from 'gi://Soup?version=3.0';
 import { CAIRO_OPERATOR_CLEAR, CAIRO_OPERATOR_OVER, SECONDARY_OPACITY, cssColorToRgba, parseCssColor, resolveExplicitFontFamily, resolveWidgetForegroundColor } from '../../utils/widgetUtils.js';
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler, startPollingTimer, connectTimerCleanup } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
+import { buildOpenMeteoForecastUrl, fetchCachedJson } from './weatherCommon.js';
 
 const BASE_CONTAINER_WIDTH_PX = 200;
 const BASE_CONTAINER_HEIGHT_PX = 200;
 const CONTAINER_PADDING_V_PX = 12;
 const CONTAINER_PADDING_H_PX = 12;
-const HEADER_FONT_SIZE_PX = 14;       // 12.5 helyett
-const TIME_FONT_SIZE_PX = 15;         // 13.5 helyett
-const STATUS_FONT_SIZE_PX = 11;       // 9.5 helyett
+const HEADER_FONT_SIZE_PX = 14;
+const TIME_FONT_SIZE_PX = 15;
+const STATUS_FONT_SIZE_PX = 11;
 const METRIC_ICON_SIZE_PX = 18;
 const ARC_MARGIN_X_RATIO = 0.08;
 const ARC_BASE_PADDING_RATIO = 0.16;
@@ -31,8 +31,6 @@ const SUNSET_ICON_NAME = 'daytime-sunset-symbolic';
 
 const UI_TICK_INTERVAL_MS = 30000;
 const SCHEDULE_REFRESH_SECONDS = 6 * 3600;
-const HTTP_STATUS_OK = 200;
-const decoder = new TextDecoder();
 
 function nowMinutesOfDay() {
     const now = GLib.DateTime.new_now_local();
@@ -110,8 +108,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
     let offsetShiftMinutes = 0;
 
     const state = { timerId: null, refreshTimerId: null, cancellable: new Gio.Cancellable() };
-    const session = new Soup.Session();
-
     const hasLocation = Number.isFinite(config.latitude) && Number.isFinite(config.longitude);
 
     const mainBox = new St.BoxLayout({
@@ -276,7 +272,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
             ctx.arc(orbX, orbY, orbRadius, 0, 2 * Math.PI);
             ctx.fill();
         }
-        ctx.$dispose();
     }
 
     if (container.mapped) {
@@ -289,105 +284,95 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
         });
     }
 
-    function fetchSchedule() {
+    async function fetchSchedule() {
         if (!hasLocation || isActorDestroyed(container)) return;
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${config.latitude}`
-            + `&longitude=${config.longitude}&daily=sunrise,sunset&timezone=auto&forecast_days=3&previous_day=1`;
-        const message = Soup.Message.new('GET', url);
-        session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, state.cancellable, (sourceObject, result) => {
-            if (isActorDestroyed(container)) return;
-            try {
-                if (message.get_status() !== HTTP_STATUS_OK) return;
-                const bytes = sourceObject.send_and_read_finish(result);
-                if (!bytes || bytes.get_size() === 0) return;
-                const payload = JSON.parse(decoder.decode(bytes.get_data()));
-                const daily = payload && payload.daily ? payload.daily : {};
+        try {
+            const url = buildOpenMeteoForecastUrl(config.latitude, config.longitude);
+            const payload = await fetchCachedJson(url, state.cancellable);
+            if (isActorDestroyed(container) || !payload) return;
 
-                const locationOffsetSeconds = Number.isFinite(payload.utc_offset_seconds)
-                    ? payload.utc_offset_seconds
-                    : systemUtcOffsetSeconds();
-                offsetShiftMinutes = (locationOffsetSeconds - systemUtcOffsetSeconds()) / 60;
+            const daily = payload.daily || {};
 
-                const now = nowInLocationMinutes(offsetShiftMinutes);
-                const todayStr = todayLocationDateStr(offsetShiftMinutes);
+            const locationOffsetSeconds = Number.isFinite(payload.utc_offset_seconds)
+                ? payload.utc_offset_seconds
+                : systemUtcOffsetSeconds();
+            offsetShiftMinutes = (locationOffsetSeconds - systemUtcOffsetSeconds()) / 60;
 
-                let lastSunrise = null;
-                for (let i = daily.sunrise ? daily.sunrise.length - 1 : -1; i >= 0; i--) {
-                    const riseMin = isoToMinutes(daily.sunrise[i]);
-                    const riseDate = isoToDateString(daily.sunrise[i]);
-                    if (riseMin === null || riseDate === null) continue;
-                    if (riseDate < todayStr || (riseDate === todayStr && riseMin <= now)) {
-                        lastSunrise = {dateStr: riseDate, minutes: riseMin};
-                        break;
-                    }
+            const now = nowInLocationMinutes(offsetShiftMinutes);
+            const todayStr = todayLocationDateStr(offsetShiftMinutes);
+
+            let lastSunrise = null;
+            for (let i = daily.sunrise ? daily.sunrise.length - 1 : -1; i >= 0; i--) {
+                const riseMin = isoToMinutes(daily.sunrise[i]);
+                const riseDate = isoToDateString(daily.sunrise[i]);
+                if (riseMin === null || riseDate === null) continue;
+                if (riseDate < todayStr || (riseDate === todayStr && riseMin <= now)) {
+                    lastSunrise = { dateStr: riseDate, minutes: riseMin };
+                    break;
                 }
+            }
 
-                let nextSunset = null;
-                for (let i = 0; i < (daily.sunset ? daily.sunset.length : 0); i++) {
-                    const setMin = isoToMinutes(daily.sunset[i]);
-                    const setDate = isoToDateString(daily.sunset[i]);
-                    if (setMin === null || setDate === null) continue;
-                    if (setDate > todayStr || (setDate === todayStr && setMin > now)) {
-                        nextSunset = {dateStr: setDate, minutes: setMin};
-                        break;
-                    }
+            let nextSunset = null;
+            for (let i = 0; i < (daily.sunset ? daily.sunset.length : 0); i++) {
+                const setMin = isoToMinutes(daily.sunset[i]);
+                const setDate = isoToDateString(daily.sunset[i]);
+                if (setMin === null || setDate === null) continue;
+                if (setDate > todayStr || (setDate === todayStr && setMin > now)) {
+                    nextSunset = { dateStr: setDate, minutes: setMin };
+                    break;
                 }
+            }
 
-                let nextSunrise = null;
-                for (let i = 0; i < (daily.sunrise ? daily.sunrise.length : 0); i++) {
-                    const riseMin = isoToMinutes(daily.sunrise[i]);
-                    const riseDate = isoToDateString(daily.sunrise[i]);
-                    if (riseMin === null || riseDate === null) continue;
-                    if (riseDate > todayStr || (riseDate === todayStr && riseMin > now)) {
-                        nextSunrise = {dateStr: riseDate, minutes: riseMin};
-                        break;
-                    }
+            let nextSunrise = null;
+            for (let i = 0; i < (daily.sunrise ? daily.sunrise.length : 0); i++) {
+                const riseMin = isoToMinutes(daily.sunrise[i]);
+                const riseDate = isoToDateString(daily.sunrise[i]);
+                if (riseMin === null || riseDate === null) continue;
+                if (riseDate > todayStr || (riseDate === todayStr && riseMin > now)) {
+                    nextSunrise = { dateStr: riseDate, minutes: riseMin };
+                    break;
                 }
+            }
 
-                let lastSunset = null;
-                for (let i = daily.sunset ? daily.sunset.length - 1 : -1; i >= 0; i--) {
-                    const setMin = isoToMinutes(daily.sunset[i]);
-                    const setDate = isoToDateString(daily.sunset[i]);
-                    if (setMin === null || setDate === null) continue;
-                    if (setDate < todayStr || (setDate === todayStr && setMin <= now)) {
-                        lastSunset = {dateStr: setDate, minutes: setMin};
-                        break;
-                    }
+            let lastSunset = null;
+            for (let i = daily.sunset ? daily.sunset.length - 1 : -1; i >= 0; i--) {
+                const setMin = isoToMinutes(daily.sunset[i]);
+                const setDate = isoToDateString(daily.sunset[i]);
+                if (setMin === null || setDate === null) continue;
+                if (setDate < todayStr || (setDate === todayStr && setMin <= now)) {
+                    lastSunset = { dateStr: setDate, minutes: setMin };
+                    break;
                 }
+            }
 
-                const isDaylight = lastSunrise !== null && nextSunset !== null
-                    && now >= lastSunrise.minutes && now < nextSunset.minutes;
+            const isDaylight = lastSunrise !== null && nextSunset !== null
+                && now >= lastSunrise.minutes && now < nextSunset.minutes;
 
-                if (isDaylight) {
-                    sunriseEvent = lastSunrise;
-                    sunsetEvent = nextSunset;
-                } else {
-                    sunsetEvent = lastSunset;
-                    sunriseEvent = nextSunrise;
-                }
+            if (isDaylight) {
+                sunriseEvent = lastSunrise;
+                sunsetEvent = nextSunset;
+                arcSunriseMinutes = lastSunrise ? lastSunrise.minutes : null;
+                arcSunsetMinutes = nextSunset ? nextSunset.minutes : null;
+            } else {
+                sunsetEvent = lastSunset;
+                sunriseEvent = nextSunrise;
+                arcSunriseMinutes = nextSunrise ? nextSunrise.minutes : null;
+                arcSunsetMinutes = nextSunset ? nextSunset.minutes : null;
+            }
 
-                if (isDaylight) {
-                    arcSunriseMinutes = lastSunrise ? lastSunrise.minutes : null;
-                    arcSunsetMinutes = nextSunset ? nextSunset.minutes : null;
-                } else {
-                    arcSunriseMinutes = nextSunrise ? nextSunrise.minutes : null;
-                    arcSunsetMinutes = nextSunset ? nextSunset.minutes : null;
-                }
+            if (sunriseEvent === null) {
+                const first = daily.sunrise && daily.sunrise[0];
+                const m = isoToMinutes(first);
+                if (m !== null) sunriseEvent = { dateStr: todayStr, minutes: m };
+            }
+            if (sunsetEvent === null) {
+                const first = daily.sunset && daily.sunset[0];
+                const m = isoToMinutes(first);
+                if (m !== null) sunsetEvent = { dateStr: todayStr, minutes: m };
+            }
 
-                if (sunriseEvent === null) {
-                    const first = daily.sunrise && daily.sunrise[0];
-                    const m = isoToMinutes(first);
-                    if (m !== null) sunriseEvent = {dateStr: todayStr, minutes: m};
-                }
-                if (sunsetEvent === null) {
-                    const first = daily.sunset && daily.sunset[0];
-                    const m = isoToMinutes(first);
-                    if (m !== null) sunsetEvent = {dateStr: todayStr, minutes: m};
-                }
-
-                renderDynamic();
-            } catch (_err) {}
-        });
+            renderDynamic();
+        } catch (_err) {}
     }
 
     connectTimerCleanup(container, state);
@@ -396,7 +381,6 @@ export function createSunScheduleNode(config, width, height, xPosition, yPositio
             GLib.Source.remove(state.refreshTimerId);
             state.refreshTimerId = null;
         }
-        session.abort();
         state.cancellable.cancel();
     });
 
