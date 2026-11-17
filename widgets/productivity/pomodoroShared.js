@@ -95,9 +95,14 @@ export function createPomodoroTimer(config, phaseConfig, onChange) {
         if (state.isRunning || state.secondsRemaining <= 0) return;
         state.isRunning = true;
         state.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, POMODORO_TICK_INTERVAL_MS, () => {
+            if (!state.isRunning) {
+                state.timerId = null;
+                return GLib.SOURCE_REMOVE;
+            }
             state.secondsRemaining--;
             if (state.secondsRemaining <= 0) {
-                stopTimer();
+                state.timerId = null;
+                state.isRunning = false;
                 advanceToNextPhase();
                 return GLib.SOURCE_REMOVE;
             }

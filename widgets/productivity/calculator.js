@@ -294,7 +294,8 @@ export function createCalculatorNode(config, width, height, xPosition, yPosition
         // Gombsor térközök és gombok stílusa (audioOutput mintájára)
         keypadBox.style = `spacing: ${gap}px;`;
 
-        const availableWidth = width - (Math.max(8, Math.round(10 * scale)) * 2);
+        const currentW = (container.width && container.width > 0) ? container.width : width;
+        const availableWidth = currentW - (Math.max(8, Math.round(10 * scale)) * 2);
         // 4 oszlop van, köztük 3 darab rés (gap)
         const singleBtnWidth = Math.floor((availableWidth - (3 * gap)) / 4);
         // A dupla gomb: 2 normál gomb + 1 rés
