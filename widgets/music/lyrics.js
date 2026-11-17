@@ -8,7 +8,8 @@ import Soup from 'gi://Soup?version=3.0';
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { resolveWidgetBackgroundColor, resolveWidgetForegroundColor, resolveExplicitFontFamily } from '../../utils/widgetUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
-import { DBUS_POLL_INTERVAL_MS, extractTrackMetadata, getActiveMediaPlayer, fetchPlayerProperties, fetchPlayerPosition } from './mpris.js';
+import { extractTrackMetadata, unpackVariantValue } from './mpris.js';
+import { subscribeMusicData } from './playbackState.js';
 
 const LYRICS_CACHE_DIR = GLib.build_filenamev([
     GLib.get_user_cache_dir(),
@@ -66,6 +67,13 @@ function saveCachedLyrics(artist, title, data) {
     } catch {}
 }
 
+let sharedSoupSession = null;
+function getSoupSession() {
+    if (!sharedSoupSession)
+        sharedSoupSession = new Soup.Session({ user_agent: 'grid-desktop-gnome' });
+    return sharedSoupSession;
+}
+
 async function fetchLrclibLyrics(artist, title, album, durationSec) {
     return new Promise((resolve) => {
         let url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`;
@@ -73,9 +81,8 @@ async function fetchLrclibLyrics(artist, title, album, durationSec) {
         if (durationSec > 0) url += `&duration=${Math.round(durationSec)}`;
 
         try {
-            const session = new Soup.Session();
+            const session = getSoupSession();
             const message = Soup.Message.new('GET', url);
-            message.request_headers.append('User-Agent', 'grid-desktop-gnome');
 
             session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (s, res) => {
                 try {
@@ -169,7 +176,7 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
     });
     container.add_child(statusLabel);
 
-    let scale = Math.min(width / REF_WIDTH, height / REF_HEIGHT);
+    const scale = Math.min(width / REF_WIDTH, height / REF_HEIGHT);
 
     const state = {
         container,
@@ -187,10 +194,9 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
         lineActors: [],
         currentPositionSec: 0,
         playbackStatus: 'Stopped',
-        pollTimerId: null,
         playbackTimerId: null,
         scrollTimerId: null,
-        scale: scale,
+        scale,
     };
 
     const smoothScrollTo = (targetVal, durationMs = 280) => {
@@ -383,64 +389,49 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
         clearLyricsUI('No lyrics available');
     };
 
-    const updateLyricsFromMpris = async () => {
+    const releaseMusicPoll = subscribeMusicData(config, ({ activePlayer, properties }) => {
         if (isActorDestroyed(container)) return;
 
-        try {
-            const activePlayer = await getActiveMediaPlayer(config);
-            if (!activePlayer) {
-                if (state.playbackStatus !== 'Stopped') {
-                    state.playbackStatus = 'Stopped';
-                    state.currentTrackKey = '';
-                    clearLyricsUI('No playback');
-                }
-                return;
+        if (!activePlayer || !properties) {
+            if (state.playbackStatus !== 'Stopped') {
+                state.playbackStatus = 'Stopped';
+                state.currentTrackKey = '';
+                clearLyricsUI('No playback');
             }
+            return;
+        }
 
-            const properties = await fetchPlayerProperties(activePlayer);
-            if (!properties) return;
+        const metadata = extractTrackMetadata(properties);
+        const status = unpackVariantValue(properties['PlaybackStatus']) || 'Stopped';
+        const previousStatus = state.playbackStatus;
+        state.playbackStatus = status;
 
-            const metadata = extractTrackMetadata(properties);
-            const status = properties['PlaybackStatus'] ? properties['PlaybackStatus'].deep_unpack() : 'Stopped';
-            const previousStatus = state.playbackStatus;
-            state.playbackStatus = status;
-
-            const posMicro = await fetchPlayerPosition(activePlayer);
-            if (posMicro !== null && posMicro !== undefined && posMicro >= 0) {
-                const livePosSec = posMicro / 1000000;
-                const isSpuriousZero = (livePosSec === 0 && state.currentPositionSec > 3.0);
-
-                if (!isSpuriousZero) {
-                    const diff = Math.abs(livePosSec - state.currentPositionSec);
-                    if (diff > 2.5 || previousStatus !== 'Playing') {
-                        state.currentPositionSec = livePosSec;
-                    }
+        const posMicro = unpackVariantValue(properties['Position']);
+        if (posMicro !== undefined && posMicro !== null && posMicro >= 0) {
+            const livePosSec = posMicro / 1000000;
+            const isSpuriousZero = (livePosSec === 0 && state.currentPositionSec > 3.0);
+            if (!isSpuriousZero) {
+                const diff = Math.abs(livePosSec - state.currentPositionSec);
+                if (diff > 2.5 || previousStatus !== 'Playing') {
+                    state.currentPositionSec = livePosSec;
                 }
             }
+        }
 
-            if (metadata.title && metadata.title !== 'Unknown Title') {
-                const safeArtist = (metadata.artist || '').trim().toLowerCase();
-                const safeTitle = (metadata.title || '').trim().toLowerCase();
-                const trackKey = `${safeArtist} - ${safeTitle}`;
+        if (metadata.title && metadata.title !== 'Unknown Title') {
+            const safeArtist = (metadata.artist || '').trim().toLowerCase();
+            const safeTitle = (metadata.title || '').trim().toLowerCase();
+            const trackKey = `${safeArtist} - ${safeTitle}`;
 
-                if (state.currentTrackKey !== trackKey) {
-                    const durSec = (metadata.lengthMicro || 0) / 1000000;
-                    loadLyricsForTrack(metadata.artist, metadata.title, metadata.album, durSec);
-                } else if (state.playbackStatus !== 'Playing') {
-                    updateActiveLyricLine(state.currentPositionSec);
-                }
-            } else {
-                clearLyricsUI('No active track');
+            if (state.currentTrackKey !== trackKey) {
+                const durSec = (metadata.lengthMicro || 0) / 1000000;
+                loadLyricsForTrack(metadata.artist, metadata.title, metadata.album, durSec);
+            } else if (state.playbackStatus !== 'Playing') {
+                updateActiveLyricLine(state.currentPositionSec);
             }
-        } catch {}
-    };
-
-    updateLyricsFromMpris();
-
-    state.pollTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, DBUS_POLL_INTERVAL_MS, () => {
-        if (isActorDestroyed(container)) return GLib.SOURCE_REMOVE;
-        updateLyricsFromMpris();
-        return GLib.SOURCE_CONTINUE;
+        } else {
+            clearLyricsUI('No active track');
+        }
     });
 
     state.playbackTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
@@ -474,10 +465,7 @@ export function createLyricsNode(config, width, height, xPosition, yPosition) {
     });
 
     registerWidgetCleanup(container, () => {
-        if (state.pollTimerId) {
-            GLib.Source.remove(state.pollTimerId);
-            state.pollTimerId = null;
-        }
+        releaseMusicPoll();
         if (state.playbackTimerId) {
             GLib.Source.remove(state.playbackTimerId);
             state.playbackTimerId = null;

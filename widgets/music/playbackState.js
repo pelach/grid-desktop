@@ -3,6 +3,7 @@ import Gio from 'gi://Gio';
 import { PLAY_ICON, PAUSE_ICON } from './icons.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 import {
+    DBUS_POLL_INTERVAL_MS,
     unpackVariantValue,
     extractTrackMetadata,
     resolveBusOwner,
@@ -19,11 +20,21 @@ const POSITION_JUMP_RESYNC_THRESHOLD_MICROSECONDS = 3000000;
 let seekedSignalId = 0;
 const activeMusicWidgetInstances = new Set();
 
+/** Megosztott D-Bus pollerek player-szűrő kulcsonként: N widget = összesen 1 D-Bus lekérdezés/mp. */
+const activeMusicPolls = new Map();
+
 export function clearMusicPlaybackState() {
     if (seekedSignalId) {
         Gio.DBus.session.signal_unsubscribe(seekedSignalId);
         seekedSignalId = 0;
     }
+    for (const poll of activeMusicPolls.values()) {
+        if (poll.timerId) {
+            GLib.Source.remove(poll.timerId);
+            poll.timerId = null;
+        }
+    }
+    activeMusicPolls.clear();
     activeMusicWidgetInstances.clear();
 }
 
@@ -57,7 +68,6 @@ export function updateTimerLabel(state) {
         state._lastFillWidth = fillWidth;
     }
 
-    // Csak ezt az egy sort hívjuk meg a karhoz:
     if (typeof state.updateArmProgress === 'function') {
         state.updateArmProgress(ratio);
     }
@@ -106,13 +116,11 @@ export function applyPlayerState(properties, state) {
     if (state.playPauseIcon) state.playPauseIcon.set_icon_name(isPlaying ? PAUSE_ICON : PLAY_ICON);
 
     const track = extractTrackMetadata(properties);
-
     const isNewTrack = state.lastTrackTitle !== track.title;
 
     if (isNewTrack) {
         state.lastTrackTitle = track.title;
         state.currentPositionMicro = 0;
-        // Új számnál AZONNAL frissítjük az artUrl-t az új száméra (ha nincs, null lesz!):
         state.lastArtUrl = track.artUrl || null;
     } else if (track.artUrl) {
         state.lastArtUrl = track.artUrl;
@@ -124,9 +132,6 @@ export function applyPlayerState(properties, state) {
     } else if (isNewTrack) {
         state.trackLengthMicro = 0;
     }
-    if (track.artUrl) {
-        state.lastArtUrl = track.artUrl;
-    }
 
     const positionMicro = unpackVariantValue(properties['Position']);
     const now = GLib.get_monotonic_time();
@@ -137,17 +142,12 @@ export function applyPlayerState(properties, state) {
         if (!isSpuriousZero) {
             const currentPos = state.currentPositionMicro || 0;
             const diff = Math.abs(positionMicro - currentPos);
-            if (isNewTrack) {
-                state.currentPositionMicro = positionMicro;
-            } else if (recentSeek) {
-                state.currentPositionMicro = positionMicro;
-            } else if (diff > POSITION_JUMP_RESYNC_THRESHOLD_MICROSECONDS) {
+            if (isNewTrack || recentSeek || diff > POSITION_JUMP_RESYNC_THRESHOLD_MICROSECONDS) {
                 state.currentPositionMicro = positionMicro;
             }
         }
     }
 
-    // PONTOSAN AZ EREDETI LOGIKA: ha fut a lejátszás és van timer, NEM hívjuk meg itt!
     if (state.playbackStatus !== 'Playing' || !state.timerId) {
         updateTimerLabel(state);
     }
@@ -187,6 +187,51 @@ export function fetchMusicDataForConfig(config, callback) {
             callback({ activePlayer: null, properties: null });
         }
     })();
+}
+
+/**
+ * Feliratkozás a közös másodpercenkénti MPRIS lekérdezésre (music, lyrics, audioVisualizer).
+ * Egyetlen D-Bus lekérdezést végez körönként és szétosztja az eredményt minden feliratkozónak.
+ */
+export function subscribeMusicData(config, onData) {
+    const pollKey = `${config.ignoreBrowsers !== false}|${(config.playerFilter || '').trim()}`;
+    let poll = activeMusicPolls.get(pollKey);
+
+    const runFetch = () => {
+        if (!poll || poll.listeners.size === 0) return;
+        fetchMusicDataForConfig(config, (data) => {
+            if (!poll) return;
+            for (const listener of [...poll.listeners]) {
+                listener(data);
+            }
+        });
+    };
+
+    if (!poll) {
+        poll = { timerId: null, listeners: new Set() };
+        activeMusicPolls.set(pollKey, poll);
+        poll.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, DBUS_POLL_INTERVAL_MS, () => {
+            runFetch();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    poll.listeners.add(onData);
+    runFetch();
+
+    let released = false;
+    return () => {
+        if (released) return;
+        released = true;
+        poll.listeners.delete(onData);
+        if (poll.listeners.size === 0) {
+            if (poll.timerId) {
+                GLib.Source.remove(poll.timerId);
+                poll.timerId = null;
+            }
+            activeMusicPolls.delete(pollKey);
+        }
+    };
 }
 
 async function isSeekSenderMatch(state, senderUniqueName) {
