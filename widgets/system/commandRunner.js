@@ -41,7 +41,8 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
     const isDarkSurface = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
 
     let isDisposed = false;
-    let activeCommandsCount = 0;
+    const cancellable = new Gio.Cancellable();
+    const resetTimers = new Set();
 
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
@@ -71,7 +72,6 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
     headerBox.add_child(headerLabel);
     mainLayout.add_child(headerBox);
 
-   
     // ── 2. Görgethető Box ──
     const scrollView = new St.ScrollView({
         x_expand: true,
@@ -88,7 +88,6 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
     });
     scrollView.add_child(listContainer);
 
-    // Alapértelmezett parancslista, ha még üres
     const commandList = Array.isArray(config.commands) && config.commands.length > 0
         ? config.commands
         : [
@@ -98,6 +97,12 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
 
     const rowActors = [];
 
+    const setOutputStatus = (label, text, color = textColor, opacity = 0.7) => {
+        const outFontSize = Math.max(10, Math.round(11 * scale));
+        const marginLeft = Math.round(10 * scale);
+        label.set_text(text);
+        label.style = `font-family: monospace; color: ${color}; font-size: ${outFontSize}px; opacity: ${opacity}; margin-left: ${marginLeft}px;`;
+    };
 
     // ── 3. Parancssorok létrehozása ──
     commandList.forEach((cmdItem) => {
@@ -111,15 +116,14 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
             style: `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: 8px;`,
         });
 
-        // Bal oldal: Futtató gomb
         const runBtn = new St.Button({
             style_class: 'button',
             reactive: true,
             can_focus: true,
             track_hover: true,
-            x_align: Clutter.ActorAlign.START, // <-- Balra zárás
+            x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'padding: 4px 8px;',        // <-- Tiszta, kompakt belső térköz
+            style: 'padding: 4px 8px;',
         });
 
         const btnBox = new St.BoxLayout({
@@ -128,8 +132,9 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
             y_align: Clutter.ActorAlign.CENTER,
         });
 
+        const defaultIconName = cmdItem.inTerminal ? 'utilities-terminal-symbolic' : 'system-run-symbolic';
         const btnIcon = new St.Icon({
-            icon_name: cmdItem.inTerminal ? 'utilities-terminal-symbolic' : 'system-run-symbolic',
+            icon_name: defaultIconName,
             style: `color: ${textColor}; margin-right: 6px;`,
             y_align: Clutter.ActorAlign.CENTER,
         });
@@ -138,7 +143,7 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
             text: cmdItem.label || 'Run',
             y_align: Clutter.ActorAlign.CENTER,
         });
-        btnLabel.clutter_text.set_ellipsize(3); // Pango.EllipsizeMode.END (három pont a végére, ha túl hosszú)
+        btnLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.END);
 
         const spinner = new Spinner(16);
         spinner.y_align = Clutter.ActorAlign.CENTER;
@@ -147,13 +152,11 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
         btnBox.add_child(btnIcon);
         btnBox.add_child(spinner);
         btnBox.add_child(btnLabel);
-        // A "new St.Widget({ x_expand: true })" sort teljesen töröld ki innen!
         runBtn.set_child(btnBox);
         rowCard.add_child(runBtn);
 
-        // Jobb oldal: Monospaced kimenet címke
-        const initialText = cmdItem.inTerminal 
-            ? (cmdItem.command ? `$ ${cmdItem.command}` : '[Terminal]') 
+        const initialText = cmdItem.inTerminal
+            ? (cmdItem.command ? `$ ${cmdItem.command}` : '[Terminal]')
             : 'Ready';
 
         const outputLabel = new St.Label({
@@ -162,10 +165,21 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
             y_align: Clutter.ActorAlign.CENTER,
             style: `font-family: monospace; color: ${textColor}; opacity: 0.55; margin-left: 12px;`,
         });
-        outputLabel.clutter_text.set_ellipsize(3); // Pango.EllipsizeMode.END
+        outputLabel.clutter_text.set_ellipsize(Pango.EllipsizeMode.END);
         rowCard.add_child(outputLabel);
 
-        // Végrehajtás logikája
+        const scheduleIconReset = () => {
+            const tid = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+                resetTimers.delete(tid);
+                if (!isDisposed && btnIcon) {
+                    btnIcon.set_icon_name(defaultIconName);
+                    btnIcon.style = `color: ${textColor}; margin-right: 6px;`;
+                }
+                return GLib.SOURCE_REMOVE;
+            });
+            resetTimers.add(tid);
+        };
+
         runBtn.connect('clicked', () => {
             if (!cmdItem.command || !cmdItem.command.trim()) return;
 
@@ -173,8 +187,7 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
             if (cmdItem.inTerminal) {
                 const term = findTerminalEmulator();
                 if (!term) {
-                    outputLabel.set_text('Error: No terminal found');
-                    outputLabel.style = `font-family: monospace; color: #e01b24; opacity: 0.9; margin-left: 10px; font-size: ${outFontSize}px;`;
+                    setOutputStatus(outputLabel, 'Error: No terminal found', '#e01b24', 0.9);
                     return;
                 }
 
@@ -184,38 +197,28 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
                         flags: Gio.SubprocessFlags.NONE,
                     });
                     termProc.init(null);
-                    // NEM nyúlunk az outputLabel-hez, megmarad az eredeti szöveg!
                 } catch (e) {
-                    outputLabel.set_text(`Launch error: ${e.message}`);
-                    outputLabel.style = `font-family: monospace; color: #e01b24; opacity: 0.9; margin-left: 10px; font-size: ${outFontSize}px;`;
+                    setOutputStatus(outputLabel, `Launch error: ${e.message}`, '#e01b24', 0.9);
                 }
                 return;
             }
 
-            // HÁTTÉR MÓD (Aszinkron Gio.Subprocess)
+            // HÁTTÉR MÓD
             runBtn.set_reactive(false);
             btnIcon.hide();
             spinner.show();
             spinner.start();
-
-            activeCommandsCount++;
-            updateHeaderStatus();
-
-            outputLabel.set_text('Running...');
-            outputLabel.style = `font-family: monospace; color: ${textColor}; opacity: 0.7; margin-left: 10px;`;
+            setOutputStatus(outputLabel, 'Running...', textColor, 0.7);
 
             try {
                 const proc = new Gio.Subprocess({
                     argv: ['bash', '-c', cmdItem.command],
                     flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
                 });
-                proc.init(null);
+                proc.init(cancellable);
 
-                proc.communicate_utf8_async(null, null, (p, res) => {
+                proc.communicate_utf8_async(null, cancellable, (p, res) => {
                     if (isDisposed) return;
-
-                    activeCommandsCount = Math.max(0, activeCommandsCount - 1);
-                    updateHeaderStatus();
 
                     spinner.stop();
                     spinner.hide();
@@ -224,51 +227,35 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
 
                     try {
                         const [, stdout, stderr] = p.communicate_utf8_finish(res);
-                        const isSuccess = p.get_successful();
-
-                        if (isSuccess) {
+                        if (p.get_successful()) {
                             btnIcon.set_icon_name('emblem-ok-symbolic');
                             btnIcon.style = 'color: #33d17a; margin-right: 6px;';
 
                             const lines = (stdout || '').trim().split('\n').filter(Boolean);
                             const lastLine = lines.length > 0 ? lines[lines.length - 1] : '[OK] Done (no output)';
-                            outputLabel.set_text(lastLine);
-                            outputLabel.style = `font-family: monospace; color: ${textColor}; opacity: 0.85; margin-left: 10px;`;
+                            setOutputStatus(outputLabel, lastLine, textColor, 0.85);
                         } else {
                             btnIcon.set_icon_name('dialog-warning-symbolic');
                             btnIcon.style = 'color: #e01b24; margin-right: 6px;';
 
                             const lines = (stderr || stdout || '').trim().split('\n').filter(Boolean);
                             const lastLine = lines.length > 0 ? lines[lines.length - 1] : '[Error] Exit code != 0';
-                            outputLabel.set_text(lastLine);
-                            outputLabel.style = `font-family: monospace; color: #e01b24; opacity: 0.9; margin-left: 10px;`;
+                            setOutputStatus(outputLabel, lastLine, '#e01b24', 0.9);
                         }
-
-                        // 3 másodperc múlva visszaáll az eredeti ikon
-                        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
-                            if (!isDisposed && btnIcon) {
-                                btnIcon.set_icon_name('system-run-symbolic');
-                                btnIcon.style = `color: ${textColor}; margin-right: 6px;`;
-                            }
-                            return GLib.SOURCE_REMOVE;
-                        });
+                        scheduleIconReset();
                     } catch (err) {
                         btnIcon.set_icon_name('dialog-warning-symbolic');
                         btnIcon.style = 'color: #e01b24; margin-right: 6px;';
-                        outputLabel.set_text(`Error: ${err.message}`);
-                        outputLabel.style = `font-family: monospace; color: #e01b24; opacity: 0.9; margin-left: 10px;`;
+                        setOutputStatus(outputLabel, `Error: ${err.message}`, '#e01b24', 0.9);
+                        scheduleIconReset();
                     }
                 });
             } catch (err) {
-                activeCommandsCount = Math.max(0, activeCommandsCount - 1);
-                updateHeaderStatus();
                 spinner.stop();
                 spinner.hide();
                 btnIcon.show();
                 runBtn.set_reactive(true);
-
-                outputLabel.set_text(`Spawn error: ${err.message}`);
-                outputLabel.style = `font-family: monospace; color: #e01b24; opacity: 0.9; margin-left: 10px;`;
+                setOutputStatus(outputLabel, `Spawn error: ${err.message}`, '#e01b24', 0.9);
             }
         });
 
@@ -283,7 +270,6 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
         listContainer.add_child(rowCard);
     });
 
-    // ── Reszponzív skálázás ──
     function applyScale(newScale) {
         scale = newScale;
         const iconSize = Math.round(16 * scale);
@@ -302,11 +288,9 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
 
         const cardBg = cssColorToRgba(textColor, isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA);
         const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
-
         const maxBtnWidth = Math.round(150 * scale);
 
         rowActors.forEach(({ card, runBtn, btnIcon, btnLabel, outputLabel }) => {
-            // max-width megfogja a szélességet, a padding pedig kompakt marad
             runBtn.style = `max-width: ${maxBtnWidth}px; padding: 4px 8px;`;
             card.style = `background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${Math.round(4 * scale)}px ${Math.round(6 * scale)}px;`;
             btnIcon.icon_size = Math.round(14 * scale);
@@ -323,6 +307,11 @@ export function createCommandRunnerNode(config, width, height, xPosition, yPosit
 
     registerWidgetCleanup(container, () => {
         isDisposed = true;
+        cancellable.cancel();
+        for (const tid of resetTimers) {
+            GLib.Source.remove(tid);
+        }
+        resetTimers.clear();
     });
 
     return container;

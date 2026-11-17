@@ -13,7 +13,8 @@ import {
 
 import { 
     createWidgetContainer, 
-    attachResponsiveScaler 
+    attachResponsiveScaler,
+    registerWidgetCleanup,
 } from '../../shell/widgetUIUtils.js';
 
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
@@ -32,6 +33,8 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
     const container = createWidgetContainer(config, width, height, xPosition, yPosition);
 
     let scale = Math.max(0.65, Math.min(width / BASE_CONTAINER_WIDTH_PX, height / BASE_CONTAINER_HEIGHT_PX));
+    let isDisposed = false;
+    const cancellable = new Gio.Cancellable();
 
     const isDarkSurface = isDarkBackgroundColor(resolveWidgetBackgroundColor(config));
     const cardBgAlpha = isDarkSurface ? CARD_BG_DARK_ALPHA : CARD_BG_LIGHT_ALPHA;
@@ -44,7 +47,6 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
     });
     container.add_child(contentBox);
 
-    // Fejléc
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -63,7 +65,6 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
     headerBox.add_child(headerLabel);
     contentBox.add_child(headerBox);
 
-    // Görgethető konténer (pont mint az audioOutput-ban)
     const scrollView = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.AUTOMATIC,
@@ -79,10 +80,11 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
     });
     scrollView.set_child(listContainer);
 
-    // BlueZ csatlakoztatott eszközök lekérdezése
-    function getConnectedBluetoothDevices() {
-        try {
-            const reply = Gio.DBus.system.call_sync(
+    let lastDevices = [];
+
+    function fetchConnectedBluetoothDevices() {
+        return new Promise((resolve) => {
+            Gio.DBus.system.call(
                 'org.bluez',
                 '/',
                 'org.freedesktop.DBus.ObjectManager',
@@ -91,33 +93,34 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
                 null,
                 Gio.DBusCallFlags.NONE,
                 -1,
-                null
-            );
+                cancellable,
+                (conn, res) => {
+                    try {
+                        const reply = conn.call_finish(res);
+                        const [objects] = reply.recursiveUnpack();
+                        const connectedList = [];
 
-            const [objects] = reply.recursiveUnpack();
-            const connectedList = [];
-
-            for (const [path, interfaces] of Object.entries(objects)) {
-                const dev = interfaces['org.bluez.Device1'];
-                if (dev && dev.Connected) {
-                    const battery = interfaces['org.bluez.Battery1'];
-                    connectedList.push({
-                        path: path,
-                        name: dev.Alias || dev.Name || 'Unknown Device',
-                        icon: dev.Icon || 'bluetooth-active-symbolic',
-                        battery: battery ? battery.Percentage : null,
-                        address: dev.Address,
-                    });
+                        for (const [path, interfaces] of Object.entries(objects)) {
+                            const dev = interfaces['org.bluez.Device1'];
+                            if (dev && dev.Connected) {
+                                const battery = interfaces['org.bluez.Battery1'];
+                                connectedList.push({
+                                    path,
+                                    name: dev.Alias || dev.Name || 'Unknown Device',
+                                    icon: dev.Icon || 'bluetooth-active-symbolic',
+                                    battery: battery ? battery.Percentage : null,
+                                });
+                            }
+                        }
+                        resolve(connectedList);
+                    } catch (_e) {
+                        resolve([]);
+                    }
                 }
-            }
-
-            return connectedList;
-        } catch (e) {
-            return [];
-        }
+            );
+        });
     }
 
-    // Leválasztás metódus
     function disconnectDevice(devicePath, callback) {
         Gio.DBus.system.call(
             'org.bluez',
@@ -128,24 +131,17 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
             null,
             Gio.DBusCallFlags.NONE,
             -1,
-            null,
+            cancellable,
             (conn, res) => {
-                try {
-                    conn.call_finish(res);
-                } catch (e) {
-                    console.error('Hiba a leválasztáskor:', e);
-                }
-                if (callback) callback();
+                try { conn.call_finish(res); } catch (_e) {}
+                if (callback && !isDisposed) callback();
             }
         );
     }
 
-    function refreshDevices() {
-        if (isActorDestroyed(container)) return;
-
+    function renderDevicesList(devices) {
+        if (isDisposed || isActorDestroyed(container)) return;
         listContainer.destroy_all_children();
-
-        const devices = getConnectedBluetoothDevices();
 
         const cardPadding = Math.max(5, Math.round(8 * scale));
         const cardRadius = Math.max(6, Math.round(10 * scale));
@@ -155,7 +151,6 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
         const iconSize = Math.max(16, Math.round(18 * scale));
         const batteryFontSize = Math.max(9, Math.round(11 * scale));
 
-        // Ha nincs csatlakoztatott eszköz:
         if (devices.length === 0) {
             const emptyLabel = new St.Label({
                 text: 'No connected devices',
@@ -191,7 +186,6 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
             });
             rowBtn.set_child(rowBox);
 
-            // Eszköz ikonja
             let iconName = dev.icon;
             if (!iconName.endsWith('-symbolic')) {
                 iconName += '-symbolic';
@@ -205,7 +199,6 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
             });
             rowBox.add_child(devIcon);
 
-            // Név
             const nameLabel = new St.Label({
                 text: dev.name,
                 x_expand: true,
@@ -215,7 +208,6 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
             nameLabel.clutter_text.set_ellipsize(3);
             rowBox.add_child(nameLabel);
 
-            // Akku szint (ha elérhető az eszközön)
             if (dev.battery !== null && dev.battery !== undefined) {
                 const batteryLabel = new St.Label({
                     text: `${dev.battery}%`,
@@ -225,7 +217,6 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
                 rowBox.add_child(batteryLabel);
             }
 
-            // Leválasztás ikon / állapotjelző
             const disconnectIcon = new St.Icon({
                 icon_name: 'media-eject-symbolic',
                 icon_size: Math.round(14 * scale),
@@ -234,7 +225,6 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
             });
             rowBox.add_child(disconnectIcon);
 
-            // Kattintásra leválasztás
             rowBtn.connect('clicked', () => {
                 rowBtn.reactive = false;
                 rowBtn.style += ' opacity: 0.5;';
@@ -250,6 +240,12 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
         }
     }
 
+    async function refreshDevices() {
+        if (isDisposed || isActorDestroyed(container)) return;
+        lastDevices = await fetchConnectedBluetoothDevices();
+        renderDevicesList(lastDevices);
+    }
+
     function applyScale(newScale) {
         scale = newScale;
         const titleFontSize = Math.max(11, Math.round(13 * scale));
@@ -259,11 +255,10 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
         headerIcon.style = `color: ${textColor}; margin-right: 6px;`;
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
         contentBox.style = `padding: ${Math.max(8, Math.round(10 * scale))}px;`;
-        
-        refreshDevices();
+
+        renderDevicesList(lastDevices);
     }
 
-    // DBus feliratkozás BlueZ változásokra (PropertiesChanged / InterfacesAdded / InterfacesRemoved)
     let signalSubId = 0;
     try {
         signalSubId = Gio.DBus.system.signal_subscribe(
@@ -275,7 +270,7 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
             Gio.DBusSignalFlags.NONE,
             () => {
                 GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                    if (!isActorDestroyed(container)) {
+                    if (!isDisposed && !isActorDestroyed(container)) {
                         refreshDevices();
                     }
                     return GLib.SOURCE_REMOVE;
@@ -286,22 +281,21 @@ export function createBluetoothDevicesNode(config, width, height, xPosition, yPo
         console.error('Bluetooth DBus subscription error:', e);
     }
 
-    // Időszakos 5 mp-es tartalék frissítés
     const pollTimerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 5, () => {
+        if (isDisposed) return GLib.SOURCE_REMOVE;
         refreshDevices();
         return GLib.SOURCE_CONTINUE;
     });
 
-    container.connect('destroy', () => {
-        if (pollTimerId) {
-            GLib.Source.remove(pollTimerId);
-        }
-        if (signalSubId) {
-            Gio.DBus.system.signal_unsubscribe(signalSubId);
-        }
+    registerWidgetCleanup(container, () => {
+        isDisposed = true;
+        cancellable.cancel();
+        if (pollTimerId) GLib.Source.remove(pollTimerId);
+        if (signalSubId) Gio.DBus.system.signal_unsubscribe(signalSubId);
     });
 
     applyScale(scale);
+    refreshDevices();
 
     attachResponsiveScaler(container, BASE_CONTAINER_WIDTH_PX, BASE_CONTAINER_HEIGHT_PX, (_ratio, w, h) => {
         if (isActorDestroyed(container)) return;
