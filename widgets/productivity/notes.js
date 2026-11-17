@@ -11,18 +11,25 @@ const BASE_CONTAINER_WIDTH_PX = 200;
 const BASE_CONTAINER_HEIGHT_PX = 200;
 
 const MARKDOWN_RULES = [
-    [/\*\*(.*?)\*\*/g, '<b>$1</b>'],
-    [/\*(.*?)\*/g, '<i>$1</i>'],
+    [/\*\*(.+?)\*\*/g, '<b>$1</b>'],
+    [/\*(.+?)\*/g, '<i>$1</i>'],
     [/^- \[ \]/gm, '[ ] '],
     [/^- \[x\]/gm, '[x] '],
-    [/^### (.*$)/gm, '<span size="large" weight="bold">$1</span>'],
-    [/^## (.*$)/gm, '<span size="x-large" weight="bold">$1</span>'],
-    [/^# (.*$)/gm, '<span size="xx-large" weight="bold">$1</span>'],
+    [/^###\s*(.*$)/gm, '<span size="large" weight="bold">$1</span>'],
+    [/^##\s*(.*$)/gm, '<span size="x-large" weight="bold">$1</span>'],
+    [/^#\s*(.*$)/gm, '<span size="xx-large" weight="bold">$1</span>'],
 ];
 
 function convertMarkdownToPango(text) {
     if (!text) return '';
     let escaped = GLib.markup_escape_text(text, -1);
+
+    // Engedélyezett Pango tagek visszaállítása (pl. <u>, <b>, <i>, <s>, <span>)
+    escaped = escaped
+        .replace(/&lt;(\/?(?:b|i|u|s|tt|big|small|sub|sup))&gt;/gi, '<$1>')
+        .replace(/&lt;span\b([^&]*)&gt;/gi, (_m, attrs) => `<span${attrs.replace(/&quot;/g, '"').replace(/&#39;/g, "'")}>`)
+        .replace(/&lt;\/span&gt;/gi, '</span>');
+
     for (const [regex, replacement] of MARKDOWN_RULES) {
         escaped = escaped.replace(regex, replacement);
     }
@@ -75,6 +82,43 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
         y_align: Clutter.ActorAlign.CENTER,
     });
 
+    const formatIcons = [];
+    const formatBox = new St.BoxLayout({
+        orientation: Clutter.Orientation.HORIZONTAL,
+        y_align: Clutter.ActorAlign.CENTER,
+        visible: false,
+    });
+
+    const createFormatButton = (iconName, openTag, closeTag) => {
+        const icon = new St.Icon({
+            icon_name: iconName,
+            style: `color: ${textColor}; opacity: 0.75;`,
+        });
+        formatIcons.push(icon);
+
+        const btn = new St.Button({
+            child: icon,
+            can_focus: false,
+            reactive: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        attachButtonFeedback(btn);
+
+        btn.connect('button-press-event', (_actor, event) => {
+            if (event.get_button() === BUTTON_PRIMARY && isEditingActive) {
+                wrapSelection(openTag, closeTag);
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+
+        return btn;
+    };
+
+    formatBox.add_child(createFormatButton('format-text-bold-symbolic', '**', '**'));
+    formatBox.add_child(createFormatButton('format-text-italic-symbolic', '*', '*'));
+    formatBox.add_child(createFormatButton('format-text-underline-symbolic', '<u>', '</u>'));
+
     const editIcon = new St.Icon({
         icon_name: 'document-edit-symbolic',
         style: `color: ${textColor}; opacity: 0.75;`,
@@ -89,6 +133,7 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
 
     headerBox.add_child(headerIcon);
     headerBox.add_child(titleLabel);
+    headerBox.add_child(formatBox);
     headerBox.add_child(editButton);
     attachButtonFeedback(editButton);
     contentBox.add_child(headerBox);
@@ -172,12 +217,39 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
     let isEditingActive = false;
     const state = { deferredUpdateId: null };
 
+    const wrapSelection = (openTag, closeTag) => {
+        const text = textEditor.text || '';
+        const cursor = textEditor.cursor_position;
+        const bound = textEditor.selection_bound;
+
+        const start = Math.min(cursor, bound);
+        const end = Math.max(cursor, bound);
+
+        const before = text.slice(0, start);
+        const selected = text.slice(start, end);
+        const after = text.slice(end);
+
+        textEditor.text = `${before}${openTag}${selected}${closeTag}${after}`;
+        noteContent = textEditor.text;
+
+        global.stage.set_key_focus(textEditor);
+
+        const newPos = selected.length > 0
+            ? start + openTag.length + selected.length + closeTag.length
+            : start + openTag.length;
+
+        textEditor.set_cursor_position(newPos);
+        textEditor.set_selection_bound(newPos);
+    };
+
     const showNoteViewer = () => {
         if (global.stage.get_key_focus() === textEditor) {
             global.stage.set_key_focus(null);
         }
-        displayLabel.set_markup(convertMarkdownToPango(noteContent));
+        displayLabel.use_markup = true;
+        displayLabel.text = convertMarkdownToPango(noteContent);
         if (scrollView.vadjustment) scrollView.vadjustment.value = 0;
+        formatBox.hide();
         editorContainer.hide();
         displayLabel.show();
         editIcon.set_icon_name('document-edit-symbolic');
@@ -187,6 +259,7 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
     const showNoteEditor = () => {
         textEditor.text = noteContent;
         displayLabel.hide();
+        formatBox.show();
         editorContainer.show();
         global.stage.set_key_focus(textEditor);
         editIcon.set_icon_name('object-select-symbolic');
@@ -245,6 +318,12 @@ export function createNotesNode(config, width, height, xPosition, yPosition) {
         titleLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
 
         editIcon.icon_size = iconSize;
+
+        const fmtGap = Math.max(2, Math.round(4 * scale));
+        formatBox.style = `margin-right: ${fmtGap}px; spacing: ${fmtGap}px;`;
+        for (const icon of formatIcons) {
+            icon.icon_size = iconSize;
+        }
 
         const targetFontName = `${cleanFontFamily ? `${cleanFontFamily} ` : ''}${effectiveContentSize}px`;
         displayLabel.font_name = targetFontName;
