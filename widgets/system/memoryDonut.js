@@ -11,6 +11,7 @@ import {
 } from '../../utils/widgetUtils.js';
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
+import { cpuRamEngine } from '../../utils/systemMonitorEngine.js';
 
 const BASE_CONTAINER_WIDTH = 360;
 const BASE_CONTAINER_HEIGHT = 176;
@@ -204,58 +205,21 @@ export function createMemoryDonutNode(config, width, height, xPosition, yPositio
     };
 
     // ── Adatok beolvasása közvetlenül a /proc/meminfo-ból ──
-    const readMemInfo = () => {
-        try {
-            const file = Gio.File.new_for_path('/proc/meminfo');
-            file.load_contents_async(null, (f, res) => {
-                try {
-                    const [, contents] = f.load_contents_finish(res);
-                    if (isDisposed || !contents) return;
-
-                    const text = new TextDecoder().decode(contents);
-                    const map = {};
-                    text.split('\n').forEach(line => {
-                        const parts = line.split(':');
-                        if (parts.length >= 2) {
-                            const val = parseInt(parts[1].trim(), 10);
-                            if (!isNaN(val)) map[parts[0].trim()] = val;
-                        }
-                    });
-
-                    const total = map['MemTotal'] || 1;
-                    const free = map['MemFree'] || 0;
-                    const buffers = map['Buffers'] || 0;
-                    const cached = map['Cached'] || 0;
-                    const sReclaim = map['SReclaimable'] || 0;
-                    
-                    const cache = buffers + cached + sReclaim;
-                    const services = Math.max(0, total - free - cache);
-
-                    memoryData = { total, free, cache, services };
-
-                    totalLabel.set_text(`${formatGb(total)} total`);
-                    if (statRows.services) statRows.services.set_text(`Services: ${formatGb(services)}`);
-                    if (statRows.cache) statRows.cache.set_text(`Cache: ${formatGb(cache)}`);
-                    if (statRows.free) statRows.free.set_text(`Free: ${formatGb(free)}`);
-
-                    drawingArea.queue_repaint();
-                } catch (e) {}
-            });
-        } catch (e) {}
-    };
-
-    readMemInfo();
-
-    const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
-        if (isDisposed) return GLib.SOURCE_REMOVE;
-        readMemInfo();
-        return GLib.SOURCE_CONTINUE;
+    const unsubscribe = cpuRamEngine.subscribe((data) => {
+        if (isActorDestroyed(container) || !data.memTotal) return;
+        memoryData = {
+            total: data.memTotal,
+            free: data.memFree,
+            cache: data.memCache,
+            services: data.memServices,
+        };
+        totalLabel.set_text(`${formatGb(data.memTotal)} total`);
+        if (statRows.services) statRows.services.set_text(`Services: ${formatGb(data.memServices)}`);
+        if (statRows.cache) statRows.cache.set_text(`Cache: ${formatGb(data.memCache)}`);
+        if (statRows.free) statRows.free.set_text(`Free: ${formatGb(data.memFree)}`);
+        drawingArea.queue_repaint();
     });
-
-    registerWidgetCleanup(container, () => {
-        isDisposed = true;
-        if (timeoutId) GLib.source_remove(timeoutId);
-    });
+    registerWidgetCleanup(container, unsubscribe);
 
     function applyScale(newScale) {
         scale = newScale;

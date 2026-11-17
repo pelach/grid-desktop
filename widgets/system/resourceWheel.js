@@ -12,8 +12,8 @@ import {
 } from '../../utils/widgetUtils.js';
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
+import { cpuRamEngine } from '../../utils/systemMonitorEngine.js';
 
-// 4x2 alapon a referenciaméret (kb. 360 x 176 px)
 const BASE_CONTAINER_WIDTH = 360;
 const BASE_CONTAINER_HEIGHT = 176;
 
@@ -32,7 +32,7 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
 
     let scale = Math.max(0.65, height / BASE_CONTAINER_HEIGHT);
 
-    // ── 1. Rajzterület a köröknek (a teljes widget háttere) ──
+    // ── 1. Rajzterület a köröknek ──
     const drawingArea = new St.DrawingArea({
         x_expand: true,
         y_expand: true,
@@ -41,7 +41,7 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     });
     container.add_child(drawingArea);
 
-    // ── 2. Fő réteg: vízszintes felosztás (Bal: szöveg + fejléc, Jobb: diagram területe) ──
+    // ── 2. Fő réteg ──
     const mainLayout = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
@@ -49,7 +49,6 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     });
     container.add_child(mainLayout);
 
-    // Bal oldali függőleges oszlop
     const leftColumn = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         y_expand: true,
@@ -57,7 +56,6 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     });
     mainLayout.add_child(leftColumn);
 
-    // Fejléc
     const headerBox = new St.BoxLayout({
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.START,
@@ -78,11 +76,8 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     headerBox.add_child(headerLabel);
     leftColumn.add_child(headerBox);
 
-    // Kis térköz a fejléc és a sorok között
-    const spacer = new St.Widget({ y_expand: true });
-    leftColumn.add_child(spacer);
+    leftColumn.add_child(new St.Widget({ y_expand: true }));
 
-    // Lista a 4 mutatónak egymás alatt
     const statsList = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         y_align: Clutter.ActorAlign.CENTER,
@@ -118,10 +113,8 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     const tempStat = makeStatRow(RINGS.find(r => r.key === 'temp'));
     const cpuStat  = makeStatRow(RINGS.find(r => r.key === 'cpu'));
 
-    // Alsó térköz szimmetriához
     leftColumn.add_child(new St.Widget({ y_expand: true }));
 
-    // Jobb oldal kitöltő (hogy a diagramnak fenntartsa a helyet a rajzolón)
     const rightAreaPlaceholder = new St.Widget({
         x_expand: true,
         y_expand: true,
@@ -137,12 +130,9 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
     const allDots = [diskStat.dot, ramStat.dot, tempStat.dot, cpuStat.dot];
     const allRows = [diskStat.row, ramStat.row, tempStat.row, cpuStat.row];
 
-    let currentMetrics = { cpu: 15, ram: 40, disk: 50, temp: 45 };
-    let prevIdle = 0;
-    let prevTotal = 0;
+    let currentMetrics = { cpu: 0, ram: 0, disk: 0, temp: 0 };
     let isDisposed = false;
 
-    // ── Rajzolás a jobb oldalra igazítva ──
     drawingArea.connect('repaint', (area) => {
         const ctx = area.get_context();
         const [w, h] = area.get_surface_size();
@@ -153,12 +143,10 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         ctx.setOperator(CAIRO_OPERATOR_OVER);
         ctx.setLineCap(CAIRO_LINE_CAP_ROUND);
 
-        // A kör középpontja a widget jobb felének közepére kerül
         const cx = w * 0.73;
         const cy = h / 2;
 
         const lineWidth = Math.max(4.0, 5.0 * scale);
-        // A magassághoz skálázott sugár
         const maxRadius = (h / 2) * 0.78;
         const baseR = Math.max(14, maxRadius);
 
@@ -167,14 +155,12 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
             if (r <= 2) return;
             const val = currentMetrics[ring.key] || 0;
 
-            // Halvány háttérgyűrű
             ctx.setLineWidth(lineWidth);
             ctx.setSourceRGBA(ring.rgb[0], ring.rgb[1], ring.rgb[2], 0.16);
             ctx.newPath();
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Aktív ív
             const ratio = Math.max(0.015, Math.min(1.0, val / 100.0));
             ctx.setSourceRGBA(ring.rgb[0], ring.rgb[1], ring.rgb[2], 1.0);
             ctx.newPath();
@@ -185,71 +171,13 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         ctx.$dispose();
     });
 
-    const readCpuDelta = () => {
-        try {
-            const file = Gio.File.new_for_path('/proc/stat');
-            file.load_contents_async(null, (f, res) => {
-                try {
-                    const [, contents] = f.load_contents_finish(res);
-                    if (isDisposed || !contents) return;
-
-                    const text = new TextDecoder().decode(contents);
-                    const cpuLine = text.split('\n').find(l => l.startsWith('cpu '));
-                    if (!cpuLine) return;
-
-                    const parts = cpuLine.trim().split(/\s+/).slice(1).map(Number);
-                    const idle = parts[3] + (parts[4] || 0);
-                    const total = parts.reduce((acc, n) => acc + n, 0);
-
-                    if (prevTotal > 0) {
-                        const deltaTotal = total - prevTotal;
-                        const deltaIdle = idle - prevIdle;
-                        const usage = deltaTotal > 0 ? Math.round(((deltaTotal - deltaIdle) / deltaTotal) * 100) : 0;
-                        currentMetrics.cpu = Math.max(0, Math.min(100, usage));
-                        if (legendLabels.cpu) {
-                            legendLabels.cpu.set_text(`CPU ${currentMetrics.cpu}%`);
-                        }
-                        drawingArea.queue_repaint();
-                    }
-
-                    prevIdle = idle;
-                    prevTotal = total;
-                } catch (e) {}
-            });
-        } catch (e) {}
-    };
-
-    const readOtherStats = () => {
-        // 1. RAM olvasása natívan /proc/meminfo-ból
-        try {
-            const memFile = Gio.File.new_for_path('/proc/meminfo');
-            memFile.load_contents_async(null, (f, res) => {
-                try {
-                    const [, contents] = f.load_contents_finish(res);
-                    if (isDisposed || !contents) return;
-                    const text = new TextDecoder().decode(contents);
-                    let total = 0, avail = 0;
-                    for (const line of text.split('\n')) {
-                        if (line.startsWith('MemTotal:')) total = parseInt(line.replace(/\D/g, ''), 10);
-                        else if (line.startsWith('MemAvailable:')) avail = parseInt(line.replace(/\D/g, ''), 10);
-                        if (total && avail) break;
-                    }
-                    if (total > 0) {
-                        currentMetrics.ram = Math.round(((total - avail) / total) * 100);
-                        if (legendLabels.ram) legendLabels.ram.set_text(`RAM ${currentMetrics.ram}%`);
-                        drawingArea.queue_repaint();
-                    }
-                } catch (_) {}
-            });
-        } catch (_) {}
-
-        // 2. Lemez olvasása natív GIO-val
+    const readDiskAndTemp = () => {
         try {
             const rootFile = Gio.File.new_for_path('/');
             rootFile.query_filesystem_info_async('filesystem::size,filesystem::free', GLib.PRIORITY_LOW, null, (f, res) => {
                 try {
                     const info = f.query_filesystem_info_finish(res);
-                    if (isDisposed || !info) return;
+                    if (isDisposed || !info || isActorDestroyed(container)) return;
                     const total = info.get_attribute_uint64('filesystem::size');
                     const free = info.get_attribute_uint64('filesystem::free');
                     if (total > 0) {
@@ -261,13 +189,12 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
             });
         } catch (_) {}
 
-        // 3. Hőmérséklet olvasása natívan
         try {
             const tempFile = Gio.File.new_for_path('/sys/class/thermal/thermal_zone0/temp');
             tempFile.load_contents_async(null, (f, res) => {
                 try {
                     const [, contents] = f.load_contents_finish(res);
-                    if (isDisposed || !contents) return;
+                    if (isDisposed || !contents || isActorDestroyed(container)) return;
                     const milliC = parseInt(new TextDecoder().decode(contents).trim(), 10);
                     if (!isNaN(milliC)) {
                         currentMetrics.temp = Math.round(milliC / 1000);
@@ -279,21 +206,26 @@ export function createResourceWheelNode(config, width, height, xPosition, yPosit
         } catch (_) {}
     };
 
-    const updateAll = () => {
-        readCpuDelta();
-        readOtherStats();
-    };
+    const unsubscribeCpuRam = cpuRamEngine.subscribe((data) => {
+        if (isDisposed || isActorDestroyed(container)) return;
+        currentMetrics.cpu = Math.max(0, Math.min(100, Math.round(data.cpuProgress * 100)));
+        currentMetrics.ram = Math.max(0, Math.min(100, Math.round(data.ramProgress * 100)));
+        if (legendLabels.cpu) legendLabels.cpu.set_text(`CPU ${currentMetrics.cpu}%`);
+        if (legendLabels.ram) legendLabels.ram.set_text(`RAM ${currentMetrics.ram}%`);
+        drawingArea.queue_repaint();
+    });
 
-    updateAll();
+    readDiskAndTemp();
 
-    const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
-        if (isDisposed) return GLib.SOURCE_REMOVE;
-        updateAll();
+    const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 5, () => {
+        if (isDisposed || isActorDestroyed(container)) return GLib.SOURCE_REMOVE;
+        readDiskAndTemp();
         return GLib.SOURCE_CONTINUE;
     });
 
     registerWidgetCleanup(container, () => {
         isDisposed = true;
+        unsubscribeCpuRam();
         if (timeoutId) GLib.source_remove(timeoutId);
     });
 

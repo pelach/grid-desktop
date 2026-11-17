@@ -21,7 +21,7 @@ class PollingEngine {
 
     subscribe(callback) {
         this.subscribers.push(callback);
-        
+
         if (this.lastData !== null) {
             callback(this.lastData);
         }
@@ -68,7 +68,6 @@ const decoder = new TextDecoder('utf-8');
 const PROC_STAT_IDLE_INDEX = 3;
 const PROC_STAT_IOWAIT_INDEX = 4;
 
-// Reads a /proc pseudo-filesystem file as UTF-8 text.
 function readKernelFileText(filePath) {
     return new Promise((resolve, reject) => {
         Gio.File.new_for_path(filePath).load_contents_async(null, (fileObj, res) => {
@@ -86,8 +85,13 @@ let prevCpuTotal = 0;
 let prevCpuIdle = 0;
 let lastCpuProgress = 0;
 let lastRamProgress = 0;
+let lastMemDetails = {
+    memTotal: 0,
+    memFree: 0,
+    memCache: 0,
+    memServices: 0,
+};
 
-/** Logs a read failure only when it starts, so a persistent error does not spam the journal every poll. */
 function logReadFailureOnce(failureState, filePath, error) {
     if (failureState.reported) return;
     failureState.reported = true;
@@ -125,21 +129,40 @@ async function sampleCpuRamUsage() {
     try {
         const memText = await readKernelFileText('/proc/meminfo');
         procMeminfoFailure.reported = false;
-        const totalMatch = memText.match(/MemTotal:\s+(\d+)/);
-        const availableMatch = memText.match(/MemAvailable:\s+(\d+)/);
 
-        if (totalMatch && availableMatch) {
-            const totalMemory = parseInt(totalMatch[1], 10);
-            const availableMemory = parseInt(availableMatch[1], 10);
-            if (totalMemory > 0) {
-                lastRamProgress = 1.0 - (availableMemory / totalMemory);
+        const map = {};
+        for (const line of memText.split('\n')) {
+            const idx = line.indexOf(':');
+            if (idx > 0) {
+                const val = parseInt(line.slice(idx + 1).trim(), 10);
+                if (!isNaN(val)) map[line.slice(0, idx)] = val;
             }
+        }
+
+        const totalMemory = map['MemTotal'] || 0;
+        const availableMemory = map['MemAvailable'] || 0;
+        const freeMemory = map['MemFree'] || 0;
+        const cacheMemory = (map['Buffers'] || 0) + (map['Cached'] || 0) + (map['SReclaimable'] || 0);
+        const servicesMemory = Math.max(0, totalMemory - freeMemory - cacheMemory);
+
+        if (totalMemory > 0) {
+            lastRamProgress = 1.0 - (availableMemory / totalMemory);
+            lastMemDetails = {
+                memTotal: totalMemory,
+                memFree: freeMemory,
+                memCache: cacheMemory,
+                memServices: servicesMemory,
+            };
         }
     } catch (e) {
         logReadFailureOnce(procMeminfoFailure, '/proc/meminfo', e);
     }
 
-    return { cpuProgress: lastCpuProgress, ramProgress: lastRamProgress };
+    return {
+        cpuProgress: lastCpuProgress,
+        ramProgress: lastRamProgress,
+        ...lastMemDetails,
+    };
 }
 
 function fetchCpuRamData(callback) {
@@ -151,6 +174,7 @@ function resetCpuRamState() {
     prevCpuIdle = 0;
     lastCpuProgress = 0;
     lastRamProgress = 0;
+    lastMemDetails = { memTotal: 0, memFree: 0, memCache: 0, memServices: 0 };
 }
 
 export const cpuRamEngine = new PollingEngine(DEFAULT_ENGINE_POLL_INTERVAL_MS, fetchCpuRamData, resetCpuRamState);

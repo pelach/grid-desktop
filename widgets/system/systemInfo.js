@@ -13,6 +13,7 @@ import {
     CAIRO_OPERATOR_OVER,
 } from '../../utils/widgetUtils.js';
 import { createWidgetContainer, registerWidgetCleanup, attachResponsiveScaler } from '../../shell/widgetUIUtils.js';
+import { cpuRamEngine } from '../../utils/systemMonitorEngine.js';
 
 const BASE_CONTAINER_WIDTH = 200;
 const BASE_CONTAINER_HEIGHT = 200;
@@ -160,7 +161,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
             x_expand: true,
             y_expand: true,
             x_align: Clutter.ActorAlign.START,
-            y_align: Clutter.ActorAlign.CENTER, // Kitölti a teret a fejléc és a chart között
+            y_align: Clutter.ActorAlign.CENTER,
         });
         mainLayout.add_child(percentLabel);
 
@@ -171,7 +172,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
             orientation: Clutter.Orientation.VERTICAL,
             x_expand: true,
             y_expand: false,
-            y_align: Clutter.ActorAlign.END, // Teljesen az aljára igazítva
+            y_align: Clutter.ActorAlign.END,
         });
 
         chartArea = new St.DrawingArea({
@@ -204,7 +205,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         headerLabel.style = `${fontCss}color: ${textColor}; font-size: ${titleFontSize}px; font-weight: bold; opacity: 0.9;`;
 
         if (!showChart) {
-            // Ha Disk I/O (ahol hosszabb a szöveg: pl. "12.4 MB/s"), kicsit finomabb fontméret
             const isDiskIo = (monitorType === 'disk-io' || monitorType === 'disk_io');
             const valSize = isDiskIo 
                 ? Math.max(24, Math.round(32 * scale))
@@ -212,7 +212,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
             percentLabel.style = `${fontCss}color: ${textColor}; font-size: ${valSize}px; font-weight: bold; line-height: 1.0;`;
         } else {
             const isDiskIo = (monitorType === 'disk-io' || monitorType === 'disk_io');
-            // Sokkal nagyobb betűméret, mert van hely a chart felett:
             const valSize = isDiskIo 
                 ? Math.max(20, Math.round(26 * scale))
                 : Math.max(28, Math.round(36 * scale));
@@ -224,7 +223,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                 const cardBorderAlpha = isDarkSurface ? CARD_BORDER_DARK_ALPHA : CARD_BORDER_LIGHT_ALPHA;
                 const cardRadius = Math.max(6, Math.round(8 * scale));
                 const cardPad = Math.max(2, Math.round(4 * scale));
-                // Kompakt alsó magasság (kb. 38-42px alapon)
                 const chartHeight = Math.round(50 * scale);
 
                 chartCard.style = `height: ${chartHeight}px; background-color: ${cardBg}; border: 1px solid ${cssColorToRgba(textColor, cardBorderAlpha)}; border-radius: ${cardRadius}px; padding: ${cardPad}px; margin-top: 0px;`;
@@ -248,14 +246,9 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
     };
 
     let isDisposed = false;
-    let prevIdle = 0;
-    let prevTotal = 0;
-
-    // --- Disk I/O állapotváltozók ---
     let prevDiskSectors = -1;
     let prevDiskTimeMs = 0;
 
-    // --- GPU Szenzor felderítés ---
     let gpuHwmonTempPath = null;
     let hasNvidiaSmi = false;
     let gpuDetectionStarted = false;
@@ -321,69 +314,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
         }
     };
 
-    const readCpu = () => {
-        try {
-            const file = Gio.File.new_for_path('/proc/stat');
-            file.load_contents_async(null, (f, res) => {
-                try {
-                    const [, contents] = f.load_contents_finish(res);
-                    if (isDisposed || !contents) return;
-
-                    const text = new TextDecoder().decode(contents);
-                    const cpuLine = text.split('\n').find(l => l.startsWith('cpu '));
-                    if (!cpuLine) return;
-
-                    const parts = cpuLine.trim().split(/\s+/).slice(1).map(Number);
-                    const idle = parts[3] + (parts[4] || 0);
-                    const total = parts.reduce((acc, n) => acc + n, 0);
-
-                    if (prevTotal > 0) {
-                        const deltaTotal = total - prevTotal;
-                        const deltaIdle = idle - prevIdle;
-                        const usage = deltaTotal > 0 ? Math.round(((deltaTotal - deltaIdle) / deltaTotal) * 100) : 0;
-                        const safeUsage = Math.max(0, Math.min(100, usage));
-                        percentLabel.set_text(`${safeUsage}%`);
-                        pushSample(safeUsage / 100);
-                    }
-
-                    prevIdle = idle;
-                    prevTotal = total;
-                } catch (e) {}
-            });
-        } catch (e) {}
-    };
-
-    const readRam = () => {
-        try {
-            const file = Gio.File.new_for_path('/proc/meminfo');
-            file.load_contents_async(null, (f, res) => {
-                try {
-                    const [, contents] = f.load_contents_finish(res);
-                    if (isDisposed || !contents) return;
-
-                    const text = new TextDecoder().decode(contents);
-                    let total = 0;
-                    let avail = 0;
-
-                    for (const line of text.split('\n')) {
-                        if (line.startsWith('MemTotal:')) {
-                            total = parseInt(line.replace(/\D/g, ''), 10);
-                        } else if (line.startsWith('MemAvailable:')) {
-                            avail = parseInt(line.replace(/\D/g, ''), 10);
-                        }
-                        if (total && avail) break;
-                    }
-
-                    if (total > 0) {
-                        const usage = Math.round(((total - avail) / total) * 100);
-                        percentLabel.set_text(`${usage}%`);
-                        pushSample(usage / 100);
-                    }
-                } catch (e) {}
-            });
-        } catch (e) {}
-    };
-
     const readDisk = () => {
         try {
             const rootFile = Gio.File.new_for_path('/');
@@ -406,9 +336,7 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                             percentLabel.set_text(`${safeUsage}%`);
                             pushSample(safeUsage / 100);
                         }
-                    } catch (e) {
-                        // Nem dobunk hibát, ha a lemez infó átmenetileg nem elérhető
-                    }
+                    } catch (_) {}
                 }
             );
         } catch (_) {}
@@ -425,12 +353,10 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                     const text = new TextDecoder().decode(contents);
                     let totalSectors = 0;
 
-                    // Csak a fizikai lemezeket számoljuk össze (nvme0n1, sda, sdb stb., loop és ram kizárva)
                     for (const line of text.split('\n')) {
                         const parts = line.trim().split(/\s+/);
                         if (parts.length >= 14) {
                             const devName = parts[2];
-                            // Kizárjuk a partíciókat (pl. sda1, nvme0n1p1) és virtuális eszközöket
                             const isPhysicalDisk = (/^(sd[a-z]|nvme[0-9]+n[0-9]+|vd[a-z]|xvd[a-z]|mmcblk[0-9]+)$/.test(devName));
                             if (isPhysicalDisk) {
                                 const sectorsRead = Number(parts[5]) || 0;
@@ -446,7 +372,6 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                         const deltaSectors = Math.max(0, totalSectors - prevDiskSectors);
                         const deltaSec = Math.max(0.1, (nowMs - prevDiskTimeMs) / 1000);
 
-                        // 1 szektor = 512 bájt
                         const bytesPerSec = (deltaSectors * 512) / deltaSec;
                         const mbPerSec = bytesPerSec / (1024 * 1024);
 
@@ -461,17 +386,14 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                         }
 
                         percentLabel.set_text(textVal);
-
-                        // Chart mintavétel: 0 és 50 MB/s közé skálázva
-                        const ratio = Math.min(1, mbPerSec / 50);
-                        pushSample(ratio);
+                        pushSample(Math.min(1, mbPerSec / 50));
                     }
 
                     prevDiskSectors = totalSectors;
                     prevDiskTimeMs = nowMs;
-                } catch (e) {}
+                } catch (_) {}
             });
-        } catch (e) {}
+        } catch (_) {}
     };
 
     const readThermal = () => {
@@ -489,9 +411,9 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                         percentLabel.set_text(`${tempC}°C`);
                         pushSample(tempC / 100);
                     }
-                } catch (e) {}
+                } catch (_) {}
             });
-        } catch (e) {}
+        } catch (_) {}
     };
 
     const readGpu = () => {
@@ -510,9 +432,9 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                             percentLabel.set_text(`${tempC}°C`);
                             pushSample(tempC / 100);
                         }
-                    } catch (e) {}
+                    } catch (_) {}
                 });
-            } catch (e) {}
+            } catch (_) {}
             return;
         }
 
@@ -532,35 +454,46 @@ export function createSystemInfoNode(config, width, height, xPosition, yPosition
                             percentLabel.set_text(`${tempC}°C`);
                             pushSample(tempC / 100);
                         }
-                    } catch (e) {}
+                    } catch (_) {}
                 });
-            } catch (e) {}
+            } catch (_) {}
             return;
         }
 
         readThermal();
     };
 
-    const updateData = () => {
-        if (monitorType === 'ram') readRam();
-        else if (monitorType === 'disk') readDisk();
+    const updateOtherData = () => {
+        if (monitorType === 'disk') readDisk();
         else if (monitorType === 'disk-io' || monitorType === 'disk_io') readDiskIo();
         else if (monitorType === 'thermal') readThermal();
         else if (monitorType === 'gpu') readGpu();
-        else readCpu();
     };
 
-    updateData();
+    let unsubscribeCpuRam = null;
+    let timeoutId = 0;
 
-    const intervalSec = (monitorType === 'cpu' || monitorType === 'gpu' || monitorType === 'disk-io' || monitorType === 'disk_io') ? 2 : 5;
-    const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, intervalSec, () => {
-        if (isDisposed) return GLib.SOURCE_REMOVE;
-        updateData();
-        return GLib.SOURCE_CONTINUE;
-    });
+    if (monitorType === 'cpu' || monitorType === 'ram') {
+        unsubscribeCpuRam = cpuRamEngine.subscribe((data) => {
+            if (isDisposed) return;
+            const ratio = monitorType === 'ram' ? data.ramProgress : data.cpuProgress;
+            const pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+            percentLabel.set_text(`${pct}%`);
+            pushSample(pct / 100);
+        });
+    } else {
+        updateOtherData();
+        const intervalSec = (monitorType === 'gpu' || monitorType === 'disk-io' || monitorType === 'disk_io') ? 2 : 5;
+        timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, intervalSec, () => {
+            if (isDisposed) return GLib.SOURCE_REMOVE;
+            updateOtherData();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
 
     registerWidgetCleanup(container, () => {
         isDisposed = true;
+        if (unsubscribeCpuRam) unsubscribeCpuRam();
         if (timeoutId) GLib.source_remove(timeoutId);
     });
 
