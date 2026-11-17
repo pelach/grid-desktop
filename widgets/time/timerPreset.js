@@ -5,21 +5,23 @@ import Gio from 'gi://Gio';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { 
-    resolveExplicitFontFamily, 
+import {
+    resolveExplicitFontFamily,
     resolveWidgetForegroundColor,
     resolveWidgetBackgroundColor,
     cssColorToRgba,
     isDarkBackgroundColor,
 } from '../../utils/widgetUtils.js';
 
-import { 
-    createWidgetContainer, 
+import {
+    createWidgetContainer,
     attachResponsiveScaler,
-    attachButtonFeedback 
+    attachButtonFeedback,
+    registerWidgetCleanup,
 } from '../../shell/widgetUIUtils.js';
 
 import { BUTTON_PRIMARY } from '../../desktopGrid/constants.js';
+import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
 const BASE_CONTAINER_WIDTH = 400;
 const BASE_CONTAINER_HEIGHT = 200;
@@ -56,27 +58,19 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
         orientation: Clutter.Orientation.HORIZONTAL,
         x_expand: true,
         y_expand: true,
-        style: 'padding: 12px;',
     });
     container.set_child(mainLayout);
 
-    // ==========================================
-    // BAL OLDAL: PRESETS (REJTETT GÖRDÍTŐSÁVVAPAL)
-    // ==========================================
+    // ── Bal oldal: Presets ──
     const leftBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_expand: true,
         y_expand: true,
-        style: 'margin-right: 14px;',
     });
 
-    const presetHeader = new St.Label({
-        text: 'Presets',
-        style: `${fontCss}color: ${textColor}; font-size: 13px; font-weight: bold; opacity: 0.8; margin-bottom: 6px;`,
-    });
+    const presetHeader = new St.Label({ text: 'Presets' });
     leftBox.add_child(presetHeader);
 
-    // St.PolicyType.EXTERNAL elrejti a vizuális sávot, de a görgethetőség megmarad
     const scrollView = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
         vscrollbar_policy: St.PolicyType.EXTERNAL,
@@ -102,7 +96,7 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
     ];
 
     const presetButtons = [];
-
+    const presetLabels = [];
     let messageSource = null;
 
     function getMessageSource() {
@@ -120,15 +114,25 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
     }
 
     function updatePresetHighlights() {
+        const radius = Math.max(5, Math.round(8 * scale));
+        const padV = Math.max(4, Math.round(6 * scale));
+        const padH = Math.max(8, Math.round(12 * scale));
+        const gap = Math.max(4, Math.round(6 * scale));
+        const itemFontSize = Math.max(10, Math.round(13 * scale));
+
         presets.forEach((p, idx) => {
             const btn = presetButtons[idx];
+            const lbl = presetLabels[idx];
             if (!btn) return;
             const isSelected = (state.selectedMinutes === p.mins && state.selectedSeconds === p.secs);
             const bg = isSelected ? cssColorToRgba(textColor, 0.18) : cssColorToRgba(textColor, cardBgAlpha);
             const border = isSelected ? cssColorToRgba(textColor, 0.35) : cssColorToRgba(textColor, cardBorderAlpha);
             const btnOpacity = state.isRunning ? 'opacity: 0.45; ' : 'opacity: 1.0; ';
-            
-            btn.style = `background-color: ${bg}; border: 1px solid ${border}; border-radius: 8px; padding: 6px 12px; margin-bottom: 6px; ${btnOpacity}`;
+
+            btn.style = `background-color: ${bg}; border: 1px solid ${border}; border-radius: ${radius}px; padding: ${padV}px ${padH}px; margin-bottom: ${gap}px; ${btnOpacity}`;
+            if (lbl) {
+                lbl.style = `${fontCss}color: ${textColor}; font-size: ${itemFontSize}px; font-weight: 500;`;
+            }
         });
     }
 
@@ -141,16 +145,13 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
 
         const lbl = new St.Label({
             text: preset.label,
-            style: `${fontCss}color: ${textColor}; font-size: 13px; font-weight: 500;`,
             y_align: Clutter.ActorAlign.CENTER,
             x_align: Clutter.ActorAlign.CENTER,
         });
         btn.set_child(lbl);
 
         btn.connect('clicked', () => {
-            // Futás közben tiltva: csak álló helyzetben választható preset
             if (state.isRunning) return;
-
             state.selectedMinutes = preset.mins;
             state.selectedSeconds = preset.secs;
             state.remainingMs = (preset.mins * 60 + preset.secs) * 1000;
@@ -159,14 +160,13 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
         });
 
         presetButtons.push(btn);
+        presetLabels.push(lbl);
         presetList.add_child(btn);
     });
 
     mainLayout.add_child(leftBox);
 
-    // ==========================================
-    // JOBB OLDAL: FIX SZÉLESSÉGŰ PICKER + PLAY GOMB
-    // ==========================================
+    // ── Jobb oldal: Picker + Play gomb ──
     const rightBox = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         x_align: Clutter.ActorAlign.CENTER,
@@ -178,21 +178,16 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
         orientation: Clutter.Orientation.HORIZONTAL,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        style: 'margin-bottom: 14px;',
     });
 
-    const DIGIT_COL_WIDTH = 50;
-
-    // Perc oszlop
     const minCol = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         reactive: true,
-        width: DIGIT_COL_WIDTH,
         x_align: Clutter.ActorAlign.CENTER,
     });
-    const minUp = new St.Label({ text: '01', x_align: Clutter.ActorAlign.CENTER, style: `${tnumCss}color: ${textColor}; opacity: 0.35; font-size: 13px; text-align: center;` });
-    const minMid = new St.Label({ text: '02', x_align: Clutter.ActorAlign.CENTER, style: `${tnumCss}color: ${textColor}; font-size: 26px; font-weight: bold; border-top: 1px solid ${cssColorToRgba(textColor, 0.25)}; border-bottom: 1px solid ${cssColorToRgba(textColor, 0.25)}; padding: 2px 0px; text-align: center;` });
-    const minDown = new St.Label({ text: '03', x_align: Clutter.ActorAlign.CENTER, style: `${tnumCss}color: ${textColor}; opacity: 0.35; font-size: 13px; text-align: center;` });
+    const minUp = new St.Label({ text: '01', x_align: Clutter.ActorAlign.CENTER });
+    const minMid = new St.Label({ text: '02', x_align: Clutter.ActorAlign.CENTER });
+    const minDown = new St.Label({ text: '03', x_align: Clutter.ActorAlign.CENTER });
     minCol.add_child(minUp);
     minCol.add_child(minMid);
     minCol.add_child(minDown);
@@ -200,19 +195,16 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
     const minLabel = new St.Label({
         text: 'min',
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}color: ${textColor}; font-size: 11px; opacity: 0.6; margin: 0 6px;`,
     });
 
-    // Másodperc oszlop
     const secCol = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
         reactive: true,
-        width: DIGIT_COL_WIDTH,
         x_align: Clutter.ActorAlign.CENTER,
     });
-    const secUp = new St.Label({ text: '49', x_align: Clutter.ActorAlign.CENTER, style: `${tnumCss}color: ${textColor}; opacity: 0.35; font-size: 13px; text-align: center;` });
-    const secMid = new St.Label({ text: '50', x_align: Clutter.ActorAlign.CENTER, style: `${tnumCss}color: ${textColor}; font-size: 26px; font-weight: bold; border-top: 1px solid ${cssColorToRgba(textColor, 0.25)}; border-bottom: 1px solid ${cssColorToRgba(textColor, 0.25)}; padding: 2px 0px; text-align: center;` });
-    const secDown = new St.Label({ text: '51', x_align: Clutter.ActorAlign.CENTER, style: `${tnumCss}color: ${textColor}; opacity: 0.35; font-size: 13px; text-align: center;` });
+    const secUp = new St.Label({ text: '49', x_align: Clutter.ActorAlign.CENTER });
+    const secMid = new St.Label({ text: '50', x_align: Clutter.ActorAlign.CENTER });
+    const secDown = new St.Label({ text: '51', x_align: Clutter.ActorAlign.CENTER });
     secCol.add_child(secUp);
     secCol.add_child(secMid);
     secCol.add_child(secDown);
@@ -220,7 +212,6 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
     const secLabel = new St.Label({
         text: 'sec',
         y_align: Clutter.ActorAlign.CENTER,
-        style: `${fontCss}color: ${textColor}; font-size: 11px; opacity: 0.6; margin-left: 6px;`,
     });
 
     pickerRow.add_child(minCol);
@@ -255,11 +246,9 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
         reactive: true,
         can_focus: true,
         x_align: Clutter.ActorAlign.CENTER,
-        style: `background-color: ${cssColorToRgba(accentHex, 0.25)}; border-radius: 99px; width: 44px; height: 44px;`,
     });
     const playPauseIcon = new St.Icon({
         icon_name: 'media-playback-start-symbolic',
-        icon_size: 18,
         style: `color: ${textColor};`,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
@@ -270,9 +259,6 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
 
     mainLayout.add_child(rightBox);
 
-    // ==========================================
-    // LOGIKA & FRISSÍTÉS
-    // ==========================================
     function formatTwoDigits(n) {
         return String(n).padStart(2, '0');
     }
@@ -297,8 +283,10 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
             state.timerId = null;
         }
         state.isRunning = false;
-        playPauseIcon.set_icon_name('media-playback-start-symbolic');
-        updatePresetHighlights();
+        if (!isActorDestroyed(container)) {
+            playPauseIcon.set_icon_name('media-playback-start-symbolic');
+            updatePresetHighlights();
+        }
     }
 
     function startTimer() {
@@ -314,6 +302,10 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
         const endTime = Date.now() + state.remainingMs;
 
         state.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            if (isActorDestroyed(container)) {
+                state.timerId = null;
+                return GLib.SOURCE_REMOVE;
+            }
             state.remainingMs = Math.max(0, endTime - Date.now());
             updatePickerDisplay();
 
@@ -332,7 +324,7 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
                         });
                         notification.urgency = MessageTray.Urgency.CRITICAL;
                         src.addNotification(notification);
-                    } catch (e) {}
+                    } catch (_e) {}
 
                     try {
                         global.display.get_sound_player().play_from_theme(
@@ -340,12 +332,50 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
                             'Timer',
                             null
                         );
-                    } catch (e) {}
+                    } catch (_e) {}
                 }
                 return GLib.SOURCE_REMOVE;
             }
             return GLib.SOURCE_CONTINUE;
         });
+    }
+
+    function applyScale(newScale) {
+        scale = newScale;
+        const pad = Math.max(8, Math.round(12 * scale));
+        const colW = Math.max(36, Math.round(50 * scale));
+        const sideFont = Math.max(10, Math.round(13 * scale));
+        const midFont = Math.max(18, Math.round(26 * scale));
+        const unitFont = Math.max(9, Math.round(11 * scale));
+        const btnSize = Math.max(32, Math.round(44 * scale));
+        const iconSize = Math.max(14, Math.round(18 * scale));
+
+        mainLayout.style = `padding: ${pad}px;`;
+        leftBox.style = `margin-right: ${Math.round(14 * scale)}px;`;
+        presetHeader.style = `${fontCss}color: ${textColor}; font-size: ${Math.max(10, Math.round(13 * scale))}px; font-weight: bold; opacity: 0.8; margin-bottom: ${Math.round(6 * scale)}px;`;
+
+        pickerRow.style = `margin-bottom: ${Math.round(14 * scale)}px;`;
+        minCol.width = colW;
+        secCol.width = colW;
+
+        const sideStyle = `${tnumCss}color: ${textColor}; opacity: 0.35; font-size: ${sideFont}px; text-align: center;`;
+        const midStyle = `${tnumCss}color: ${textColor}; font-size: ${midFont}px; font-weight: bold; border-top: 1px solid ${cssColorToRgba(textColor, 0.25)}; border-bottom: 1px solid ${cssColorToRgba(textColor, 0.25)}; padding: 2px 0px; text-align: center;`;
+
+        minUp.style = sideStyle;
+        minMid.style = midStyle;
+        minDown.style = sideStyle;
+
+        secUp.style = sideStyle;
+        secMid.style = midStyle;
+        secDown.style = sideStyle;
+
+        minLabel.style = `${fontCss}color: ${textColor}; font-size: ${unitFont}px; opacity: 0.6; margin: 0 ${Math.round(6 * scale)}px;`;
+        secLabel.style = `${fontCss}color: ${textColor}; font-size: ${unitFont}px; opacity: 0.6; margin-left: ${Math.round(6 * scale)}px;`;
+
+        playPauseBtn.style = `background-color: ${cssColorToRgba(accentHex, 0.25)}; border-radius: 99px; width: ${btnSize}px; height: ${btnSize}px;`;
+        playPauseIcon.icon_size = iconSize;
+
+        updatePresetHighlights();
     }
 
     playPauseBtn.connect('button-press-event', (_actor, event) => {
@@ -356,16 +386,17 @@ export function createTimerPresetNode(config, width, height, xPosition, yPositio
         return Clutter.EVENT_STOP;
     });
 
-    container.connect('destroy', () => {
+    registerWidgetCleanup(container, () => {
         stopTimer();
         messageSource = null;
     });
 
+    applyScale(scale);
     updatePickerDisplay();
-    updatePresetHighlights();
 
     attachResponsiveScaler(container, BASE_CONTAINER_WIDTH, BASE_CONTAINER_HEIGHT, (_ratio, w, h) => {
-        scale = Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT));
+        if (isActorDestroyed(container)) return;
+        applyScale(Math.max(0.65, Math.min(w / BASE_CONTAINER_WIDTH, h / BASE_CONTAINER_HEIGHT)));
     });
 
     return container;

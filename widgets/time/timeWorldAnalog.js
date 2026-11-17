@@ -8,7 +8,8 @@ import {
 import { 
     createWidgetContainer, 
     attachResponsiveScaler, 
-    connectTimerCleanup 
+    connectTimerCleanup,
+    registerWidgetCleanup,
 } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
@@ -203,9 +204,16 @@ export function createWorldTimeAnalogNode(config, width, height, xPosition, yPos
         });
     });
 
-    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
-        updateAll();
+    let initIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        initIdleId = 0;
+        if (!isActorDestroyed(container)) updateAll();
         return GLib.SOURCE_REMOVE;
+    });
+    registerWidgetCleanup(container, () => {
+        if (initIdleId) {
+            GLib.Source.remove(initIdleId);
+            initIdleId = 0;
+        }
     });
 
     return container;

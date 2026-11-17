@@ -663,6 +663,10 @@ export function createCalendarEventsNode(config, width, height, xPosition, yPosi
     updateWeather();
 
     let weatherTimerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, WEATHER_POLL_INTERVAL_S, () => {
+        if (isDisposed || isActorDestroyed(container)) {
+            weatherTimerId = null;
+            return GLib.SOURCE_REMOVE;
+        }
         updateWeather();
         return GLib.SOURCE_CONTINUE;
     });
