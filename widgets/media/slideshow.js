@@ -3,7 +3,13 @@ import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 import { createAnimatedImageNode } from './gif.js';
 import { listImagesInFolder, attachCaptionOverlay } from './mediaCommon.js';
-import { resolveWidgetBackgroundColor, resolveWidgetForegroundColor, resolveExplicitFontFamily, buildBaseWidgetStyle } from '../../utils/widgetUtils.js';
+import {
+    resolveWidgetBackgroundColor,
+    resolveWidgetForegroundColor,
+    resolveExplicitFontFamily,
+    buildBaseWidgetStyle,
+    isAnimatedImageFile,
+} from '../../utils/widgetUtils.js';
 import { WidgetActor, connectTimerCleanup, resolveWidgetGlassHighlight } from '../../shell/widgetUIUtils.js';
 import { isActorDestroyed, watchActorLifecycle } from '../../utils/actorLifecycle.js';
 
@@ -14,7 +20,7 @@ const CROSSFADE_DURATION_MS = 800;
 const CLUTTER_OPACITY_OPAQUE = 255;
 const CLUTTER_OPACITY_TRANSPARENT = 0;
 function createImageLayer(imagePath, borderRadius, width, height, animateGif) {
-    if (imagePath.toLowerCase().endsWith('.gif')) {
+    if (isAnimatedImageFile(imagePath)){
         const gifWidget = createAnimatedImageNode({
             imagePath: imagePath,
             appliedBorderRadius: borderRadius
@@ -111,7 +117,10 @@ export function createSlideshowNode(widgetData, width, height, xPosition, yPosit
             currentIndex = (currentIndex + 1) % images.length;
             const nextImage = images[currentIndex];
 
-            const incomingLayer = watchActorLifecycle(createImageLayer(nextImage, borderRadius, width, height, shouldAnimateGif));
+            const currentW = container.width || width;
+            const currentH = container.height || height;
+            const incomingLayer = watchActorLifecycle(createImageLayer(nextImage, borderRadius, currentW, currentH, shouldAnimateGif));
+
             const outgoingLayer = currentLayer;
             currentLayer = incomingLayer;
 
@@ -119,7 +128,7 @@ export function createSlideshowNode(widgetData, width, height, xPosition, yPosit
 
             switch (transitionType) {
                 case 'slide_horizontal':
-                    incomingLayer.set_translation(width, 0, 0);
+                    incomingLayer.set_translation(currentW, 0, 0);
                     incomingLayer.set_opacity(CLUTTER_OPACITY_OPAQUE);
 
                     incomingLayer.ease({
@@ -129,7 +138,7 @@ export function createSlideshowNode(widgetData, width, height, xPosition, yPosit
                     });
 
                     outgoingLayer.ease({
-                        translation_x: -width,
+                        translation_x: -currentW,
                         duration: CROSSFADE_DURATION_MS,
                         mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
                         onComplete: () => {
@@ -140,7 +149,7 @@ export function createSlideshowNode(widgetData, width, height, xPosition, yPosit
                     break;
 
                 case 'slide_vertical':
-                    incomingLayer.set_translation(0, height, 0);
+                    incomingLayer.set_translation(0, currentH, 0);
                     incomingLayer.set_opacity(CLUTTER_OPACITY_OPAQUE);
 
                     incomingLayer.ease({
@@ -150,7 +159,7 @@ export function createSlideshowNode(widgetData, width, height, xPosition, yPosit
                     });
 
                     outgoingLayer.ease({
-                        translation_y: -height,
+                        translation_y: -currentH,
                         duration: CROSSFADE_DURATION_MS,
                         mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
                         onComplete: () => {
