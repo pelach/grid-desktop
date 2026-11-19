@@ -26,6 +26,14 @@ const DEFAULT_SESSIONS_BEFORE_LONG_BREAK = 4;
 const RSS_MIN_REFRESH_MINUTES = 5;
 const RSS_MAX_REFRESH_MINUTES = 720;
 const RSS_REFRESH_STEP_MINUTES = 5;
+const DEFAULT_TILE_COLORS = [
+    '#3584e4', // Blue
+    '#2ec27e', // Green
+    '#e66100', // Orange
+    '#9141ac', // Purple
+    '#e01b24', // Red
+    '#2190a4', // Teal
+];
 
 function createColorButton(initialRgbaStr, onColorChanged) {
     const rgba = new Gdk.RGBA();
@@ -1136,7 +1144,19 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
     });
     container.add(titleRow);
 
-    // 2. Dinamikus lista csoport
+    // 2. Megjelenítési mód (Lista vs. Színes gombok)
+    const layoutKeys = ['list', 'tiles'];
+    const layoutLabels = ['List (Command & Output)', 'Colorful Tiles (2 Columns)'];
+    const layoutRow = new Adw.ComboRow({
+        title: 'Display Style',
+        model: new Gtk.StringList({ strings: layoutLabels }),
+    });
+    const currentLayout = widget.layoutMode || 'list';
+    const layoutIdx = layoutKeys.indexOf(currentLayout);
+    layoutRow.set_selected(layoutIdx >= 0 ? layoutIdx : 0);
+    container.add(layoutRow);
+
+    // 3. Dinamikus lista csoport
     const cmdGroup = new Adw.PreferencesGroup({
         title: 'Configured Commands',
         description: 'Commands will be executed directly via Bash or launched in a terminal window.',
@@ -1147,8 +1167,8 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
     let items = Array.isArray(widget.commands) && widget.commands.length > 0
         ? JSON.parse(JSON.stringify(widget.commands))
         : [
-            { id: 'cmd_1', label: 'Drop Caches', command: 'sync && echo 3 | sudo tee /proc/sys/vm/drop_caches', inTerminal: false },
-            { id: 'cmd_2', label: 'SSH Home Server', command: 'ssh user@192.168.1.50', inTerminal: true },
+            { id: 'cmd_1', label: 'Drop Caches', command: 'sync && echo 3 | sudo tee /proc/sys/vm/drop_caches', inTerminal: false, color: '#3584e4' },
+            { id: 'cmd_2', label: 'SSH Home Server', command: 'ssh user@192.168.1.50', inTerminal: true, color: '#2ec27e' },
         ];
 
     // Sorok kirajzolásáért felelős belső doboz
@@ -1161,7 +1181,6 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
     cmdGroup.add(listContainer);
 
     const rebuildListUI = () => {
-        // Korábbi sorok törlése
         let child = listContainer.get_first_child();
         while (child) {
             const next = child.get_next_sibling();
@@ -1170,7 +1189,10 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
         }
 
         items.forEach((item, index) => {
-            // Egy parancs blokkja egy beágyazott kártya
+            if (!item.color) {
+                item.color = DEFAULT_TILE_COLORS[index % DEFAULT_TILE_COLORS.length];
+            }
+
             const cardBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 6,
@@ -1179,10 +1201,15 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
                 margin_end: 2,
             });
 
-            // --- Fejléc: Gomb neve + Terminál kapcsoló + Törlés gomb ---
+            // --- Fejléc: Színválasztó + Terminál kapcsoló + Törlés gomb ---
             const headerRow = new Adw.ActionRow({
                 title: `Command #${index + 1}`,
             });
+
+            const colorBtn = createColorButton(item.color, (newColor) => {
+                item.color = newColor;
+            });
+            colorBtn.set_tooltip_text('Button / Accent Color');
 
             const termSwitch = new Gtk.Switch({
                 active: item.inTerminal === true,
@@ -1212,6 +1239,7 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
                 rebuildListUI();
             });
 
+            headerRow.add_suffix(colorBtn);
             headerRow.add_suffix(termBox);
             headerRow.add_suffix(deleteBtn);
             cardBox.append(headerRow);
@@ -1242,7 +1270,7 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
 
     rebuildListUI();
 
-    // 3. "Add Command" gomb a lista alá
+    // 4. "Add Command" gomb a lista alá
     const addRow = new Adw.ActionRow();
     const addBtn = new Gtk.Button({
         label: '+ Add Command',
@@ -1252,11 +1280,13 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
         margin_top: 6,
     });
     addBtn.connect('clicked', () => {
+        const nextColor = DEFAULT_TILE_COLORS[items.length % DEFAULT_TILE_COLORS.length];
         items.push({
             id: `cmd_${Date.now()}`,
             label: 'New Action',
             command: 'echo "Done"',
             inTerminal: false,
+            color: nextColor,
         });
         rebuildListUI();
     });
@@ -1267,7 +1297,7 @@ export function buildCommandRunnerSettings(container, widget, saveHandlers) {
     // Mentési callback
     saveHandlers.push((target) => {
         target.customTitle = titleRow.get_text().trim() || 'Command Runner';
-        // Kiszűrjük az üres sorokat
+        target.layoutMode = layoutKeys[layoutRow.get_selected()] || 'list';
         target.commands = items.filter(it => it.label || it.command);
     });
 }

@@ -1,5 +1,6 @@
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
+import Gdk from 'gi://Gdk';
 import { openImageFileDialog, openFolderFileDialog } from './fileDialogs.js';
 import {
     addImageWidget,
@@ -25,6 +26,15 @@ import { DEFAULT_WORLD_CLOCK_CITIES, MIN_SLIDESHOW_INTERVAL_SEC, MAX_SLIDESHOW_I
 
 export { DEFAULT_WORLD_CLOCK_CITIES, MIN_SLIDESHOW_INTERVAL_SEC, MAX_SLIDESHOW_INTERVAL_SEC, STEP_SLIDESHOW_INTERVAL_SEC, DEFAULT_SLIDESHOW_INTERVAL_SEC } from './widgetConstants.js';
 
+const DEFAULT_CMD_TILE_COLORS = [
+    '#3584e4', 
+    '#2ec27e', 
+    '#e66100', 
+    '#9141ac', 
+    '#e01b24', 
+    '#2190a4'
+];
+
 
 function getGlobalDefaultLocation(settings) {
     return {
@@ -32,6 +42,37 @@ function getGlobalDefaultLocation(settings) {
         latitude: settings.get_double('weather-lat') || 47.955,
         longitude: settings.get_double('weather-lon') || 21.716,
     };
+}
+
+function createCmdColorButton(initialRgbaStr, onColorChanged) {
+    const rgba = new Gdk.RGBA();
+    rgba.parse(initialRgbaStr || '#3584e4');
+
+    if (Gtk.ColorDialogButton && Gtk.ColorDialog) {
+        const dialog = new Gtk.ColorDialog({ with_alpha: true });
+        const btn = new Gtk.ColorDialogButton({
+            dialog,
+            rgba,
+            valign: Gtk.Align.CENTER,
+            halign: Gtk.Align.CENTER,
+        });
+        btn.connect('notify::rgba', () => {
+            const val = btn.get_rgba();
+            if (val && onColorChanged) onColorChanged(val.to_string());
+        });
+        return btn;
+    }
+
+    const btn = new Gtk.ColorButton({
+        valign: Gtk.Align.CENTER,
+        halign: Gtk.Align.CENTER,
+        rgba,
+        use_alpha: true,
+    });
+    btn.connect('color-set', () => {
+        if (onColorChanged) onColorChanged(btn.get_rgba().to_string());
+    });
+    return btn;
 }
 
 function createModernWidgetAddDialog(parentWindow, title, onConfirm) {
@@ -486,20 +527,24 @@ export function openAddMoonDialog(parentWindow, settings) {
 }
 
 export function openAddCommandRunnerDialog(parentWindow, settings) {
-    let titleRow;
+    let titleRow, layoutRow;
+    const layoutKeys = ['list', 'tiles'];
+    const layoutLabels = ['List (Command & Output)', 'Colorful Tiles (2 Columns)'];
+
     let items = [
-        { id: 'cmd_1', label: 'Drop Caches', command: 'sync && echo 3 | sudo tee /proc/sys/vm/drop_caches', inTerminal: false },
-        { id: 'cmd_2', label: 'SSH Server', command: 'ssh user@192.168.1.50', inTerminal: true },
+        { id: 'cmd_1', label: 'Drop Caches', command: 'sync && echo 3 | sudo tee /proc/sys/vm/drop_caches', inTerminal: false, color: '#3584e4' },
+        { id: 'cmd_2', label: 'SSH Server', command: 'ssh user@192.168.1.50', inTerminal: true, color: '#2ec27e' },
     ];
 
     const { window, group } = createModernWidgetAddDialog(parentWindow, 'Configure Command Runner Widget', () => {
         const title = titleRow.get_text().trim() || 'Command Runner';
+        const layoutMode = layoutKeys[layoutRow.get_selected()] || 'list';
         const validCommands = items.filter(it => it.label || it.command);
-        addCommandRunnerWidget(settings, title, validCommands, 8, 4);
+        addCommandRunnerWidget(settings, title, validCommands, 8, 4, layoutMode);
         return true;
     });
 
-    window.set_default_size(520, 560);
+    window.set_default_size(520, 580);
 
     titleRow = new Adw.EntryRow({
         title: 'Widget Title',
@@ -507,8 +552,15 @@ export function openAddCommandRunnerDialog(parentWindow, settings) {
     });
     group.add(titleRow);
 
+    layoutRow = new Adw.ComboRow({
+        title: 'Display Style',
+        model: new Gtk.StringList({ strings: layoutLabels }),
+    });
+    layoutRow.set_selected(0);
+    group.add(layoutRow);
+
     const cmdSectionGroup = new Adw.PreferencesGroup({
-        title: 'Commands & Actions',
+        title: 'Commands and Actions',
         description: 'Add commands to run in the background or launch in a terminal.',
     });
     group.add(cmdSectionGroup);
@@ -530,6 +582,10 @@ export function openAddCommandRunnerDialog(parentWindow, settings) {
         }
 
         items.forEach((item, index) => {
+            if (!item.color) {
+                item.color = DEFAULT_CMD_TILE_COLORS[index % DEFAULT_CMD_TILE_COLORS.length];
+            }
+
             const cardBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 6,
@@ -541,6 +597,11 @@ export function openAddCommandRunnerDialog(parentWindow, settings) {
             const headerRow = new Adw.ActionRow({
                 title: `Action #${index + 1}`,
             });
+
+            const colorBtn = createCmdColorButton(item.color, (newColor) => {
+                item.color = newColor;
+            });
+            colorBtn.set_tooltip_text('Button / Accent Color');
 
             const termSwitch = new Gtk.Switch({
                 active: item.inTerminal === true,
@@ -570,6 +631,7 @@ export function openAddCommandRunnerDialog(parentWindow, settings) {
                 rebuildListUI();
             });
 
+            headerRow.add_suffix(colorBtn);
             headerRow.add_suffix(termBox);
             headerRow.add_suffix(deleteBtn);
             cardBox.append(headerRow);
@@ -607,11 +669,13 @@ export function openAddCommandRunnerDialog(parentWindow, settings) {
         margin_top: 6,
     });
     addBtn.connect('clicked', () => {
+        const nextColor = DEFAULT_CMD_TILE_COLORS[items.length % DEFAULT_CMD_TILE_COLORS.length];
         items.push({
             id: `cmd_${Date.now()}`,
             label: 'New Action',
             command: 'echo "Done"',
             inTerminal: false,
+            color: nextColor,
         });
         rebuildListUI();
     });

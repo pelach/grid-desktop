@@ -363,12 +363,13 @@ export function addAudioVisualizerWidget(settings, width = 4, height = 2) {
     addWidget(settings, { id: nextWidgetId(settings, 'audioVisualizer'), type: 'audioVisualizer' }, width, height);
 }
 
-export function addCommandRunnerWidget(settings, title = 'Command Runner', commands = [], width = 4, height = 2) {
+export function addCommandRunnerWidget(settings, title = 'Command Runner', commands = [], width = 4, height = 2, layoutMode = 'list') {
     const config = {
         id: nextWidgetId(settings, 'command-runner'),
         type: 'commandRunner',
         customTitle: title,
         commands: commands || [],
+        layoutMode: 'list'
     };
     addWidget(settings, config, width, height);
 }
