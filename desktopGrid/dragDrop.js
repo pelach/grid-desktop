@@ -357,8 +357,7 @@ export function attachDragHandlers(grid, node, widgetData) {
 
             // Ha az elem még nincs kijelölve: levesszük a régit, és kijelöljük ezt az egyet
             if (!selection.has(widgetData.id)) {
-                const allowAllSizes = grid.settings.get_boolean('multi-select-all-widget-sizes');
-                if (allowAllSizes || (widgetData.width === 1 && widgetData.height === 1)) {
+                if (widgetData.width === 1 && widgetData.height === 1) {
                     grid._setWidgetSelection([widgetData.id]);
                 } else {
                     grid._clearWidgetSelection();
@@ -476,12 +475,17 @@ export function attachDragHandlers(grid, node, widgetData) {
 
                     // HA NEM TÖRTÉNT DRAG (sima kattintás volt):
                     if (!state.isDragging) {
+                        const isOneByOne = (widgetData.width === 1 && widgetData.height === 1);
                         const allowAllSizes = grid.settings.get_boolean('multi-select-all-widget-sizes');
-                        if (allowAllSizes || (widgetData.width === 1 && widgetData.height === 1)) {
+
+                        // Sima kattintás: csak 1x1-es elemeket jelöl ki.
+                        // Nagyobb widgetek: csak Shift/Ctrl + kattintással jelölhetők ki (ha a prefs kapcsoló aktív).
+                        const canSelectOnClick = isOneByOne || (isMultiModifier && allowAllSizes);
+
+                        if (canSelectOnClick) {
                             const currentSelection = new Set(grid._selectedWidgetIds || []);
 
                             if (isMultiModifier) {
-                                // Shift + Kattintás: hozzáadás vagy kivétel a kijelölésből
                                 if (currentSelection.has(widgetData.id)) {
                                     currentSelection.delete(widgetData.id);
                                 } else {
@@ -489,7 +493,6 @@ export function attachDragHandlers(grid, node, widgetData) {
                                 }
                                 grid._setWidgetSelection([...currentSelection]);
                             } else {
-                                // Sima kattintás: csak ezt az egy elemet jelöljük ki
                                 grid._setWidgetSelection([widgetData.id]);
                             }
                         }
