@@ -42,7 +42,19 @@ export default class GridgetsExtension extends Extension {
         }
 
         this._desktopGrids = [];
-        this._monitorsChangedId = 0;
+
+        this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', () => {
+            if (this._monitorsChangedTimeoutId > 0) {
+                GLib.Source.remove(this._monitorsChangedTimeoutId);
+                this._monitorsChangedTimeoutId = 0;
+            }
+            this._monitorsChangedTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+                this._monitorsChangedTimeoutId = 0;
+                this._rebuildGrids();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+
         this._settingSignalIds = [];
         this._interfaceSignalId = 0;
         this._accentSignalId = 0;
@@ -161,7 +173,7 @@ export default class GridgetsExtension extends Extension {
         }
 
         if (this._monitorsChangedTimeoutId > 0) {
-            GLib.source_remove(this._monitorsChangedTimeoutId);
+            GLib.source.remove(this._monitorsChangedTimeoutId);
             this._monitorsChangedTimeoutId = 0;
         }
         if (this._monitorsChangedId > 0) {
