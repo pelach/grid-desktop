@@ -314,6 +314,7 @@ function toggleTagOnUris(grid, uris, tagName) {
         }
 
         file.set_attribute_string('xattr::user.xdg.tags', currentTags.join(','), Gio.FileQueryInfoFlags.NONE, null);
+        file.set_attribute_uint64('time::access', Math.floor(Date.now() / 1000), Gio.FileQueryInfoFlags.NONE, null)
     }
 
     // Azonnal frissítjük a pöttyöket az érintett ikonokon

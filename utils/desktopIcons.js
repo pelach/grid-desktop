@@ -425,7 +425,22 @@ export function monitorDesktop(settings, callback) {
     const desktopFile = Gio.File.new_for_path(desktopPath);
     try {
         _monitor = desktopFile.monitor_directory(Gio.FileMonitorFlags.WATCH_MOUNTES, null);
-        _monitor.connect('changed', () => {
+        _monitor.connect('changed', (_monitorObj, file, _otherFile, eventType) => {
+            if (eventType === Gio.FileMonitorEvent.ATTRIBUTE_CHANGED && file) {
+                const changedUri = file.get_uri();
+                if (DesktopGrid._activeInstances) {
+                    DesktopGrid._activeInstances.forEach(grid => {
+                        for (const [, node] of grid.widgetNodes) {
+                            if (node?.widgetData?.isDesktopIcon &&
+                                (node.widgetData.uri === changedUri || decodeURIComponent(node.widgetData.uri) === decodeURIComponent(changedUri))) {
+                                node.refreshTags?.();
+                            }
+                        }
+                    });
+                }
+                return;
+            }
+
             if (_monitorTimeoutId) {
                 GLib.Source.remove(_monitorTimeoutId);
                 _monitorTimeoutId = null;
