@@ -2,12 +2,21 @@ import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
+import GIRepository from 'gi://GIRepository';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import { toggleWidgetResizeHandle } from './widgetEditUtils.js';
 import { onWidgetResized, onWidgetDeleted } from './dragDrop.js';
 import { COLUMNS_COUNT, ROWS_COUNT, getWidgets, supportsSizePresets, SIZE_PRESET_TIERS } from '../utils/widgetUtils.js';
+import { TAG_COLORS } from '../widgets/desktopIcon.js';
+
+const hasGnomeAutoar = () => {
+    const repo = GIRepository.Repository.dup_default
+        ? GIRepository.Repository.dup_default()
+        : GIRepository.Repository.get_default();
+    return repo.enumerate_versions('GnomeAutoar').length > 0;
+};
 
 export function createPopupMenuAt(grid, event) {
     if (grid._contextMenuCloseIdleId) {
@@ -270,6 +279,84 @@ function getUniqueDestinationFile(destDir, basename) {
     return target;
 }
 
+function getFileTags(uri) {
+    if (!uri || !uri.startsWith('file://'))
+        return [];
+
+    const file = Gio.File.new_for_uri(uri);
+    if (!file.query_exists(null))
+        return [];
+
+    const info = file.query_info('xattr::user.xdg.tags', Gio.FileQueryInfoFlags.NONE, null);
+    const raw = info.get_attribute_string('xattr::user.xdg.tags');
+    if (!raw)
+        return [];
+
+    return raw.split(',').map(t => t.trim()).filter(t => t in TAG_COLORS);
+}
+
+function toggleTagOnUris(grid, uris, tagName) {
+    for (const uri of uris) {
+        if (!uri.startsWith('file://'))
+            continue;
+
+        const file = Gio.File.new_for_uri(uri);
+        if (!file.query_exists(null))
+            continue;
+
+        const currentTags = getFileTags(uri);
+        const idx = currentTags.indexOf(tagName);
+        if (idx >= 0) {
+            currentTags.splice(idx, 1);
+        } else {
+            currentTags.push(tagName);
+        }
+
+        file.set_attribute_string('xattr::user.xdg.tags', currentTags.join(','), Gio.FileQueryInfoFlags.NONE, null);
+    }
+
+    // Azonnal frissítjük a pöttyöket az érintett ikonokon
+    for (const [, node] of grid.widgetNodes) {
+        if (node?.widgetData?.isDesktopIcon && uris.includes(node.widgetData.uri)) {
+            if (typeof node.refreshTags === 'function')
+                node.refreshTags();
+        }
+    }
+}
+
+function addTagsMenuRow(menu, grid, uris) {
+    const validUris = uris.filter(u => u && u.startsWith('file://'));
+    if (validUris.length === 0)
+        return;
+
+    const activeTags = validUris.length === 1 ? getFileTags(validUris[0]) : [];
+
+    const tagItem = new PopupMenu.PopupBaseMenuItem({ reactive: false, can_focus: false });
+    const rowBox = new St.BoxLayout({
+        style: 'spacing: 8px; padding: 2px 4px;',
+        x_expand: true,
+    });
+
+    for (const [tagName, hex] of Object.entries(TAG_COLORS)) {
+        const isActive = activeTags.includes(tagName);
+        const dotBtn = new St.Button({
+            width: 16,
+            height: 16,
+            style: `background-color: ${hex}; border-radius: 99px; border: ${isActive ? '2px solid #ffffff' : '1px solid rgba(0, 0, 0, 0.4)'};`,
+        });
+
+        dotBtn.connect('clicked', () => {
+            toggleTagOnUris(grid, validUris, tagName);
+            menu.close();
+        });
+
+        rowBox.add_child(dotBtn);
+    }
+
+    tagItem.add_child(rowBox);
+    menu.addMenuItem(tagItem);
+}
+
 export function transferFilesTo(uris, destDirUri, isMove = false, onComplete = null) {
     if (!uris || uris.length === 0 || !destDirUri) return;
 
@@ -307,22 +394,7 @@ export function transferFilesTo(uris, destDirUri, isMove = false, onComplete = n
                 }
             );
         } else {
-            srcFile.copy_async(
-                targetFile,
-                flags,
-                GLib.PRIORITY_DEFAULT,
-                null,
-                null,
-                (file, res) => {
-                    try {
-                        file.copy_finish(res);
-                    } catch (e) {
-                        logError(e, `Grid-desktop: Copy failed for ${basename}`);
-                    } finally {
-                        checkDone();
-                    }
-                }
-            );
+            copyFileOrDirRecursiveAsync(srcFile, targetFile, checkDone);
         }
     }
 }
@@ -445,8 +517,9 @@ function showProperties(uri) {
 function openDesktopIconContextMenu(grid, event, widgetData) {
     const menu = createPopupMenuAt(grid, event);
     const uri = widgetData.uri || '';
+    const homeUri = Gio.File.new_for_path(GLib.get_home_dir()).get_uri();
     const isTrash = uri.startsWith('trash:') || widgetData.name === 'Kuka';
-    const isHome = uri === Gio.File.new_for_path(GLib.get_home_dir()).get_uri();
+    const isHome = (uri === homeUri || uri === `${homeUri}/`);
 
     const isNetworkOrMountUri = uri.startsWith('google-drive:') ||
                                 uri.startsWith('smb:') ||
@@ -456,13 +529,26 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
                                 uri.startsWith('davs:');
 
     const isMount = (!isTrash && !isHome) && (Boolean(widgetData.isSpecial) || isNetworkOrMountUri);
+    const isDesktopEntry = uri.endsWith('.desktop');
+    const isNormalItem = !widgetData.isSpecial && !isTrash && !isHome && !isMount;
 
+    // 1. Open & Quick Look / Edit
     const openItem = new PopupMenu.PopupMenuItem('Open');
     openItem.connect('activate', () => launchFileUri(uri));
     menu.addMenuItem(openItem);
 
-    const isDesktopEntry = uri.endsWith('.desktop');
-    if (!widgetData.isSpecial && !isTrash && !isMount && !isDesktopEntry) {
+    if (isDesktopEntry && isNormalItem) {
+        const editItem = new PopupMenu.PopupMenuItem('Edit in Text Editor');
+        editItem.connect('activate', () => {
+            const editor = Gio.AppInfo.get_default_for_type('text/plain', false);
+            if (editor) {
+                editor.launch([Gio.File.new_for_uri(uri)], global.create_app_launch_context(0, -1));
+            }
+        });
+        menu.addMenuItem(editItem);
+    }
+
+    if (isNormalItem && !isDesktopEntry) {
         const previewItem = new PopupMenu.PopupMenuItem('Quick Look (Sushi)');
         previewItem.connect('activate', () => previewWithSushi(uri));
         menu.addMenuItem(previewItem);
@@ -487,62 +573,80 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
         menu.addMenuItem(unmountItem);
     }
 
-    if (!widgetData.isSpecial && !isTrash && !isHome && !isMount) {
-        // Segédfüggvény: összegyűjti az összes kijelölt fájl URI-ját (vagy csak ezt az egyet)
-        const getTargetUris = () => {
-            const selection = grid._selectedWidgetIds;
-            if (selection && selection.has(widgetData.id) && selection.size > 1) {
-                const uris = [];
-                for (const id of selection) {
-                    const node = grid.widgetNodes.get(id);
-                    const data = node?.widgetData;
-                    if (data && data.isDesktopIcon && data.uri && !data.isSpecial) {
-                        uris.push(data.uri);
-                    }
-                }
-                if (uris.length > 0) return uris;
-            }
-            return [uri];
-        };
+    // 2. Rename, Compress, Duplicate, Make Alias
+    if (!isTrash) {
+        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        const copyItem = new PopupMenu.PopupMenuItem('Copy to…');
-        copyItem.connect('activate', () => {
-            const fileUris = getTargetUris();
+        if (isNormalItem) {
+            const renameItem = new PopupMenu.PopupMenuItem('Rename');
+            renameItem.connect('activate', () => {
+                const node = grid.widgetNodes.get(widgetData.id);
+                if (node && typeof node.startRename === 'function')
+                    node.startRename();
+            });
+            menu.addMenuItem(renameItem);
+        }
+
+        if ((isNormalItem || isHome) && hasGnomeAutoar()) {
+            const compressItem = new PopupMenu.PopupMenuItem('Compress');
+            compressItem.connect('activate', () => compressFiles([uri]));
+            menu.addMenuItem(compressItem);
+        }
+
+        if (isNormalItem) {
+            const duplicateItem = new PopupMenu.PopupMenuItem('Duplicate');
+            duplicateItem.connect('activate', () => duplicateFiles([uri]));
+            menu.addMenuItem(duplicateItem);
+        }
+
+        const aliasItem = new PopupMenu.PopupMenuItem('Make Alias');
+        aliasItem.connect('activate', () => makeAliasOnDesktop([uri]));
+        menu.addMenuItem(aliasItem);
+    }
+
+    // 3. Copy, Copy to…, Move to…, Share, Move to Trash
+    if (!isTrash) {
+        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        const copyClipItem = new PopupMenu.PopupMenuItem('Copy');
+        copyClipItem.connect('activate', () => copyUrisToClipboard([uri]));
+        menu.addMenuItem(copyClipItem);
+    }
+
+    if (isNormalItem || isHome) {
+        const copyToItem = new PopupMenu.PopupMenuItem('Copy to…');
+        copyToItem.connect('activate', () => {
             chooseDestinationFolder('Select Destination Folder to Copy', (targetUri) => {
-                transferFilesTo(fileUris, targetUri, false);
+                transferFilesTo([uri], targetUri, false);
             });
         });
-        menu.addMenuItem(copyItem);
+        menu.addMenuItem(copyToItem);
+    }
 
-        const moveItem = new PopupMenu.PopupMenuItem('Move to…');
-        moveItem.connect('activate', () => {
-            const fileUris = getTargetUris();
+    if (isNormalItem) {
+        const moveToItem = new PopupMenu.PopupMenuItem('Move to…');
+        moveToItem.connect('activate', () => {
             chooseDestinationFolder('Select Destination Folder to Move', (targetUri) => {
-                transferFilesTo(fileUris, targetUri, true, () => {
-                    // Áthelyezés után azonnal tüntessük el az ikonokat a képernyőről
-                    if (grid._selectedWidgetIds && grid._selectedWidgetIds.has(widgetData.id)) {
-                        for (const id of grid._selectedWidgetIds) {
-                            const node = grid.widgetNodes.get(id);
-                            if (node && node.widgetData?.isDesktopIcon) {
-                                node.destroy();
-                                grid.widgetNodes.delete(id);
-                                grid._nodeConfigs.delete(id);
-                            }
-                        }
-                        grid._clearWidgetSelection();
-                    } else {
-                        const node = grid.widgetNodes.get(widgetData.id);
-                        if (node) {
-                            node.destroy();
-                            grid.widgetNodes.delete(widgetData.id);
-                            grid._nodeConfigs.delete(widgetData.id);
-                        }
+                transferFilesTo([uri], targetUri, true, () => {
+                    const node = grid.widgetNodes.get(widgetData.id);
+                    if (node) {
+                        node.destroy();
+                        grid.widgetNodes.delete(widgetData.id);
+                        grid._nodeConfigs.delete(widgetData.id);
                     }
                 });
             });
         });
-        menu.addMenuItem(moveItem);
+        menu.addMenuItem(moveToItem);
+    }
 
+    if ((isNormalItem || isHome) && Gio.AppInfo.get_default_for_uri_scheme('mailto')) {
+        const shareItem = new PopupMenu.PopupMenuItem('Share via Email…');
+        shareItem.connect('activate', () => shareViaEmail([uri]));
+        menu.addMenuItem(shareItem);
+    }
+
+    if (isNormalItem) {
         const deleteItem = new PopupMenu.PopupMenuItem('Move to Trash');
         deleteItem.connect('activate', () => {
             trashFile(uri, () => {});
@@ -550,8 +654,14 @@ function openDesktopIconContextMenu(grid, event, widgetData) {
         menu.addMenuItem(deleteItem);
     }
 
-    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+    // 4. Tags (színes pöttyök)
+    if (!isTrash) {
+        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        addTagsMenuRow(menu, grid, [uri]);
+    }
 
+    // 5. Properties
+    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
     const propItem = new PopupMenu.PopupMenuItem('Properties');
     propItem.connect('activate', () => showProperties(uri));
     menu.addMenuItem(propItem);
@@ -660,10 +770,11 @@ export function openMultiSelectionContextMenu(grid, event) {
     const menu = createPopupMenuAt(grid, event);
     const count = selection.size;
 
-    // 1. Elemek kategorizálása és szűrése
     const homeUri = Gio.File.new_for_path(GLib.get_home_dir()).get_uri();
     const openableUris = [];
-    const transferableFileUris = []; // Copy / Move célokra
+    const transferableFileUris = []; // Normál fájlok/mappák (Duplicate, Move to, Trash)
+    const compressibleUris = [];     // Normál + Home (Compress, Copy to, Email)
+    const aliasableUris = [];        // Normál + Home + Mount (Copy, Make Alias, Tags)
     let widgetCount = 0;
 
     for (const id of selection) {
@@ -687,20 +798,20 @@ export function openMultiSelectionContextMenu(grid, event) {
             const isProtected = isTrash || isHome || isNetworkOrMount || Boolean(data.isSpecial);
 
             if (uri) {
-                // Megnyitni a védetteket is meg lehet (pl. Home mappát Nautilusszal), csak a Kukát nem feltétlen
                 openableUris.push(uri);
-
-                // Másolni / mozgatni viszont CSAK a normál fájlokat szabad!
-                if (!isProtected) {
+                if (!isTrash)
+                    aliasableUris.push(uri);
+                if (!isTrash && !isNetworkOrMount && !Boolean(data.isSpecial))
+                    compressibleUris.push(uri);
+                if (!isProtected)
                     transferableFileUris.push(uri);
-                }
             }
         } else {
             widgetCount++;
         }
     }
 
-    // 2. Fejléc
+    // Fejléc
     let headerText = `${count} items selected`;
     if (openableUris.length > 0 && widgetCount > 0) {
         headerText = `${count} items selected (${openableUris.length} files, ${widgetCount} widgets)`;
@@ -715,37 +826,75 @@ export function openMultiSelectionContextMenu(grid, event) {
     menu.addMenuItem(headerItem);
     menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-    // 3. MEGNYITÁS (Open)
+    // Open
     const openItem = new PopupMenu.PopupMenuItem(`Open (${openableUris.length})`);
     if (openableUris.length > 0 && widgetCount === 0) {
         openItem.connect('activate', () => {
-            for (const uri of openableUris) {
+            for (const uri of openableUris)
                 launchFileUri(uri);
-            }
         });
     } else {
         openItem.setSensitive(false);
     }
     menu.addMenuItem(openItem);
 
+    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-    // 4. COPY TO...
-    const copyItem = new PopupMenu.PopupMenuItem(`Copy to… (${transferableFileUris.length})`);
+    // Compress
+    const compressItem = new PopupMenu.PopupMenuItem(`Compress (${compressibleUris.length})`);
+    if (compressibleUris.length > 0) {
+        compressItem.connect('activate', () => compressFiles(compressibleUris));
+    } else {
+        compressItem.setSensitive(false);
+    }
+    menu.addMenuItem(compressItem);
+
+    // Duplicate
+    const dupItem = new PopupMenu.PopupMenuItem(`Duplicate (${transferableFileUris.length})`);
     if (transferableFileUris.length > 0) {
-        copyItem.connect('activate', () => {
+        dupItem.connect('activate', () => duplicateFiles(transferableFileUris));
+    } else {
+        dupItem.setSensitive(false);
+    }
+    menu.addMenuItem(dupItem);
+
+    // Make Alias
+    const aliasItem = new PopupMenu.PopupMenuItem(`Make Alias (${aliasableUris.length})`);
+    if (aliasableUris.length > 0) {
+        aliasItem.connect('activate', () => makeAliasOnDesktop(aliasableUris));
+    } else {
+        aliasItem.setSensitive(false);
+    }
+    menu.addMenuItem(aliasItem);
+
+    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    // Copy (vágólapra)
+    const copyClipItem = new PopupMenu.PopupMenuItem(`Copy (${aliasableUris.length})`);
+    if (aliasableUris.length > 0) {
+        copyClipItem.connect('activate', () => copyUrisToClipboard(aliasableUris));
+    } else {
+        copyClipItem.setSensitive(false);
+    }
+    menu.addMenuItem(copyClipItem);
+
+    // Copy to…
+    const copyToItem = new PopupMenu.PopupMenuItem(`Copy to… (${compressibleUris.length})`);
+    if (compressibleUris.length > 0) {
+        copyToItem.connect('activate', () => {
             chooseDestinationFolder('Select Destination Folder to Copy', (targetUri) => {
-                transferFilesTo(transferableFileUris, targetUri, false);
+                transferFilesTo(compressibleUris, targetUri, false);
             });
         });
     } else {
-        copyItem.setSensitive(false);
+        copyToItem.setSensitive(false);
     }
-    menu.addMenuItem(copyItem);
+    menu.addMenuItem(copyToItem);
 
-    // 5. MOVE TO...
-    const moveItem = new PopupMenu.PopupMenuItem(`Move to… (${transferableFileUris.length})`);
+    // Move to…
+    const moveToItem = new PopupMenu.PopupMenuItem(`Move to… (${transferableFileUris.length})`);
     if (transferableFileUris.length > 0) {
-        moveItem.connect('activate', () => {
+        moveToItem.connect('activate', () => {
             chooseDestinationFolder('Select Destination Folder to Move', (targetUri) => {
                 transferFilesTo(transferableFileUris, targetUri, true, () => {
                     for (const id of selection) {
@@ -764,13 +913,30 @@ export function openMultiSelectionContextMenu(grid, event) {
             });
         });
     } else {
-        moveItem.setSensitive(false);
+        moveToItem.setSensitive(false);
     }
-    menu.addMenuItem(moveItem);
+    menu.addMenuItem(moveToItem);
+
+    // Share via Email…
+    if (Gio.AppInfo.get_default_for_uri_scheme('mailto')) {
+        const shareItem = new PopupMenu.PopupMenuItem(`Share via Email… (${compressibleUris.length})`);
+        if (compressibleUris.length > 0) {
+            shareItem.connect('activate', () => shareViaEmail(compressibleUris));
+        } else {
+            shareItem.setSensitive(false);
+        }
+        menu.addMenuItem(shareItem);
+    }
+
+    // Tags
+    if (aliasableUris.length > 0) {
+        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        addTagsMenuRow(menu, grid, aliasableUris);
+    }
 
     menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-    // 6. TÖRLÉS
+    // Delete / Move to Trash
     const deletableCount = widgetCount + transferableFileUris.length;
     const deleteItem = new PopupMenu.PopupMenuItem(`Delete / Move to Trash (${deletableCount})`);
     if (deletableCount > 0) {
@@ -976,15 +1142,181 @@ function downloadImageToDesktop(url) {
 }
 
 function copyLocalFileToDesktop(fileUri) {
-    try {
-        const srcFile = Gio.File.new_for_uri(fileUri);
-        const desktop = getDesktopPath();
-        const targetFile = Gio.File.new_for_path(
-            GLib.build_filenamev([desktop, srcFile.get_basename()])
-        );
+    const srcFile = Gio.File.new_for_uri(fileUri);
+    const desktopDir = Gio.File.new_for_path(getDesktopPath());
+    const targetFile = getUniqueDestinationFile(desktopDir, srcFile.get_basename());
+    copyFileOrDirRecursiveAsync(srcFile, targetFile);
+}
 
-        srcFile.copy(targetFile, Gio.FileCopyFlags.OVERWRITE, null, null);
-    } catch (e) {
-        logError(e, 'Grid-desktop: Local file copy failed');
+function copyFileOrDirRecursiveAsync(srcFile, destFile, callback) {
+    srcFile.query_info_async('standard::type', Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, GLib.PRIORITY_DEFAULT, null, (file, res) => {
+        try {
+            const info = file.query_info_finish(res);
+            if (info.get_file_type() !== Gio.FileType.DIRECTORY) {
+                srcFile.copy_async(destFile, Gio.FileCopyFlags.ALL_METADATA, GLib.PRIORITY_DEFAULT, null, null, (f, r) => {
+                    try {
+                        f.copy_finish(r);
+                    } catch (e) {
+                        logError(e, 'Grid-desktop: File copy failed');
+                    } finally {
+                        if (callback) callback();
+                    }
+                });
+                return;
+            }
+
+            destFile.make_directory_async(GLib.PRIORITY_DEFAULT, null, (d, r) => {
+                try {
+                    d.make_directory_finish(r);
+                    srcFile.enumerate_children_async('standard::name', Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, GLib.PRIORITY_DEFAULT, null, (s, er) => {
+                        try {
+                            const enumerator = s.enumerate_children_finish(er);
+                            const children = [];
+                            let childInfo;
+                            while ((childInfo = enumerator.next_file(null)) !== null) {
+                                children.push(childInfo.get_name());
+                            }
+                            enumerator.close(null);
+
+                            if (children.length === 0) {
+                                if (callback) callback();
+                                return;
+                            }
+
+                            let pending = children.length;
+                            for (const name of children) {
+                                copyFileOrDirRecursiveAsync(srcFile.get_child(name), destFile.get_child(name), () => {
+                                    pending--;
+                                    if (pending === 0 && callback) callback();
+                                });
+                            }
+                        } catch (e) {
+                            logError(e, 'Grid-desktop: Enumerate children failed');
+                            if (callback) callback();
+                        }
+                    });
+                } catch (e) {
+                    logError(e, 'Grid-desktop: Make directory failed');
+                    if (callback) callback();
+                }
+            });
+        } catch (e) {
+            logError(e, 'Grid-desktop: Query info failed during copy');
+            if (callback) callback();
+        }
+    });
+}
+
+export function duplicateFiles(uris) {
+    for (const uri of uris) {
+        const srcFile = Gio.File.new_for_uri(uri);
+        const parent = srcFile.get_parent();
+        if (!parent) continue;
+
+        const targetFile = getUniqueDestinationFile(parent, srcFile.get_basename());
+        copyFileOrDirRecursiveAsync(srcFile, targetFile);
     }
+}
+
+export function makeAliasOnDesktop(uris) {
+    const desktopDir = Gio.File.new_for_path(getDesktopPath());
+
+    for (const uri of uris) {
+        const srcFile = Gio.File.new_for_uri(uri);
+        const targetPath = srcFile.get_path();
+        if (!targetPath) continue; // Virtuális URI-ra (pl. smb://) nem készülhet POSIX symlink
+
+        const basename = srcFile.get_basename();
+        const dotIdx = basename.lastIndexOf('.');
+        const aliasBase = dotIdx > 0
+            ? `${basename.substring(0, dotIdx)} alias${basename.substring(dotIdx)}`
+            : `${basename} alias`;
+
+        const linkFile = getUniqueDestinationFile(desktopDir, aliasBase);
+        linkFile.make_symbolic_link(targetPath, null);
+    }
+}
+
+export async function compressFiles(uris) {
+    if (!uris || uris.length === 0 || !hasGnomeAutoar())
+        return;
+
+    const { default: GnomeAutoar } = await import('gi://GnomeAutoar');
+
+    const files = uris.map(u => Gio.File.new_for_uri(u));
+    const parent = files[0].get_parent() || Gio.File.new_for_path(getDesktopPath());
+
+    // A GnomeAutoar.Compressor 2. paramétere a cél MAPPÁT várja, nem a fájlnevet!
+    const compressor = GnomeAutoar.Compressor.new(
+        files,
+        parent,
+        GnomeAutoar.Format.ZIP,
+        GnomeAutoar.Filter.NONE,
+        false
+    );
+
+    const cleanup = () => {
+        compressor.disconnect(doneId);
+        compressor.disconnect(errId);
+    };
+
+    const doneId = compressor.connect('completed', cleanup);
+    const errId = compressor.connect('error', (_self, err) => {
+        logError(err, 'Grid-desktop: Compression failed');
+        cleanup();
+    });
+
+    compressor.start_async(null);
+}
+
+export function copyUrisToClipboard(uris) {
+    if (!uris || uris.length === 0) return;
+    // A Nautilus / fájlkezelők a sortöréssel elválasztott file:// URI-kat várják vágólapról
+    St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, uris.join('\n'));
+}
+
+export function shareViaEmail(uris) {
+    const mailApp = Gio.AppInfo.get_default_for_uri_scheme('mailto');
+    if (!mailApp || !uris || uris.length === 0) return;
+
+    const paths = uris
+        .map(u => Gio.File.new_for_uri(u).get_path())
+        .filter(Boolean)
+        .map(p => `attach=${encodeURIComponent(p)}`);
+
+    if (paths.length === 0) return;
+    const mailtoUri = `mailto:?${paths.join('&')}`;
+    Gio.AppInfo.launch_default_for_uri_async(mailtoUri, global.create_app_launch_context(0, -1), null, null);
+}
+
+export function renameDesktopIcon(uri, newName, isDesktopEntry, onRenamed = null) {
+    const file = Gio.File.new_for_uri(uri);
+
+    if (isDesktopEntry) {
+        const path = file.get_path();
+        if (!path) return;
+
+        const keyFile = new GLib.KeyFile();
+        keyFile.load_from_file(path, GLib.KeyFileFlags.KEEP_COMMENTS | GLib.KeyFileFlags.KEEP_TRANSLATIONS);
+        const trimmedName = newName.trim();
+        keyFile.set_string('Desktop Entry', 'Name', trimmedName);
+
+        // Ha van lokalizált név (pl. Name[hu]), azt is frissítjük, különben a GIO azt olvassa vissza!
+        for (const lang of GLib.get_language_names()) {
+            const locKey = `Name[${lang}]`;
+            if (keyFile.has_key('Desktop Entry', locKey)) {
+                keyFile.set_string('Desktop Entry', locKey, trimmedName);
+            }
+        }
+
+        keyFile.save_to_file(path);
+        if (onRenamed) onRenamed(uri);
+        return;
+    }
+
+    file.set_display_name_async(newName.trim(), GLib.PRIORITY_DEFAULT, null, (f, res) => {
+        const updatedFile = f.set_display_name_finish(res);
+        if (updatedFile && onRenamed)
+            onRenamed(updatedFile.get_uri());
+    });
 }

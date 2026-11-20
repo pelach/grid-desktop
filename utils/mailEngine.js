@@ -89,7 +89,6 @@ class MailMonitorEngine {
                     const [, stdout] = p.communicate_utf8_finish(res);
 
                     if (p.get_successful()) {
-                        // Kikeressük az utolsó érvényes JSON sort (ha esetleg stderr sorok is jönnének)
                         const lines = stdout.trim().split('\n');
                         const lastLine = lines[lines.length - 1];
                         const data = JSON.parse(lastLine);

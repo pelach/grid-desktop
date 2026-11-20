@@ -412,6 +412,17 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
     return modified;
 }
 
+export function updateDesktopIconUri(settings, oldUri, newUri, newName) {
+    if (!settings || !oldUri || !newUri) return;
+    const widgets = getWidgets(settings);
+    const target = widgets.find(w => w.isDesktopIcon && (w.uri === oldUri || decodeURIComponent(w.uri) === decodeURIComponent(oldUri)));
+    if (target) {
+        target.uri = newUri;
+        if (newName) target.name = newName;
+        saveWidgets(settings, widgets);
+    }
+}
+
 export function monitorDesktop(settings, callback) {
     if (_monitor || !settings) return;
 

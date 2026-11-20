@@ -119,7 +119,7 @@ export const DesktopGrid = GObject.registerClass(
                         return Clutter.EVENT_STOP;
                     }
                 }
-
+                // pace Sushi indítás
                 if (symbol === Clutter.KEY_space) {
                     const selection = this._selectedWidgetIds;
                     
@@ -140,10 +140,30 @@ export const DesktopGrid = GObject.registerClass(
                         }
                     }
                 }
+                //ESC minden kijelölés törlés
                 if (symbol === Clutter.KEY_Escape) {
                     this._clearWidgetSelection();
                     return Clutter.EVENT_STOP;
                 }
+                //rename F2-re
+                if (symbol === Clutter.KEY_F2) {
+                    const selection = this._selectedWidgetIds;
+                    if (selection && selection.size === 1) {
+                        const selectedId = [...selection][0];
+                        const node = this.widgetNodes.get(selectedId);
+                        const widgetData = node?.widgetData;
+                        const homeUri = Gio.File.new_for_path(GLib.get_home_dir()).get_uri();
+
+                        if (widgetData?.isDesktopIcon && !widgetData.isSpecial &&
+                            widgetData.uri !== homeUri && widgetData.uri !== `${homeUri}/` &&
+                            !widgetData.uri?.startsWith('trash:')) {
+                            node.startRename?.();
+                            return Clutter.EVENT_STOP;
+                        }
+                    }
+                }
+
+
                 return Clutter.EVENT_PROPAGATE;
             });
             
@@ -701,6 +721,7 @@ export const DesktopGrid = GObject.registerClass(
                 globalUse24h: globalSettings.globalUse24h,
                 globalAccentColor: globalSettings.globalAccentColor,
                 extensionPath: this.extensionPath,
+                settings: this.settings,
             });
 
             const node = createWidgetNode(resolvedData, widgetWidth, widgetHeight, posX, posY);
