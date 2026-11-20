@@ -20,6 +20,7 @@ import {
     resolveAccentColor,
     resolveWidgetSizePreset,
     deleteCacheFile,
+    findEmptySpotForIcon,
 } from '../utils/widgetUtils.js';
 import {
     DEFAULT_STAGE_WIDTH,
@@ -659,11 +660,7 @@ export const DesktopGrid = GObject.registerClass(
             let modified = false;
             const placedWidgets = [];
 
-            const sortedWidgets = activeWidgets.slice().sort((a, b) => {
-                const posA = ((a.y || 0) * gridCols) + (a.x || 0);
-                const posB = ((b.y || 0) * gridCols) + (b.x || 0);
-                return posA - posB;
-            });
+            const sortedWidgets = activeWidgets.slice();
 
             sortedWidgets.forEach(widgetData => {
                 const effectiveWidth = Math.max(1, Math.min(widgetData.width || 2, gridCols));
@@ -673,7 +670,15 @@ export const DesktopGrid = GObject.registerClass(
                 let effectiveY = Math.max(0, Math.min(widgetData.y || 0, gridRows - effectiveHeight));
 
                 if (checkOverlap(effectiveX, effectiveY, effectiveWidth, effectiveHeight, placedWidgets)) {
-                    const freeSpot = findEmptySpot(placedWidgets, effectiveWidth, effectiveHeight, gridCols, gridRows);
+                    const freeSpot = widgetData.isDesktopIcon
+                        ? findEmptySpotForIcon(
+                            placedWidgets,
+                            gridCols,
+                            gridRows,
+                            this.settings.get_enum('desktop-icons-side') === 1,
+                            this.settings.get_enum('desktop-icons-direction') === 0
+                        )
+                        : findEmptySpot(placedWidgets, effectiveWidth, effectiveHeight, gridCols, gridRows);
                     if (freeSpot) {
                         effectiveX = freeSpot.x;
                         effectiveY = freeSpot.y;

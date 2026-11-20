@@ -5,7 +5,7 @@ import { createSwitchRow } from './aestheticControls.js';
 import { createOpenMeteoCitySearch } from './weatherSearch.js';
 import { getWidgets, saveWidgets } from '../utils/widgetUtils.js';
 import { clearBox, getConnectedMonitorsCount, buildMonitorEntries } from './displayUtils.js';
-import { syncDesktopIcons } from '../utils/desktopIcons.js';
+
 
 export function buildGlobalSettingsPage(settings) {
     const performCitySearch = createOpenMeteoCitySearch();
@@ -200,7 +200,6 @@ export function buildGlobalSettingsPage(settings) {
     });
     sideRow.connect('notify::selected', () => {
         settings.set_enum('desktop-icons-side', sideRow.get_selected());
-        syncDesktopIcons(settings, true);
     });
     desktopGroup.add(sideRow);
 
@@ -211,7 +210,6 @@ export function buildGlobalSettingsPage(settings) {
     });
     directionRow.connect('notify::selected', () => {
         settings.set_enum('desktop-icons-direction', directionRow.get_selected());
-        syncDesktopIcons(settings, true);
     });
     desktopGroup.add(directionRow);
 

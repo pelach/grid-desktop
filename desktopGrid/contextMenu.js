@@ -10,6 +10,7 @@ import { toggleWidgetResizeHandle } from './widgetEditUtils.js';
 import { onWidgetResized, onWidgetDeleted } from './dragDrop.js';
 import { COLUMNS_COUNT, ROWS_COUNT, getWidgets, supportsSizePresets, SIZE_PRESET_TIERS } from '../utils/widgetUtils.js';
 import { TAG_COLORS } from '../widgets/desktopIcon.js';
+import { syncDesktopIcons } from '../utils/desktopIcons.js';
 
 const hasGnomeAutoar = () => {
     const repo = GIRepository.Repository.dup_default
@@ -514,6 +515,33 @@ function showProperties(uri) {
     }
 }
 
+
+function createNewFolderOnDesktop(grid) {
+    const desktopDir = Gio.File.new_for_path(getDesktopPath());
+    const folderFile = getUniqueDestinationFile(desktopDir, 'Untitled Folder');
+
+    folderFile.make_directory_async(GLib.PRIORITY_DEFAULT, null, (dir, res) => {
+        try {
+            dir.make_directory_finish(res);
+            const newUri = dir.get_uri();
+
+            // Azonnal szinkronizáljuk és újrarajzoljuk, hogy ne kelljen várni a monitorra,
+            // és rögtön indíthassuk rajta az inline átnevezést!
+            syncDesktopIcons(grid.settings, false);
+            grid._rebuildGrid();
+
+            for (const [, node] of grid.widgetNodes) {
+                if (node?.widgetData?.isDesktopIcon && node.widgetData.uri === newUri) {
+                    node.startRename?.();
+                    break;
+                }
+            }
+        } catch (e) {
+            logError(e, 'Grid-desktop: Failed to create new folder');
+        }
+    });
+}
+
 function openDesktopIconContextMenu(grid, event, widgetData) {
     const menu = createPopupMenuAt(grid, event);
     const uri = widgetData.uri || '';
@@ -726,9 +754,24 @@ export function openWidgetContextMenu(grid, event, node, widgetData) {
 export function openContextMenu(grid, event) {
     const menu = createPopupMenuAt(grid, event);
 
+    const newFolderItem = new PopupMenu.PopupMenuItem('New Folder');
+    newFolderItem.connect('activate', () => createNewFolderOnDesktop(grid));
+    menu.addMenuItem(newFolderItem);
+
     const pasteItem = new PopupMenu.PopupMenuItem('Paste to Desktop');
     pasteItem.connect('activate', () => pasteClipboardToDesktop());
     menu.addMenuItem(pasteItem);
+
+    if (grid.settings.get_boolean('show-desktop-icons')) {
+        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        const cleanUpItem = new PopupMenu.PopupMenuItem('Clean Up');
+        cleanUpItem.connect('activate', () => {
+            syncDesktopIcons(grid.settings, true);
+            grid._rebuildGrid();
+        });
+        menu.addMenuItem(cleanUpItem);
+    }
 
     menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
@@ -756,6 +799,15 @@ export function openContextMenu(grid, event) {
         grid.settings.set_boolean('show-grid', !current);
     });
     menu.addMenuItem(toggleLinesItem);
+
+    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    const propItem = new PopupMenu.PopupMenuItem('Properties');
+    propItem.connect('activate', () => {
+        const desktopUri = Gio.File.new_for_path(getDesktopPath()).get_uri();
+        showProperties(desktopUri);
+    });
+    menu.addMenuItem(propItem);
 
     Main.uiGroup.add_child(menu.actor);
     menu.open(BoxPointer.PopupAnimation.NONE);
@@ -998,8 +1050,15 @@ function pasteClipboardToDesktop() {
         const display = global.display;
         const selection = display.get_selection();
         const mimetypes = selection.get_mimetypes(Meta.SelectionType.SELECTION_CLIPBOARD) || [];
-        const imageMime = mimetypes.find(m => m.startsWith('image/'));
 
+        // 1. Ha a fájlkezelő URI listát tett a vágólapra (Nautilus / Nemo / Dolphin)
+        if (mimetypes.includes('text/uri-list')) {
+            _transferTextMimeAndProcess(selection, 'text/uri-list');
+            return;
+        }
+
+        // 2. Ha kép adat van a vágólapon (pl. böngészőből "Kép másolása" vagy screenshot)
+        const imageMime = mimetypes.find(m => m.startsWith('image/'));
         if (imageMime) {
             if (mimetypes.includes('text/html')) {
                 _extractHtmlAndSaveImage(selection, imageMime);
@@ -1014,6 +1073,34 @@ function pasteClipboardToDesktop() {
 
     _handleTextClipboard();
 }
+
+function _transferTextMimeAndProcess(selection, mimeType) {
+    const stream = Gio.MemoryOutputStream.new_resizable();
+    selection.transfer_async(
+        Meta.SelectionType.SELECTION_CLIPBOARD,
+        mimeType,
+        -1,
+        stream,
+        null,
+        (sel, res) => {
+            try {
+                sel.transfer_finish(res);
+                stream.close(null);
+                const bytes = stream.steal_as_bytes();
+                const text = new TextDecoder('utf-8').decode(bytes.get_data());
+                const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+                for (const line of lines) {
+                    if (line.startsWith('file://')) {
+                        copyLocalFileToDesktop(line);
+                    }
+                }
+            } catch (e) {
+                logError(e, 'Grid-desktop: Failed to read uri-list from clipboard');
+            }
+        }
+    );
+}
+
 
 function _extractHtmlAndSaveImage(selection, imageMime) {
     const stream = Gio.MemoryOutputStream.new_resizable();
@@ -1090,10 +1177,14 @@ function _handleTextClipboard() {
             }
         }
 
-        if (firstLine.startsWith('file://')) {
-            lines.forEach(uri => {
-                if (uri.startsWith('file://'))
-                    copyLocalFileToDesktop(uri);
+        if (firstLine.startsWith('file://') || (firstLine.startsWith('/') && GLib.file_test(firstLine, GLib.FileTest.EXISTS))) {
+            lines.forEach(entry => {
+                if (entry.startsWith('file://')) {
+                    copyLocalFileToDesktop(entry);
+                } else if (entry.startsWith('/') && GLib.file_test(entry, GLib.FileTest.EXISTS)) {
+                    const fileUri = Gio.File.new_for_path(entry).get_uri();
+                    copyLocalFileToDesktop(fileUri);
+                }
             });
             return;
         }

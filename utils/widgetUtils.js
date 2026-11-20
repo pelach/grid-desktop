@@ -807,6 +807,32 @@ export function findEmptySpot(widgets, reqWidth, reqHeight, maxCols = COLUMNS_CO
     return null;
 }
 
+export function findEmptySpotForIcon(widgets, maxCols, maxRows, isRight = false, isVertical = true) {
+    const startCol = isRight ? (maxCols - 1) : 0;
+    const colStep = isRight ? -1 : 1;
+
+    if (isVertical) {
+        for (let cStep = 0; cStep < maxCols; cStep++) {
+            const col = startCol + (cStep * colStep);
+            for (let row = 0; row < maxRows; row++) {
+                if (!checkOverlap(col, row, 1, 1, widgets)) {
+                    return { x: col, y: row };
+                }
+            }
+        }
+    } else {
+        for (let row = 0; row < maxRows; row++) {
+            for (let cStep = 0; cStep < maxCols; cStep++) {
+                const col = startCol + (cStep * colStep);
+                if (!checkOverlap(col, row, 1, 1, widgets)) {
+                    return { x: col, y: row };
+                }
+            }
+        }
+    }
+    return null;
+}
+
 export function getWidgets(settings) {
     if (!settings) return [];
     try {
@@ -871,29 +897,26 @@ export function addWidget(settings, widgetData, defaultWidth, defaultHeight) {
     const gridGap = settings ? (settings.get_int('grid-gap-size') || 16) : 16;
     const step = cellSize + gridGap;
 
-    let screenWidth = 0;
+    let screenWidth = 1920;
+    let screenHeight = 1080;
     try {
-        if (typeof global !== 'undefined' && global.stage && global.stage.width > 0) {
-            screenWidth = global.stage.width;
-        } else if (typeof global !== 'undefined' && global.display) {
+        if (typeof global !== 'undefined' && global.display) {
             const primaryMonIdx = global.display.get_primary_monitor();
             const geom = global.display.get_monitor_geometry(primaryMonIdx);
-            if (geom && geom.width > 0) {
+            if (geom && geom.width > 0 && geom.height > 0) {
                 screenWidth = geom.width;
+                screenHeight = geom.height - 32;
             }
         }
-    } catch (e) {
-        screenWidth = 0;
-    }
-
-    if (!screenWidth || screenWidth <= 0) {
-        screenWidth = 3840; // Ultrawide/4K biztonsági fallback
-    }
+    } catch (e) {}
 
     const availableWidth = Math.max(step, screenWidth - (GRID_MARGIN_PX * 2));
+    const availableHeight = Math.max(step, screenHeight - (GRID_MARGIN_PX * 2));
     const actualGridCols = Math.max(1, Math.floor((availableWidth + gridGap) / step));
+    const actualGridRows = Math.max(1, Math.floor((availableHeight + gridGap) / step));
 
-    const emptySpot = findEmptySpot(widgets, spawnWidth, spawnHeight, actualGridCols);
+    const emptySpot = findEmptySpot(widgets, spawnWidth, spawnHeight, actualGridCols, actualGridRows);
+  
     widgetData.x = emptySpot ? emptySpot.x : 0;
     widgetData.y = emptySpot ? emptySpot.y : 0;
     widgetData.width = spawnWidth;

@@ -1,8 +1,10 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import { getWidgets, saveWidgets, calculateGridDimensions } from './widgetUtils.js';
+import { getWidgets, saveWidgets, calculateGridDimensions, COLUMNS_COUNT } from './widgetUtils.js';
 import { getMountedDeviceIcons } from './mountedDeviceIcons.js';
 import { getNetworkLocationIcons } from './networkLocationIcons.js';
+import { getTargetMonitor, getPanelHeight } from '../desktopGrid/helpers.js';
+import { DesktopGrid } from '../desktopGrid/index.js';
 
 function getThumbnailForUri(uri) {
     try {
@@ -63,8 +65,6 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
 
     const showLabels = settings.get_boolean('desktop-icons-show-labels');
     const size = 1;
-    const side = settings.get_string('desktop-icons-side') || 'left';
-    const direction = settings.get_string('desktop-icons-direction') || 'vertical';
 
     const showHome = settings.get_boolean('desktop-icons-show-home');
     const showTrash = settings.get_boolean('desktop-icons-show-trash');
@@ -76,15 +76,28 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
         ? 'primary'
         : globalMonitorSetting;
 
-    const stageWidth = global.stage ? global.stage.width : 1920;
-    const stageHeight = global.stage ? global.stage.height : 1080;
+    let cols, rows;
+    const primaryIdx = global.display ? global.display.get_primary_monitor() : 0;
+    const grids = DesktopGrid._activeInstances ? [...DesktopGrid._activeInstances] : [];
+    const activeGrid = grids.find(g => g.targetMonitorIndex === primaryIdx || g.targetMonitorIndex === null) || grids[0];
 
+    if (activeGrid && activeGrid.gridCols > 0 && activeGrid.gridRows > 0) {
+        cols = activeGrid.gridCols;
+        rows = activeGrid.gridRows;
+    } else {
+        const target = getTargetMonitor(null, settings);
+        const panelHeight = getPanelHeight();
+        const currentW = target ? target.geom.width : (global.stage ? global.stage.width : 1920);
+        const currentH = target
+            ? (target.geom.height - ((target.index === primaryIdx) ? panelHeight : 0))
+            : ((global.stage ? global.stage.height : 1080) - panelHeight);
 
-    const cellSize = settings.get_int('grid-cell-size') || 80;
-    const gridGap = settings.get_int('grid-gap-size') || 16;
-    const gridDimensions = calculateGridDimensions(stageWidth, stageHeight, 100, cellSize, gridGap);
-    const cols = gridDimensions.gridCols;
-    const rows = gridDimensions.gridRows;
+        const cellSize = settings.get_int('grid-cell-size') || 80;
+        const gridGap = settings.get_int('grid-gap-size') || 16;
+        const gridDimensions = calculateGridDimensions(currentW, currentH, COLUMNS_COUNT, cellSize, gridGap);
+        cols = gridDimensions.gridCols;
+        rows = gridDimensions.gridRows;
+    }
 
     let currentFiles = [];
 
@@ -244,19 +257,8 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
             maxIdNum++;
             const newId = `${prefix}${maxIdNum}`;
 
-            let isRight = false;
-            try {
-                isRight = (settings.get_string('desktop-icons-side') === 'right');
-            } catch (e) {
-                isRight = (settings.get_enum('desktop-icons-side') === 1);
-            }
-
-            let isVertical = true;
-            try {
-                isVertical = (settings.get_string('desktop-icons-direction') === 'vertical');
-            } catch (e) {
-                isVertical = (settings.get_enum('desktop-icons-direction') === 0);
-            }
+            const isRight = (settings.get_enum('desktop-icons-side') === 1);
+            const isVertical = (settings.get_enum('desktop-icons-direction') === 0);
 
             let spot = null;
 
@@ -268,6 +270,8 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
                     const c = startCol + (cStep * colStep);
                     for (let r = 0; r <= rows - size; r++) {
                         const isOccupied = widgets.some(other => {
+                        if (other.monitor && other.monitor !== targetMonitor)
+                                return false;
                             const oW = other.width || size;
                             const oH = other.height || size;
                             return c < (other.x + oW) &&
@@ -290,6 +294,8 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
                     for (let cStep = 0; cStep <= cols - size; cStep++) {
                         const c = startCol + (cStep * colStep);
                         const isOccupied = widgets.some(other => {
+                            if (other.monitor && other.monitor !== targetMonitor)
+                                return false;
                             const oW = other.width || size;
                             const oH = other.height || size;
                             return c < (other.x + oW) &&
@@ -346,19 +352,8 @@ export function syncDesktopIcons(settings, forceOrganize = false) {
         let desktopIcons = widgets.filter(w => w.isDesktopIcon);
         let otherWidgets = widgets.filter(w => !w.isDesktopIcon);
 
-        let isRight = false;
-        try {
-            isRight = (settings.get_string('desktop-icons-side') === 'right');
-        } catch (e) {
-            isRight = (settings.get_enum('desktop-icons-side') === 1);
-        }
-
-        let isVertical = true;
-        try {
-            isVertical = (settings.get_string('desktop-icons-direction') === 'vertical');
-        } catch (e) {
-            isVertical = (settings.get_enum('desktop-icons-direction') === 0);
-        }
+        const isRight = (settings.get_enum('desktop-icons-side') === 1);
+        const isVertical = (settings.get_enum('desktop-icons-direction') === 0);
 
         let startX = isRight ? (cols - size) : 0;
         let curX = startX;
