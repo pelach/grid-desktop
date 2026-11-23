@@ -16,6 +16,7 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
   - **Quick Preview with GNOME Sushi**: Press Spacebar on any selected file or folder for instant file preview.
   - **File Operations**: Seamless file management with dedicated **Move to...** and **Copy to...** dialogs, trash handling, and batch clipboard operations.
   - **Comprehensive Context Menu**: Native right-click menus for desktop icons, selection groups, and the empty canvas with **Paste to Desktop**, auto-layout reorganization, and quick toggles.
+  - **macOS-Style Color Tags**: Assign multiple color-coded tags to desktop files and folders with live synchronization to Nautilus emblems and sidebar filter views (requires optional Nautilus extension setup below).
   - Quick shortcuts for Home folder, Trash, mounted drives, and network shares.
   
 ---
@@ -206,6 +207,22 @@ A high-performance desktop widget ecosystem and icon manager for GNOME Shell, po
    gnome-extensions enable grid-desktop@pelach.github.com
    ```
 
+## Optional: Nautilus Color Tags Integration
+
+To enable color tag emblems, right-click tag menus, and live sidebar tag filtering inside Nautilus (Files):
+
+1. **Install the `nautilus-python` bindings** for your distribution:
+   - **Debian / Ubuntu:** `sudo apt install python3-nautilus`
+   - **Fedora:** `sudo dnf install nautilus-python`
+   - **Arch:** `sudo pacman -S python-nautilus`
+
+2. **Copy the extension script:**
+   ```bash
+   mkdir -p ~/.local/share/nautilus-python/extensions
+   cp grid_desktop_tags.py ~/.local/share/nautilus-python/extensions/
+
+3. **Restart Nautilus:**
+   nautilus -q
 ---
 
 ## Development and Debugging

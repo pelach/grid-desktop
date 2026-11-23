@@ -11,12 +11,19 @@ const TAG_KEYS = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple', 'Gray'];
 function syncDesktopTagSymlinks(gfile) {
     try {
         const path = gfile.get_path();
-        if (!path || !GLib.file_test(path, GLib.FileTest.EXISTS)) return;
+        if (!path) return;
 
-        const info = gfile.query_info('xattr::user.xdg.tags', Gio.FileQueryInfoFlags.NONE, null);
-        const raw = info.get_attribute_string('xattr::user.xdg.tags') || '';
+        // Külön try-catch az attribútum lekérdezésre: ha törölték az xattr-t,
+        // a query_info hibát dobhat, de nekünk akkor is tovább kell mennünk üres listával!
+        let raw = '';
+        try {
+            const info = gfile.query_info('xattr::user.xdg.tags', Gio.FileQueryInfoFlags.NONE, null);
+            raw = info.get_attribute_string('xattr::user.xdg.tags') || '';
+        } catch (e) {
+            raw = '';
+        }
+
         const activeTags = new Set(raw.split(',').map(t => t.trim()).filter(Boolean));
-
         const baseDir = GLib.build_filenamev([GLib.get_home_dir(), '.local', 'share', 'grid-desktop', 'tags']);
         const fileName = GLib.path_get_basename(path);
 
@@ -27,11 +34,14 @@ function syncDesktopTagSymlinks(gfile) {
             const linkFile = Gio.File.new_for_path(linkPath);
 
             if (activeTags.has(key)) {
-                if (!GLib.file_test(linkPath, GLib.FileTest.EXISTS)) {
+                if (!GLib.file_test(linkPath, GLib.FileTest.IS_SYMLINK) && !GLib.file_test(linkPath, GLib.FileTest.EXISTS)) {
                     linkFile.make_symbolic_link(path, null);
                 }
-            } else if (GLib.file_test(linkPath, GLib.FileTest.IS_SYMLINK)) {
-                linkFile.delete(null);
+            } else {
+                // Célzottan a symlinket nézzük (IS_SYMLINK), és töröljük
+                if (GLib.file_test(linkPath, GLib.FileTest.IS_SYMLINK)) {
+                    linkFile.delete(null);
+                }
             }
         }
     } catch (e) {}
