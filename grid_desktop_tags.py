@@ -4,7 +4,9 @@ import gi
 
 gi.require_version('GObject', '2.0')
 gi.require_version('Gio', '2.0')
-from gi.repository import Nautilus, GObject, Gio
+gi.require_version('Gtk', '4.0')
+gi.require_version('Gdk', '4.0')
+from gi.repository import Nautilus, GObject, Gio, Gtk, Gdk, GLib
 
 TAGS = [
     ("Red",    "#ff3b30"),
@@ -184,6 +186,86 @@ def set_file_tags(gfile, tags):
 
 
 class GridDesktopTagsExtension(GObject.GObject, Nautilus.MenuProvider, Nautilus.InfoProvider):
+    def __init__(self):
+        super().__init__()
+        self._inject_sidebar_css()
+        GLib.timeout_add(300, self._patch_sidebar_icons)
+
+    def _inject_sidebar_css(self):
+        css = """
+        .tag-section-divider {
+            border-bottom: 1px solid alpha(currentColor, 0.14);
+            margin-bottom: 6px;
+            padding-bottom: 6px;
+        }
+        """
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css.encode('utf-8'))
+        display = Gdk.Display.get_default()
+        if display:
+            Gtk.StyleContext.add_provider_for_display(
+                display,
+                provider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            )
+
+    def _find_listbox_row(self, widget):
+        curr = widget
+        while curr:
+            if isinstance(curr, Gtk.ListBoxRow):
+                return curr
+            curr = curr.get_parent()
+        return None
+
+    def _block_right_click(self, row):
+        if getattr(row, '_tag_rc_blocked', False):
+            return
+        gesture = Gtk.GestureClick.new()
+        gesture.set_button(3)  # Csak a jobb egérgombot fogja meg
+        gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        gesture.connect('pressed', lambda g, n, x, y: g.set_state(Gtk.EventSequenceState.CLAIMED))
+        row.add_controller(gesture)
+        row._tag_rc_blocked = True
+
+    def _patch_sidebar_icons(self):
+        app = Gtk.Application.get_default()
+        if not app:
+            return True
+        for win in app.get_windows():
+            self._walk_and_replace(win)
+        return True
+
+    def _walk_and_replace(self, widget):
+        child = widget.get_first_child()
+        while child:
+            if isinstance(child, Gtk.Label):
+                text = child.get_text()
+                if text in VALID_KEYS:
+                    # 1. Ikon csere a soron belül
+                    parent = child.get_parent()
+                    if parent:
+                        sibling = parent.get_first_child()
+                        while sibling:
+                            if isinstance(sibling, Gtk.Image):
+                                svg_path = os.path.join(EMBLEM_DIR, f'tag-{text.lower()}.svg')
+                                if getattr(sibling, '_tag_patched', None) != svg_path:
+                                    sibling.set_from_file(svg_path)
+                                    sibling.set_pixel_size(16)
+                                    sibling._tag_patched = svg_path
+                            sibling = sibling.get_next_sibling()
+
+                    # 2. Sor szintű védelem és elválasztó vonal
+                    row = self._find_listbox_row(child)
+                    if row:
+                        self._block_right_click(row)
+                        if text == "Red":
+                            prev_row = row.get_prev_sibling()
+                            if prev_row and not prev_row.has_css_class('tag-section-divider'):
+                                prev_row.add_css_class('tag-section-divider')
+
+            self._walk_and_replace(child)
+            child = child.get_next_sibling()
+
     def update_file_info(self, file):
         gfile = file.get_location()
         if not gfile or gfile.get_uri_scheme() != 'file':
