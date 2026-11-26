@@ -975,5 +975,22 @@ export const DesktopGrid = GObject.registerClass(
             this._syncGridLines();
         }
 
+        //refresh widgets (teszt)
+        refreshWidget(widgetId) {
+            const { widgets } = this._resolveActiveWidgets();
+            const target = widgets.find(w => w.id === widgetId);
+            if (!target)
+                return;
+
+            const node = this.widgetNodes.get(widgetId);
+            if (node) {
+                node.destroy();
+                this.widgetNodes.delete(widgetId);
+                this._nodeConfigs.delete(widgetId);
+            }
+
+            const globalSettings = readGlobalSettings(this.settings, this.interfaceSettings);
+            this._createNodeFactory(this._layout, globalSettings)(target);
+        }
     }
 );

@@ -154,6 +154,29 @@ export default class GridgetsExtension extends Extension {
             this._createAndShowGrids();
         }
 
+        // network figyelés - frissítés-
+        this._netMonitor = Gio.NetworkMonitor.get_default();
+        this._netDebounceId = 0;
+        this._netSignalId = this._netMonitor.connect('network-changed', (_monitor, available) => {
+            if (!available)
+                return;
+            if (this._netDebounceId > 0)
+                GLib.Source.remove(this._netDebounceId);
+
+            // 3 mp késleltetés, hogy a Wi-Fi DHCP/DNS is felálljon ébredés után
+            this._netDebounceId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+                this._netDebounceId = 0;
+                const netTypes = ['weather', 'currency-tracker', 'cryptoWidget', 'rss-headlines', 'rss-feed', 'github', 'f1', 'mailGoa'];
+                this._desktopGrids.forEach(grid => {
+                    for (const [id, node] of grid.widgetNodes) {
+                        if (netTypes.includes(node?.widgetData?.type))
+                            grid.refreshWidget(id);
+                    }
+                });
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+
         enableDashContextMenu();
     }
 
@@ -186,6 +209,16 @@ export default class GridgetsExtension extends Extension {
             this._monitorsChangedIdleId = 0;
         }
 
+        // network figyelés lelövése
+        if (this._netDebounceId > 0) {
+            GLib.Source.remove(this._netDebounceId);
+            this._netDebounceId = 0;
+        }
+        if (this._netMonitor && this._netSignalId > 0) {
+            this._netMonitor.disconnect(this._netSignalId);
+            this._netSignalId = 0;
+            this._netMonitor = null;
+        }
 
         if (this._interfaceSettings && this._interfaceSignalId > 0) {
             this._interfaceSettings.disconnect(this._interfaceSignalId);

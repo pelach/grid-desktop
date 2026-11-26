@@ -741,6 +741,10 @@ export function openWidgetContextMenu(grid, event, node, widgetData) {
     configItem.connect('activate', () => openPreferences(grid, widgetData.id));
     menu.addMenuItem(configItem);
 
+    const refreshItem = new PopupMenu.PopupMenuItem('Refresh');
+    refreshItem.connect('activate', () => grid.refreshWidget(widgetData.id));
+    menu.addMenuItem(refreshItem);
+    
     const deleteItem = new PopupMenu.PopupMenuItem('Delete Widget');
     deleteItem.connect('activate', () => onWidgetDeleted(grid, widgetData.id));
     menu.addMenuItem(deleteItem);
