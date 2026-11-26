@@ -717,7 +717,7 @@ export function openWidgetContextMenu(grid, event, node, widgetData) {
         menu.addMenuItem(sizeMenu);
     } else {
         const isResizing = Boolean(node.actionOverlay);
-        const resizeItem = new PopupMenu.PopupMenuItem(isResizing ? 'Hide Resize Handle' : 'Resize Widget');
+        const resizeItem = new PopupMenu.PopupMenuItem(isResizing ? 'Hide Resize Handle' : 'Resize');
         resizeItem.connect('activate', () => {
             const allWidgets = getWidgets(grid.settings);
             const gridCols = grid.gridCols || COLUMNS_COUNT;
@@ -737,7 +737,7 @@ export function openWidgetContextMenu(grid, event, node, widgetData) {
         menu.addMenuItem(resizeItem);
     }
 
-    const configItem = new PopupMenu.PopupMenuItem('Configure Widget...');
+    const configItem = new PopupMenu.PopupMenuItem('Configure...');
     configItem.connect('activate', () => openPreferences(grid, widgetData.id));
     menu.addMenuItem(configItem);
 
@@ -745,7 +745,7 @@ export function openWidgetContextMenu(grid, event, node, widgetData) {
     refreshItem.connect('activate', () => grid.refreshWidget(widgetData.id));
     menu.addMenuItem(refreshItem);
     
-    const deleteItem = new PopupMenu.PopupMenuItem('Delete Widget');
+    const deleteItem = new PopupMenu.PopupMenuItem('Delete');
     deleteItem.connect('activate', () => onWidgetDeleted(grid, widgetData.id));
     menu.addMenuItem(deleteItem);
 
